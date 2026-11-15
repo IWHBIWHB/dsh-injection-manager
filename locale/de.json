@@ -118,6 +118,7 @@
     "required": "erforderlich",
     "rulesLine": "AGENTS.md-Kette: {loaded} geladen / Budget {budget} B",
     "expandAll": "Alle ausklappen",
-    "collapseAll": "Alle einklappen"
+    "collapseAll": "Alle einklappen",
+    "ofSession": "{pct}% dieser Sitzung"
   }
 }

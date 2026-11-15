@@ -118,6 +118,7 @@
     "required": "必填",
     "rulesLine": "AGENTS.md 链：{loaded} 个已加载 / 预算 {budget} B",
     "expandAll": "展开全部",
-    "collapseAll": "折叠全部"
+    "collapseAll": "折叠全部",
+    "ofSession": "占本会话 {pct}%"
   }
 }

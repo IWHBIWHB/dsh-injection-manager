@@ -118,6 +118,7 @@
     "required": "obligatoire",
     "rulesLine": "Chaîne AGENTS.md : {loaded} chargés / budget {budget} B",
     "expandAll": "Tout déplier",
-    "collapseAll": "Tout replier"
+    "collapseAll": "Tout replier",
+    "ofSession": "{pct}% de cette session"
   }
 }

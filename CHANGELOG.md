@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1 — 2026-11-15
+
+- The group/flat view and the selected tab persist across reloads (localStorage,
+  per browser). Private windows fall back to the defaults.
+- The fourth KPI now answers "how big is the first request next to the whole
+  session": `697.6k` with `占本会话 12%` instead of a bare "not comparable" note.
+- Screenshots and the demo GIF re-recorded with the new toolbar and KPI.
+
 ## 1.6.0 — 2026-11-15
 
 - The KPI shows the preset by name (全开 / 极简 / 自定义 / Everything / Minimal)

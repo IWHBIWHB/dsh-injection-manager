@@ -118,6 +118,7 @@
     "required": "obrigatório",
     "rulesLine": "Cadeia AGENTS.md: {loaded} carregados / orçamento {budget} B",
     "expandAll": "Expandir tudo",
-    "collapseAll": "Recolher tudo"
+    "collapseAll": "Recolher tudo",
+    "ofSession": "{pct}% desta sessão"
   }
 }

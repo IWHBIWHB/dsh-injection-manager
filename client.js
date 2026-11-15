@@ -300,6 +300,27 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       }
       reportBoot('factory-entered')
 
+      const STORAGE_PREFIX = 'injection-manager:'
+
+      function useStoredState(key, initial) {
+        const [value, setValue] = useState(() => {
+          try {
+            const raw = localStorage.getItem(STORAGE_PREFIX + key)
+            return raw === null ? initial : JSON.parse(raw)
+          } catch {
+            return initial
+          }
+        })
+        useEffect(() => {
+          try {
+            localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value))
+          } catch {
+            /* storage may be disabled; the in-memory value still works */
+          }
+        }, [key, value])
+        return [value, setValue]
+      }
+
       function useSnapshot(sessionId) {
         const [state, setState] = useState({ status: 'loading', data: null, error: null })
         const [nonce, setNonce] = useState(0)
@@ -411,7 +432,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} ${t('chars')} · ${snapshot.items.length} ${t('items')}` },
           { key: 'savable', value: token(totals.savableTokens), sub: `${totals.savablePercent}% · ${t('shareOf')}` },
           { key: 'after', value: token(policy.preview.after), sub: `${policy.preview.savedPercent > 0 ? `−${policy.preview.savedPercent}% · ` : ''}${presetLabel(t, policy.preset)}` },
-          { key: 'anchor', value: totals.anchor === null ? '—' : token(totals.anchor.tokens), sub: t('anchorHint') },
+          {
+            key: 'anchor',
+            value: totals.anchor === null ? '—' : token(totals.anchor.tokens),
+            sub:
+              totals.anchor === null
+                ? t('anchorHint')
+                : t('ofSession', { pct: pct(totals.tokens, totals.anchor.tokens) }),
+          },
         ]
         return h(
           'div',
@@ -588,7 +616,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy }) {
         const [query, setQuery] = useState('')
-        const [view, setView] = useState('group')
+        const [view, setView] = useStoredState('view', 'group')
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
         const items = useMemo(() => {
@@ -1032,7 +1060,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const sessionId = pickSessionId(props)
         const { status, data, error, reload } = useSnapshot(sessionId)
         const t = useLocale(data)
-        const [tab, setTab] = useState('list')
+        const [tab, setTab] = useStoredState('tab', 'list')
         const [filter, setFilter] = useState('all')
         const [busy, setBusy] = useState(false)
         const [notice, setNotice] = useState(null)

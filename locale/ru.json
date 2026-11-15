@@ -118,6 +118,7 @@
     "required": "обязательно",
     "rulesLine": "Цепочка AGENTS.md: загружено {loaded} / бюджет {budget} B",
     "expandAll": "Раскрыть все",
-    "collapseAll": "Свернуть все"
+    "collapseAll": "Свернуть все",
+    "ofSession": "{pct}% сеанса"
   }
 }

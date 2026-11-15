@@ -118,6 +118,7 @@
     "required": "obligatorio",
     "rulesLine": "Cadena AGENTS.md: {loaded} cargados / presupuesto {budget} B",
     "expandAll": "Expandir todo",
-    "collapseAll": "Contraer todo"
+    "collapseAll": "Contraer todo",
+    "ofSession": "{pct}% de esta sesión"
   }
 }

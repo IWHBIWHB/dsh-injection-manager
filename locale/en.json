@@ -118,6 +118,7 @@
     "required": "required",
     "rulesLine": "AGENTS.md chain: {loaded} loaded / budget {budget} B",
     "expandAll": "Expand all",
-    "collapseAll": "Collapse all"
+    "collapseAll": "Collapse all",
+    "ofSession": "{pct}% of this session"
   }
 }
