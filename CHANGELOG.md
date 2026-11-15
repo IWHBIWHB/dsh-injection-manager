@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1 — 2026-11-15
+
+- Integration tests: a fake context drives `applyPolicyForAgent` through all
+  four channels; route tests cover suite toggles, undo, export and the
+  cross-site guard (27 tests total).
+- Docs: architecture (channels, snapshot pipeline, apply timing) and a FAQ.
+- README demo GIF: switching the REA suite off and undoing it, recorded from
+  the fixture against real snapshot data.
+
 ## 1.3.0 — 2026-11-15
 
 - Eight UI languages: Simplified Chinese, English, Japanese, Spanish, French,

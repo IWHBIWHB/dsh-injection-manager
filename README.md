@@ -30,6 +30,11 @@ last application record.
 
 ![Policy tab](docs/images/panel-policy.png)
 
+Switching the REA suite off moves the first request from 83.8k to 17.8k tokens;
+Undo brings it back (real data, interactions recorded against the fixture):
+
+![Demo: suite switch and undo](docs/images/demo.gif)
+
 ## Plugin configuration
 
 Plugins → dsh-injection-manager → Configuration exposes four presentation and
@@ -126,6 +131,12 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 - `GET /plugins/dsh-injection-manager/summary?session=<id>` — the snapshot the panel renders.
 - `GET /plugins/dsh-injection-manager/verify?session=<id>` — re-assembles a live session and returns the **effective** sections, contexts and tool names. This proves the policy landed, not just that a file changed.
 - `GET /plugins/dsh-injection-manager/diag` — client module presence in the boot table, last application result, how many times the assemble filter ran, and the before/after section counts.
+
+## Docs
+
+- [Architecture](docs/ARCHITECTURE.md): the four injection channels, the snapshot pipeline, and when a policy takes effect
+- [FAQ](docs/FAQ.md): why AGENTS.md cannot be switched off, unreachable budgets, relation to dsh-context
+- [Compatibility](docs/COMPATIBILITY.md): tested versions, required APIs, upgrade checks
 
 ## Limitations
 

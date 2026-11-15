@@ -30,6 +30,10 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ![策略页](docs/images/panel-policy.png)
 
+关掉 REA 整套后首轮从 83.8k 降到 17.8k，再撤销回来（真实数据，交互在离线夹页里录制）：
+
+![演示：整组开关与撤销](docs/images/demo.gif)
+
 ## 插件设置
 
 Plugins → dsh-injection-manager → Configuration 里有四项，只影响显示与首次默认值：
@@ -137,6 +141,12 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 - `GET /plugins/dsh-injection-manager/summary?session=<id>`：面板用的完整快照。
 - `GET /plugins/dsh-injection-manager/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。
 - `GET /plugins/dsh-injection-manager/diag`：客户端模块是否进了 boot 表、最近一次应用结果、`system-prompt/assemble` 过滤器被调用了几次、前后段落数。
+
+## 文档
+
+- [架构](docs/ARCHITECTURE.md)：四条注入通道、快照流水线、生效时序
+- [常见问题](docs/FAQ.md)：关不掉、预算到不了、和 dsh-context 的关系
+- [兼容性](docs/COMPATIBILITY.md)：已验证版本、依赖接口、升级排查
 
 ## 限制
 
