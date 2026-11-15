@@ -833,7 +833,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${onlySwitchable ? `${groups.length}/${snapshot.groups.length}` : String(snapshot.groups.length)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`,
             ),
             snapshot.undo && snapshot.undo.available
-              ? h('button', { type: 'button', className: 'ci-btn', disabled: busy, onClick: () => onUndo() }, t('undo'))
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'ci-btn',
+                    disabled: busy,
+                    title: snapshot.undo.last || '',
+                    style: { maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+                    onClick: () => onUndo(),
+                  },
+                  `${t('undo')}${snapshot.undo.last ? ` · ${snapshot.undo.last}` : ''}`,
+                )
               : null,
           ),
         )
@@ -1237,7 +1248,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           async (action, message) => {
             setBusy(true)
             try {
-              await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
+              await postJson(ROUTES.action, Object.assign({ session: sessionId, label: message }, action))
               reload()
               showNotice({ kind: 'ok', text: message || t('applied'), undo: true }, 6000)
             } catch (failure) {

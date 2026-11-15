@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.6 — 2026-11-15
+
+- Undo history entries carry the action label, so the footer button reads
+  "撤销上一步 · 已关闭 REA · 229 条目" instead of a bare button. The label comes
+  from the client (already localized) with a server-side fallback for API calls.
+- `/summary` exposes `undo.last` / `undo.lastAt`; route tests cover the fallback.
+
 ## 1.8.5 — 2026-11-15
 
 - Toasts now say what happened: "已关闭 REA · 229 条目" with Undo, instead of a
