@@ -210,6 +210,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-row:hover{background:var(--ci-card)}
 .ci-row .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-row .id{color:var(--ci-fg3);font-size:11px;margin-left:6px}
+.ci-hit{background:rgba(77,107,254,.22);background:color-mix(in srgb, var(--ci-accent) 24%, transparent);color:inherit;border-radius:2px;padding:0 1px}
 .ci-row .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ci-fg2);white-space:nowrap}
 .ci-row .badge i{width:8px;height:8px;border-radius:3px;display:block}
 .ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
@@ -606,7 +607,17 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return { on: onCount === unlocked.length, mixed: onCount > 0 && onCount < unlocked.length, disabled: false }
       }
 
-      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested }) {
+      // Inline match highlighting for search. Named HitMark because `Highlight`
+      // is a DOM global (CSS Custom Highlight API) and would be shadowed badly.
+      function HitMark({ text, needle }) {
+        const value = String(text)
+        if (!needle) return value
+        const at = value.toLowerCase().indexOf(needle)
+        if (at < 0) return value
+        return [value.slice(0, at), h('mark', { className: 'ci-hit', key: 'hit' }, value.slice(at, at + needle.length)), value.slice(at + needle.length)]
+      }
+
+      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
         const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
@@ -616,7 +627,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           h(
             'div',
             { className: 'n', title: `${item.name} · ${item.tokens} token` },
-            label,
+            h(HitMark, { text: label, needle }),
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
@@ -633,6 +644,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [view, setView] = useStoredState('view', 'group')
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
+        const needle = deferredQuery.trim().toLowerCase()
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
@@ -779,7 +791,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                           'div',
                           { className: 'n' },
                           h('span', { className: 'ci-caret' + (open ? ' open' : '') }, open ? '▾' : '▸'),
-                          groupLabelOf(t, group),
+                          h(HitMark, { text: groupLabelOf(t, group), needle }),
                           h('span', { className: 'id' }, `${group.items.length} ${t('items')}`),
                         ),
                         h('div', { className: 'badge' }, h(Dot, { channel: group.channel }), t(group.channel)),
@@ -788,11 +800,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                         h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
                       ),
                       open
-                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true }))
+                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true, needle }))
                         : null,
                     )
                   })
-                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy })),
+                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, needle })),
           ),
           h(
             'div',

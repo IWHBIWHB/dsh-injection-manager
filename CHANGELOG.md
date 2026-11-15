@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.2 — 2026-11-15
+
+- Search highlights the matched substring in group labels and item names.
+  The helper is named `HitMark` on purpose: `Highlight` is a DOM global (CSS
+  Custom Highlight API), and the first version crashed every row by shadowing
+  it — caught while verifying with real page errors, not by reading the code.
+
 ## 1.8.1 — 2026-11-15
 
 - The success toast now carries an inline Undo for six seconds, so a mistaken
