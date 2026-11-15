@@ -141,6 +141,8 @@
     "historyTitle": "Historial de deshacer",
     "restoreTo": "Restaurar",
     "historyEmpty": "Aún no hay acciones que deshacer",
-    "restored": "Restaurado"
+    "restored": "Restaurado",
+    "confirmRestore": "¿Confirmar restauración?",
+    "cancel": "Cancelar"
   }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.8 — 2026-11-15
+
+- Restoring an earlier step now asks once ("确认回退？" / Cancel): it discards
+  newer history, so a stray click should not be enough.
+- Eight locales gained `confirmRestore` / `cancel`; the demo GIF was re-recorded
+  with the corrected custom-preset label after a suite switch.
+
 ## 1.8.7 — 2026-11-15
 
 - Multi-step undo: the Policy tab lists the last 20 remembered steps with their

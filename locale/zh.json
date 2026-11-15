@@ -141,6 +141,8 @@
     "historyTitle": "撤销历史",
     "restoreTo": "回到此步",
     "historyEmpty": "还没有可撤销的操作",
-    "restored": "已回到该步"
+    "restored": "已回到该步",
+    "confirmRestore": "确认回退？",
+    "cancel": "取消"
   }
 }

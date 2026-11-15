@@ -141,6 +141,8 @@
     "historyTitle": "Historique d'annulation",
     "restoreTo": "Restaurer",
     "historyEmpty": "Aucune action à annuler pour l'instant",
-    "restored": "Restauré"
+    "restored": "Restauré",
+    "confirmRestore": "Confirmer la restauration ?",
+    "cancel": "Annuler"
   }
 }

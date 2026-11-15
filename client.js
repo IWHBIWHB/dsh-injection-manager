@@ -855,6 +855,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
         const [suffix, setSuffix] = useState(policy.prompt.suffix)
         const [saving, setSaving] = useState(false)
+        const [confirmRestore, setConfirmRestore] = useState(null)
         const timer = useRef(null)
 
         useEffect(() => {
@@ -969,9 +970,23 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                         h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
                         h(
                           'button',
-                          { type: 'button', className: 'ci-btn', onClick: () => act({ kind: 'restore', index: entry.index }, t('restored')) },
-                          t('restoreTo'),
+                          {
+                            type: 'button',
+                            className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
+                            onClick: () => {
+                              if (confirmRestore === entry.index) {
+                                setConfirmRestore(null)
+                                act({ kind: 'restore', index: entry.index }, t('restored'))
+                              } else {
+                                setConfirmRestore(entry.index)
+                              }
+                            },
+                          },
+                          confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
                         ),
+                        confirmRestore === entry.index
+                          ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
+                          : null,
                       ),
                     ),
                 ),

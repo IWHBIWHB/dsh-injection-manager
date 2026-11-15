@@ -141,6 +141,8 @@
     "historyTitle": "Rückgängig-Verlauf",
     "restoreTo": "Wiederherstellen",
     "historyEmpty": "Noch keine Aktionen zum Rückgängigmachen",
-    "restored": "Wiederhergestellt"
+    "restored": "Wiederhergestellt",
+    "confirmRestore": "Wiederherstellen bestätigen?",
+    "cancel": "Abbrechen"
   }
 }

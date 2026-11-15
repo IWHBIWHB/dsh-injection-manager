@@ -141,6 +141,8 @@
     "historyTitle": "取り消し履歴",
     "restoreTo": "この時点に戻す",
     "historyEmpty": "取り消せる操作はまだありません",
-    "restored": "その時点に戻しました"
+    "restored": "その時点に戻しました",
+    "confirmRestore": "戻してよろしいですか？",
+    "cancel": "キャンセル"
   }
 }

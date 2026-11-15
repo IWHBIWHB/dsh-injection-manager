@@ -141,6 +141,8 @@
     "historyTitle": "История отмен",
     "restoreTo": "Вернуть",
     "historyEmpty": "Пока нечего отменять",
-    "restored": "Восстановлено"
+    "restored": "Восстановлено",
+    "confirmRestore": "Подтвердить восстановление?",
+    "cancel": "Отмена"
   }
 }

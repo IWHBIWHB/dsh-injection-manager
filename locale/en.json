@@ -141,6 +141,8 @@
     "historyTitle": "Undo history",
     "restoreTo": "Restore",
     "historyEmpty": "No actions to undo yet",
-    "restored": "Restored"
+    "restored": "Restored",
+    "confirmRestore": "Confirm restore?",
+    "cancel": "Cancel"
   }
 }

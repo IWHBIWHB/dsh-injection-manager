@@ -141,6 +141,8 @@
     "historyTitle": "Histórico de desfazer",
     "restoreTo": "Restaurar",
     "historyEmpty": "Ainda não há ações para desfazer",
-    "restored": "Restaurado"
+    "restored": "Restaurado",
+    "confirmRestore": "Confirmar restauração?",
+    "cancel": "Cancelar"
   }
 }
