@@ -6,7 +6,7 @@
 
 管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，按套件聚合，一套一个开关，再给一个 token 预算和两套预设。
 
-> **1.5.0**：八语言界面、撤销上一步、清单导出、按套件聚类。完整变化见 [CHANGELOG](CHANGELOG.md)。
+> **1.8.0**：八语言、撤销、清单导出/导入、按套件聚类、/inject apply。完整变化见 [CHANGELOG](CHANGELOG.md)。
 
 ```powershell
 # 装（GitHub 直装）
@@ -28,7 +28,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 
-策略页：预设、四条通道总开关、自定义前言/后记、导出与最近一次应用记录。深色主题与宿主一致。
+策略页：预设、四条通道总开关、自定义前言/后记、清单导出与策略导入（可撤销）、最近一次应用记录。深色主题与宿主一致。
 
 ![策略页](docs/images/panel-policy.png)
 

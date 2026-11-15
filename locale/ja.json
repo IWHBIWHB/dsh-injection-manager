@@ -119,6 +119,9 @@
     "rulesLine": "AGENTS.md チェーン：{loaded} 件読み込み / 予算 {budget} B",
     "expandAll": "すべて展開",
     "collapseAll": "すべて折りたたむ",
-    "ofSession": "このセッションの {pct}%"
+    "ofSession": "このセッションの {pct}%",
+    "importPolicy": "ポリシーを読み込む",
+    "importHint": "書き出した JSON またはポリシー本体を受け付けます。読み込み後は「元に戻す」で戻せます。",
+    "importInvalid": "読み込み失敗"
   }
 }

@@ -119,6 +119,9 @@
     "rulesLine": "Cadena AGENTS.md: {loaded} cargados / presupuesto {budget} B",
     "expandAll": "Expandir todo",
     "collapseAll": "Contraer todo",
-    "ofSession": "{pct}% de esta sesión"
+    "ofSession": "{pct}% de esta sesión",
+    "importPolicy": "Importar política",
+    "importHint": "Acepta un JSON exportado o una política sin envoltorio; Deshacer revierte la importación.",
+    "importInvalid": "Error al importar"
   }
 }

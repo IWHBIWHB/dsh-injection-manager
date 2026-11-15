@@ -119,6 +119,9 @@
     "rulesLine": "AGENTS.md-Kette: {loaded} geladen / Budget {budget} B",
     "expandAll": "Alle ausklappen",
     "collapseAll": "Alle einklappen",
-    "ofSession": "{pct}% dieser Sitzung"
+    "ofSession": "{pct}% dieser Sitzung",
+    "importPolicy": "Richtlinie importieren",
+    "importHint": "Akzeptiert eine exportierte JSON-Datei oder eine reine Richtlinie; Rückgängig macht den Import rückgängig.",
+    "importInvalid": "Import fehlgeschlagen"
   }
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.0 — 2026-11-15
+
+- Policy import: the Policy tab accepts a JSON file — either a bare policy or a
+  whole exported manifest — validates it, writes it atomically, and records it
+  on the undo stack, so an import can be reverted with one click.
+- Action bodies may be up to 1 MiB so an exported manifest can be pasted back;
+  imports that are not objects are rejected with `invalid-policy`.
+- Route tests cover bare policy, exported manifest, undo after import and the
+  invalid shape.
+
 ## 1.7.0 — 2026-11-15
 
 - `/inject apply [tokens]`: turn the current (or given) budget into a policy from

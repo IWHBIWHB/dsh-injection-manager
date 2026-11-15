@@ -119,6 +119,9 @@
     "rulesLine": "AGENTS.md chain: {loaded} loaded / budget {budget} B",
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
-    "ofSession": "{pct}% of this session"
+    "ofSession": "{pct}% of this session",
+    "importPolicy": "Import policy",
+    "importHint": "Accepts an exported JSON file or a bare policy; Undo reverts an import.",
+    "importInvalid": "Import failed"
   }
 }

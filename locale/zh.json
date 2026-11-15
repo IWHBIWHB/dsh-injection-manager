@@ -119,6 +119,9 @@
     "rulesLine": "AGENTS.md 链：{loaded} 个已加载 / 预算 {budget} B",
     "expandAll": "展开全部",
     "collapseAll": "折叠全部",
-    "ofSession": "占本会话 {pct}%"
+    "ofSession": "占本会话 {pct}%",
+    "importPolicy": "导入策略",
+    "importHint": "接受导出的 JSON 文件或裸策略；导入后可用「撤销上一步」退回。",
+    "importInvalid": "导入失败"
   }
 }

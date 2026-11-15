@@ -119,6 +119,9 @@
     "rulesLine": "Цепочка AGENTS.md: загружено {loaded} / бюджет {budget} B",
     "expandAll": "Раскрыть все",
     "collapseAll": "Свернуть все",
-    "ofSession": "{pct}% сеанса"
+    "ofSession": "{pct}% сеанса",
+    "importPolicy": "Импортировать политику",
+    "importHint": "Принимает экспортированный JSON или саму политику; «Отменить» вернёт предыдущее состояние.",
+    "importInvalid": "Не удалось импортировать"
   }
 }

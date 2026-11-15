@@ -119,6 +119,9 @@
     "rulesLine": "Chaîne AGENTS.md : {loaded} chargés / budget {budget} B",
     "expandAll": "Tout déplier",
     "collapseAll": "Tout replier",
-    "ofSession": "{pct}% de cette session"
+    "ofSession": "{pct}% de cette session",
+    "importPolicy": "Importer la politique",
+    "importHint": "Accepte un JSON exporté ou une politique brute ; Annuler défait l'import.",
+    "importInvalid": "Échec de l'import"
   }
 }

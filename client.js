@@ -795,7 +795,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function SettingsTab({ snapshot, t, act, sessionId }) {
+      function SettingsTab({ snapshot, t, act, sessionId, notify }) {
         const policy = snapshot.policy
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
         const [suffix, setSuffix] = useState(policy.prompt.suffix)
@@ -807,6 +807,21 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           setSuffix(policy.prompt.suffix)
         }, [policy.prompt.prefix, policy.prompt.suffix])
         useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+
+        const fileInput = useRef(null)
+
+        const importPolicy = async (event) => {
+          const file = event.target.files && event.target.files[0]
+          event.target.value = ''
+          if (!file) return
+          try {
+            const text = await file.text()
+            const parsed = JSON.parse(text)
+            await act({ kind: 'import', policy: parsed })
+          } catch (error) {
+            notify({ kind: 'error', text: `${t('importInvalid')}：${String((error && error.message) || error)}` })
+          }
+        }
 
         const downloadManifest = async (format) => {
           try {
@@ -899,7 +914,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               { className: 'ci-toolbar' },
               h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
               h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
+              h('input', {
+                ref: fileInput,
+                type: 'file',
+                accept: 'application/json,.json',
+                style: { display: 'none' },
+                onChange: importPolicy,
+                'aria-hidden': 'true',
+                tabIndex: -1,
+              }),
+              h('button', { type: 'button', className: 'ci-btn', onClick: () => fileInput.current && fileInput.current.click() }, t('importPolicy')),
             ),
+            h('div', { className: 'hint' }, t('importHint')),
           ),
           h(
             'div',
@@ -1224,7 +1250,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             tab === 'list'
               ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy })
               : tab === 'settings'
-                ? h(SettingsTab, { snapshot, t, act, sessionId })
+                ? h(SettingsTab, { snapshot, t, act, sessionId, notify: showNotice })
                 : tab === 'budget'
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t }),

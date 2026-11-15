@@ -164,6 +164,37 @@ test('an unknown action kind fails loudly instead of writing', async () => {
   assert.match(response.json.message, /unknown action kind/)
 })
 
+test('import accepts a bare policy and an exported manifest, then undo reverts it', async () => {
+  const routes = createRoutes(makeCtx())
+  const bare = await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'import', policy: { tools: { mode: 'except', names: ['mcp__demo__one'] } } }),
+  })
+  assert.equal(bare.status, 200)
+  assert.equal(bare.json.policy.tools.mode, 'except')
+  assert.deepEqual(bare.json.policy.tools.names, ['mcp__demo__one'])
+
+  const manifest = await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'import', policy: { policy: { tools: { mode: 'only', names: ['read'] } } } }),
+  })
+  assert.equal(manifest.status, 200)
+  assert.equal(manifest.json.policy.tools.mode, 'only')
+
+  const undo = await invoke(routes.action, { method: 'POST', headers: sameOrigin, body: JSON.stringify({ kind: 'undo' }) })
+  assert.equal(undo.json.policy.tools.mode, 'except')
+
+  const invalid = await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'import', policy: [] }),
+  })
+  assert.equal(invalid.status, 500)
+  assert.match(invalid.json.message, /invalid-policy/)
+})
+
 test('cleanup', async () => {
   await rm(home, { recursive: true, force: true })
 })
