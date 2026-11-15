@@ -18,7 +18,7 @@ import { presetPolicy } from './lib/presets.js'
 import { readPolicy } from './lib/policy.js'
 import { renderCard, renderText } from './lib/text.js'
 
-export const name = 'context-injection'
+export const name = 'injection-manager'
 
 // Hard dependencies: the tool needs the registry, the snapshot needs the prompt
 // registry, skills and the working directory, the panel needs a web server, and
@@ -118,13 +118,13 @@ function createCommand(ctx) {
 export function apply(ctx) {
   ctx.tools.register(createTool(ctx))
 
-  ctx.effect(() => ctx.commands.register(createCommand(ctx)), 'context-injection command')
+  ctx.effect(() => ctx.commands.register(createCommand(ctx)), 'injection-manager command')
 
   const routes = createRoutes(ctx)
   for (const [key, path] of Object.entries(ROUTES)) {
     const handler = routes[key]
     if (typeof handler !== 'function') continue
-    ctx.effect(() => ctx.webServer.register({ kind: 'exact', path, handler }), `context-injection route ${key}`)
+    ctx.effect(() => ctx.webServer.register({ kind: 'exact', path, handler }), `injection-manager route ${key}`)
   }
 
   // The only moment a policy can still influence the first assemble().
@@ -132,5 +132,5 @@ export function apply(ctx) {
     await applyPolicyForAgent(ctx, payload?.agent, payload?.source)
   })
 
-  ctx.effect(() => () => releaseAll(), 'context-injection cleanup')
+  ctx.effect(() => () => releaseAll(), 'injection-manager cleanup')
 }

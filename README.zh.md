@@ -1,8 +1,30 @@
-# 上下文注入管理 · dsh-context-injection
+# 上下文注入管理 · dsh-injection-manager
 
-管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，逐条给开关，再给一个 token 预算和两套预设。
+[![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
+[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
+
+管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，按套件聚合，一套一个开关，再给一个 token 预算和两套预设。
+
+```powershell
+# 装（GitHub 直装）
+dsh plugin add github:IWHBIWHB/dsh-injection-manager
+# 或本地目录：Plugins → Add plugin → 选这个目录
+```
+
+装完刷新页面，左侧面板列表出现「注入」。
 
 ![上下文注入面板](docs/preview.svg)
+
+## 界面
+
+| 清单 · 按套件 | 预算 · 目标 24k |
+| --- | --- |
+| ![按套件分组的注入清单](docs/images/panel-suites.png) | ![按预算自动给出关闭建议](docs/images/panel-budget.png) |
+
+侧栏同一份数据的紧凑视图，输入框旁还有一行「注入 83.8k · 可关 97%」的徽标：
+
+![侧栏面板](docs/images/panel-sidebar.png)
 
 ## 为什么需要它
 
@@ -50,7 +72,7 @@
 
 ## 策略语义
 
-策略存在 `$DSH_HOME/context-injection/policy.json`，只有一个文件，原子写入。
+策略存在 `$DSH_HOME/injection-manager/policy.json`，只有一个文件，原子写入。
 
 每条通道有三种模式：
 
@@ -75,17 +97,15 @@
 
 ## 安装
 
-本地目录：
-
 ```powershell
-# 在 DSH 里：Plugins → Add plugin → 选择这个目录
-# 或 CLI：
-dsh plugin --profile web add D:/path/to/dsh-context-injection
+dsh plugin add github:IWHBIWHB/dsh-injection-manager
 ```
 
-发布后可以直接用包名安装（`dsh plugin add dsh-context-injection`）。装完刷新页面，左侧面板列表会出现「注入」。
+也可以本地目录安装：DSH → Plugins → Add plugin → 选这个目录；或 `dsh plugin add D:/path/to/dsh-injection-manager`。装完刷新页面，左侧面板列表出现「注入」。
 
-从旧的 `dsh-context-preflight` 升级：第一次读取时如果只找到旧策略文件，插件会把它读进来当作当前策略，不会丢开关；写入始终落到新路径。
+从旧的 `dsh-context-preflight` / `dsh-context-injection` 升级：第一次读取时如果只找到旧策略文件，插件会把它读进来当作当前策略，不会丢开关；写入始终落到 `$DSH_HOME/injection-manager/policy.json`。
+
+版本兼容与依赖接口见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。
 
 ## 设计取舍
 
@@ -96,10 +116,10 @@ dsh plugin --profile web add D:/path/to/dsh-context-injection
 
 ## 自查
 
-- `GET /plugins/dsh-context-injection/ping`：插件是否注册了路由。
-- `GET /plugins/dsh-context-injection/summary?session=<id>`：面板用的完整快照。
-- `GET /plugins/dsh-context-injection/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。
-- `GET /plugins/dsh-context-injection/diag`：客户端模块是否进了 boot 表、最近一次应用结果、`system-prompt/assemble` 过滤器被调用了几次、前后段落数。
+- `GET /plugins/dsh-injection-manager/ping`：插件是否注册了路由。
+- `GET /plugins/dsh-injection-manager/summary?session=<id>`：面板用的完整快照。
+- `GET /plugins/dsh-injection-manager/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。
+- `GET /plugins/dsh-injection-manager/diag`：客户端模块是否进了 boot 表、最近一次应用结果、`system-prompt/assemble` 过滤器被调用了几次、前后段落数。
 
 ## 限制
 

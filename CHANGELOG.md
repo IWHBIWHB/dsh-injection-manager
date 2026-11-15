@@ -1,8 +1,21 @@
 # Changelog
 
+## 1.0.1 — 2026-11-15
+
+- Renamed to `dsh-injection-manager` (from the 1.0.0 development name
+  `dsh-context-injection`, itself from `dsh-context-preflight`). The name owns
+  the "injection" word — DSH's own tool is `context_injection` — instead of
+  competing with 83 `context-*` plugins. Old policy files are still imported.
+- README: install command in the first screen, CI/license/dsh badges, three real
+  panel screenshots, `screenshots.json` for the plugin market, and a
+  compatibility document.
+- CI workflow: syntax check + unit tests on Node 20/22 + bundle metadata check.
+- Policy data directory is now `$DSH_HOME/injection-manager/`; both earlier
+  locations are read once on first upgrade.
+
 ## 1.0.0 — 2026-11-15
 
-First release under the new name and package id `dsh-context-injection`
+First release under the new name and package id `dsh-injection-manager`
 (previously developed as `dsh-context-preflight`).
 
 - One snapshot of the first request: prompt sections, runtime contexts, skill

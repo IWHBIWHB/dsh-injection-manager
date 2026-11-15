@@ -9,8 +9,8 @@
 // The host owns every number. This file renders snapshots and sends single-item
 // actions back; it never recomputes tokens or policy semantics.
 (function () {
-  const ID = 'dsh-context-injection'
-  const BASE = '/plugins/dsh-context-injection'
+  const ID = 'dsh-injection-manager'
+  const BASE = '/plugins/dsh-injection-manager'
   const ROUTES = {
     summary: BASE + '/summary',
     locale: BASE + '/locale',
@@ -958,7 +958,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
               reload()
             } catch (failure) {
-              console.error('[context-injection] action failed', failure)
+              console.error('[injection-manager] action failed', failure)
             } finally {
               setBusy(false)
             }
@@ -1097,7 +1097,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const open = () => {
           try {
             const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
-            if (layout && typeof layout.selectPanel === 'function') layout.selectPanel('context-injection')
+            if (layout && typeof layout.selectPanel === 'function') layout.selectPanel('injection-manager')
           } catch {
             /* opening is best effort */
           }
@@ -1130,7 +1130,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       function panelLabel(ctx) {
         try {
-          const bound = ctx.locale.bind('context-injection')
+          const bound = ctx.locale.bind('injection-manager')
           const value = bound('panelLabel')
           if (typeof value === 'string' && value.length > 0 && value !== 'panelLabel') return value
         } catch {
@@ -1147,7 +1147,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             attempts.push({ key, ok: true })
           } catch (error) {
             attempts.push({ key, ok: false, optional: optional === true, message: String((error && error.message) || error) })
-            if (optional !== true) console.error(`[context-injection] slot registration failed: ${key}`, error)
+            if (optional !== true) console.error(`[injection-manager] slot registration failed: ${key}`, error)
           }
         }
 
@@ -1155,24 +1155,24 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           'sidebar',
           () => {
             ctx.slots.inject('sidebar.panellist', () =>
-              ctx.slots.register({ name: 'sidebar.panellist', id: 'context-injection', order: 6, label: () => panelLabel(ctx) }, guarded(PanelIcon)),
+              ctx.slots.register({ name: 'sidebar.panellist', id: 'injection-manager', order: 6, label: () => panelLabel(ctx) }, guarded(PanelIcon)),
             )
           },
           false,
         )
-        attempt('main', () => ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'context-injection' }, guarded(MainPanel))), false)
+        attempt('main', () => ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'injection-manager' }, guarded(MainPanel))), false)
         // Optional right-sidebar body: only registered when the host declares
         // that slot, so profiles without it lose nothing.
         attempt(
           'sidebar-body',
-          () => ctx.slots.inject('sidebar.panel', () => ctx.slots.register({ name: 'sidebar.panel', id: 'context-injection', order: 6 }, guarded(SidePanel))),
+          () => ctx.slots.inject('sidebar.panel', () => ctx.slots.register({ name: 'sidebar.panel', id: 'injection-manager', order: 6 }, guarded(SidePanel))),
           true,
         )
         attempt(
           'dock',
           () =>
             ctx.slots.inject('conversation.composer.dock', () =>
-              ctx.slots.register({ name: 'conversation.composer.dock', id: 'context-injection', order: 6 }, guarded(DockChip)),
+              ctx.slots.register({ name: 'conversation.composer.dock', id: 'injection-manager', order: 6 }, guarded(DockChip)),
             ),
           true,
         )
@@ -1195,9 +1195,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           void getJson(ROUTES.locale)
             .then((payload) => {
               try {
-                ctx.locale.register('context-injection', { zh: payload.zh || {}, en: payload.en || {} })
+                ctx.locale.register('injection-manager', { zh: payload.zh || {}, en: payload.en || {} })
               } catch (error) {
-                console.warn('[context-injection] locale registration unavailable', error)
+                console.warn('[injection-manager] locale registration unavailable', error)
               }
             })
             .catch(() => {})
@@ -1214,7 +1214,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             registerClient(ctx)
           } catch (error) {
             reportBoot('apply-failed', error)
-            console.error('[context-injection] apply failed', error)
+            console.error('[injection-manager] apply failed', error)
           }
         },
       }

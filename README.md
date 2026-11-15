@@ -1,8 +1,29 @@
-# Context injection · dsh-context-injection
+# Context injection · dsh-injection-manager
 
-Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Every item shows its size in characters and estimated tokens, has its own switch, and the whole set can be held to a token budget.
+[![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
+[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
+
+Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Items are clustered into suites, so a whole MCP server is one switch, and the result can be held to a token budget.
+
+```powershell
+dsh plugin add github:IWHBIWHB/dsh-injection-manager
+# or: Plugins → Add plugin → pick this directory
+```
+
+Refresh the page; the "Injection" icon appears in the left panel list.
 
 ![Context injection panel](docs/preview.svg)
+
+## Screens
+
+| Items, clustered by suite | Budget, target 24k |
+| --- | --- |
+| ![Injection items grouped into suites](docs/images/panel-suites.png) | ![Budget suggestions](docs/images/panel-budget.png) |
+
+The sidebar shows the same snapshot compactly, and the composer carries a one-line chip:
+
+![Sidebar panel](docs/images/panel-sidebar.png)
 
 ## Why
 
@@ -50,7 +71,7 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 
 ## Policy semantics
 
-The policy lives in `$DSH_HOME/context-injection/policy.json`, one file, written atomically.
+The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file, written atomically.
 
 Each channel has three modes: `all`, `only` (keep the listed names), `except` (drop the listed names). A single switch in the panel lands in `except`, or removes the entry from an `only` list, so manual switches and presets never fight each other.
 
@@ -62,14 +83,15 @@ Each channel has three modes: `all`, `only` (keep the listed names), `except` (d
 ## Install
 
 ```powershell
-# In DSH: Plugins → Add plugin → pick this directory
-# Or with the CLI
-dsh plugin --profile web add D:/path/to/dsh-context-injection
+dsh plugin add github:IWHBIWHB/dsh-injection-manager
 ```
 
-Refresh the page; the "Injection" icon appears in the left panel list.
+Or locally: DSH → Plugins → Add plugin → pick this directory, or
+`dsh plugin add D:/path/to/dsh-injection-manager`. Refresh the page; the "Injection" icon appears in the left panel list.
 
-Upgrading from `dsh-context-preflight`: if only the old policy file exists, it is read once and used as the current policy. Writes always go to the new path.
+Upgrading from `dsh-context-preflight` / `dsh-context-injection`: if only an old policy file exists, it is read once and used as the current policy. Writes always go to `$DSH_HOME/injection-manager/policy.json`.
+
+Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Design choices
 
@@ -80,10 +102,10 @@ Upgrading from `dsh-context-preflight`: if only the old policy file exists, it i
 
 ## Self-check
 
-- `GET /plugins/dsh-context-injection/ping`
-- `GET /plugins/dsh-context-injection/summary?session=<id>` — the snapshot the panel renders.
-- `GET /plugins/dsh-context-injection/verify?session=<id>` — re-assembles a live session and returns the **effective** sections, contexts and tool names. This proves the policy landed, not just that a file changed.
-- `GET /plugins/dsh-context-injection/diag` — client module presence in the boot table, last application result, how many times the assemble filter ran, and the before/after section counts.
+- `GET /plugins/dsh-injection-manager/ping`
+- `GET /plugins/dsh-injection-manager/summary?session=<id>` — the snapshot the panel renders.
+- `GET /plugins/dsh-injection-manager/verify?session=<id>` — re-assembles a live session and returns the **effective** sections, contexts and tool names. This proves the policy landed, not just that a file changed.
+- `GET /plugins/dsh-injection-manager/diag` — client module presence in the boot table, last application result, how many times the assemble filter ran, and the before/after section counts.
 
 ## Limitations
 

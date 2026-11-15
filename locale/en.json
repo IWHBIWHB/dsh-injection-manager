@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Context injection",
-    "description": "Manages everything a new DSH session injects before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Every item shows its size and has a switch, with presets, a custom prompt prefix/suffix and a token budget. A policy applies only to sessions created afterwards. The plugin never edits your AGENTS.md or SKILL.md: every switch is a scoped registration and is reversible. Open it from the sidebar \"Injection\" panel, the injection chip next to the composer, the read-only context_injection tool, or /inject.",
+    "description": "Manages everything a new DSH session injects before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules, clustered into suites (one MCP server = one switch) with per-item detail; presets, a custom prompt prefix/suffix and a token budget apply to sessions created afterwards. The plugin never edits your AGENTS.md or SKILL.md: every switch is a scoped registration and is reversible. Open it from the sidebar \"Injection\" icon, the composer chip, the read-only context_injection tool, or /inject.",
     "detail": "docs/DETAIL.md"
   },
   "client": {

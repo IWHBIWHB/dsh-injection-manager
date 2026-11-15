@@ -1,8 +1,8 @@
 {
-  "name": "dsh-context-injection",
-  "version": "1.0.0",
+  "name": "dsh-injection-manager",
+  "version": "1.0.1",
   "type": "module",
-  "description": "Manage what a new DSH session injects before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules, with a token budget and per-item switches.",
+  "description": "Manage and switch everything a new DSH session injects before its first request — prompt sections, runtime contexts, skill catalog, tool schemas and workspace rules — clustered into suites, with presets and a token budget.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -25,9 +25,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/IWHBIWHB/dsh-context-injection.git"
+    "url": "git+https://github.com/IWHBIWHB/dsh-injection-manager.git"
   },
-  "homepage": "https://github.com/IWHBIWHB/dsh-context-injection#readme",
+  "homepage": "https://github.com/IWHBIWHB/dsh-injection-manager#readme",
   "exports": {
     ".": {
       "default": "./index.js"

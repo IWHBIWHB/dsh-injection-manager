@@ -1,4 +1,4 @@
 - insert:
-    - id: context-injection
-      name: dsh-context-injection
+    - id: injection-manager
+      name: dsh-injection-manager
       config: {}
