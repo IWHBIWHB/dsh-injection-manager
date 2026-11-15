@@ -15,6 +15,7 @@
     summary: BASE + '/summary',
     locale: BASE + '/locale',
     action: BASE + '/action',
+    export: BASE + '/export',
     boot: BASE + '/boot',
     registrations: BASE + '/registrations',
   }
@@ -735,7 +736,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function SettingsTab({ snapshot, t, act }) {
+      function SettingsTab({ snapshot, t, act, sessionId }) {
         const policy = snapshot.policy
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
         const [suffix, setSuffix] = useState(policy.prompt.suffix)
@@ -747,6 +748,26 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           setSuffix(policy.prompt.suffix)
         }, [policy.prompt.prefix, policy.prompt.suffix])
         useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+
+        const downloadManifest = async (format) => {
+          try {
+            const query = `format=${format}` + (sessionId ? `&session=${encodeURIComponent(sessionId)}` : '')
+            const response = await fetch(`${ROUTES.export}?${query}`, { credentials: 'same-origin' })
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const blob = await response.blob()
+            const href = URL.createObjectURL(blob)
+            const anchor = document.createElement('a')
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+            anchor.href = href
+            anchor.download = `injection-manifest-${stamp}.${format === 'json' ? 'json' : 'md'}`
+            document.body.appendChild(anchor)
+            anchor.click()
+            anchor.remove()
+            setTimeout(() => URL.revokeObjectURL(href), 2000)
+          } catch (error) {
+            console.error('[injection-manager] export failed', error)
+          }
+        }
 
         const persist = (nextPrefix, nextSuffix) => {
           if (timer.current !== null) clearTimeout(timer.current)
@@ -808,6 +829,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               'aria-label': t('promptSuffix'),
             }),
             saving ? h('div', { className: 'hint' }, t('applied')) : null,
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('exportTitle')),
+            h('div', { className: 'ci-note' }, t('exportHint')),
+            h(
+              'div',
+              { className: 'ci-toolbar' },
+              h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
+              h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
+            ),
           ),
           h(
             'div',
@@ -1111,7 +1144,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             tab === 'list'
               ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy })
               : tab === 'settings'
-                ? h(SettingsTab, { snapshot, t, act })
+                ? h(SettingsTab, { snapshot, t, act, sessionId })
                 : tab === 'budget'
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t }),

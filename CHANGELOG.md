@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-11-15
+
+- Export the manifest: `GET /plugins/dsh-injection-manager/export?format=md|json`
+  and two buttons in the Policy tab. Markdown for a ticket, JSON for comparing
+  two machines; same snapshot as the panel.
+- Text rendering tests (suite list, missing instruction files, session anchor).
+
 ## 1.1.0 — 2026-11-15
 
 - Undo: every policy write remembers the previous policy (20 deep), so a whole
