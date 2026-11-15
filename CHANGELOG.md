@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.6 — 2026-11-15
+
+- The Policy tab now warns before a preset switch replaces manual choices:
+  "当前有 229 项手动关闭；切换预设会重算并覆盖这些选择。" The count comes from
+  a shared `excludedCountOf()` used by both the policy and budget pages.
+- FAQ says presets behave the same way as applying a budget.
+
 ## 1.9.5 — 2026-11-15
 
 - Budget page warns before it overwrites manual choices: "当前有 N 项被手动关闭；

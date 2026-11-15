@@ -150,6 +150,7 @@
     "sortName": "Nach Namen",
     "noMatch": "Keine passenden Einträge",
     "clearFilters": "Filter zurücksetzen",
-    "budgetOverwrite": "{count} Einträge sind manuell deaktiviert; das Anwenden des Vorschlags berechnet neu und ersetzt diese Auswahl."
+    "budgetOverwrite": "{count} Einträge sind manuell deaktiviert; das Anwenden des Vorschlags berechnet neu und ersetzt diese Auswahl.",
+    "presetOverwrite": "{count} Einträge sind manuell deaktiviert; ein Preset-Wechsel berechnet neu und ersetzt diese Auswahl."
   }
 }

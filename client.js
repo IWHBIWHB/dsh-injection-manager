@@ -1021,6 +1021,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               ),
               h('span', { className: 'hint' }, policy.preset === 'custom' ? t('custom') : ''),
             ),
+            excludedCountOf(snapshot) > 0
+              ? h('div', { className: 'ci-note warn' }, t('presetOverwrite', { count: excludedCountOf(snapshot) }))
+              : null,
             h('div', { className: 'ci-note' }, t('saveHint')),
           ),
           h('div', { className: 'ci-card' }, h('h2', null, t('aboutManageable')), h(ChannelSwitches, { snapshot, t, act })),
@@ -1140,17 +1143,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function BudgetTab({ snapshot, t, act }) {
-        const policy = snapshot.policy
-        const [target, setTarget] = useState(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
-        const plan = policy.plan
-        const timer = useRef(null)
-        const [sort, setSort] = useStoredState('budgetSort', 'tokens')
-
-        // How many items are switched off right now? Applying a budget plan
-        // recomputes every channel, so manual choices are replaced; say so
-        // before the click, not after.
-        const excludedCount = CHANNELS.reduce((sum, channel) => {
+      function excludedCountOf(snapshot) {
+        return CHANNELS.reduce((sum, channel) => {
           const state = snapshot.policy.channels[channel]
           if (state === undefined || state.mode === 'all') return sum
           const row = snapshot.channels.find((entry) => entry.id === channel)
@@ -1158,6 +1152,17 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           if (state.mode === 'except') return sum + state.names.length
           return sum + Math.max(0, total - state.names.length)
         }, 0)
+      }
+
+      function BudgetTab({ snapshot, t, act }) {
+        const policy = snapshot.policy
+        const [target, setTarget] = useState(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
+        const plan = policy.plan
+        const timer = useRef(null)
+        const [sort, setSort] = useStoredState('budgetSort', 'tokens')
+
+        // Applying a plan recomputes every channel; count manual choices first.
+        const excludedCount = excludedCountOf(snapshot)
         const dropGroups = (plan.dropGroups || []).slice().sort((left, right) =>
           sort === 'name'
             ? groupLabelOf(t, left).localeCompare(groupLabelOf(t, right), undefined, { numeric: true })

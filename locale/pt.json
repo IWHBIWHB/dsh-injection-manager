@@ -150,6 +150,7 @@
     "sortName": "Por nome",
     "noMatch": "Nenhum item correspondente",
     "clearFilters": "Limpar filtros",
-    "budgetOverwrite": "{count} itens estão desligados à mão; aplicar a sugestão recalcula a política e substitui essas escolhas."
+    "budgetOverwrite": "{count} itens estão desligados à mão; aplicar a sugestão recalcula a política e substitui essas escolhas.",
+    "presetOverwrite": "{count} itens estão desligados à mão; trocar de preset recalcula e substitui essas escolhas."
   }
 }

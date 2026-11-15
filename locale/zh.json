@@ -150,6 +150,7 @@
     "sortName": "按套件名",
     "noMatch": "没有匹配的条目",
     "clearFilters": "清除筛选",
-    "budgetOverwrite": "当前有 {count} 项被手动关闭；应用建议会按预算重算，并覆盖这些选择。"
+    "budgetOverwrite": "当前有 {count} 项被手动关闭；应用建议会按预算重算，并覆盖这些选择。",
+    "presetOverwrite": "当前有 {count} 项手动关闭；切换预设会重算并覆盖这些选择。"
   }
 }
