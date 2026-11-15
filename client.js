@@ -410,7 +410,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const rows = [
           { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} ${t('chars')} · ${snapshot.items.length} ${t('items')}` },
           { key: 'savable', value: token(totals.savableTokens), sub: `${totals.savablePercent}% · ${t('shareOf')}` },
-          { key: 'after', value: token(policy.preview.after), sub: `${t('preset')}: ${policy.preset}` },
+          { key: 'after', value: token(policy.preview.after), sub: `${policy.preview.savedPercent > 0 ? `−${policy.preview.savedPercent}% · ` : ''}${presetLabel(t, policy.preset)}` },
           { key: 'anchor', value: totals.anchor === null ? '—' : token(totals.anchor.tokens), sub: t('anchorHint') },
         ]
         return h(
@@ -532,6 +532,13 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         'working-directory': '工作目录',
         subagent: '子智能体',
         app: 'GUI 地址',
+      }
+
+      function presetLabel(t, name) {
+        if (name === 'all') return t('presetAll')
+        if (name === 'minimal') return t('presetMinimal')
+        if (name === 'custom') return t('custom')
+        return name
       }
 
       function groupLabelOf(t, group) {        const dict = t.groupNames || {}
@@ -671,6 +678,24 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ),
               ),
             ),
+            view === 'group'
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'ci-chip',
+                    onClick: () => {
+                      const next = {}
+                      for (const group of groups) next[group.id] = true
+                      setExpanded(next)
+                    },
+                  },
+                  t('expandAll'),
+                )
+              : null,
+            view === 'group' && Object.keys(expanded).length > 0
+              ? h('button', { type: 'button', className: 'ci-chip', onClick: () => setExpanded({}) }, t('collapseAll'))
+              : null,
           ),
           h(
             'div',

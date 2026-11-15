@@ -116,6 +116,8 @@
     "chars": "字",
     "groups": "组",
     "required": "必填",
-    "rulesLine": "AGENTS.md 链：{loaded} 个已加载 / 预算 {budget} B"
+    "rulesLine": "AGENTS.md 链：{loaded} 个已加载 / 预算 {budget} B",
+    "expandAll": "展开全部",
+    "collapseAll": "折叠全部"
   }
 }

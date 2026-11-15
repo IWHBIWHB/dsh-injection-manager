@@ -116,6 +116,8 @@
     "chars": "chars",
     "groups": "groups",
     "required": "required",
-    "rulesLine": "AGENTS.md chain: {loaded} loaded / budget {budget} B"
+    "rulesLine": "AGENTS.md chain: {loaded} loaded / budget {budget} B",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
   }
 }

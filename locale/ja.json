@@ -116,6 +116,8 @@
     "chars": "文字",
     "groups": "グループ",
     "required": "必須",
-    "rulesLine": "AGENTS.md チェーン：{loaded} 件読み込み / 予算 {budget} B"
+    "rulesLine": "AGENTS.md チェーン：{loaded} 件読み込み / 予算 {budget} B",
+    "expandAll": "すべて展開",
+    "collapseAll": "すべて折りたたむ"
   }
 }

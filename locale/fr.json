@@ -116,6 +116,8 @@
     "chars": "caractères",
     "groups": "groupes",
     "required": "obligatoire",
-    "rulesLine": "Chaîne AGENTS.md : {loaded} chargés / budget {budget} B"
+    "rulesLine": "Chaîne AGENTS.md : {loaded} chargés / budget {budget} B",
+    "expandAll": "Tout déplier",
+    "collapseAll": "Tout replier"
   }
 }

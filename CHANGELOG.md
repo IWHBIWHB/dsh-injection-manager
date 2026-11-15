@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0 — 2026-11-15
+
+- The KPI shows the preset by name (全开 / 极简 / 自定义 / Everything / Minimal)
+  instead of the raw id, and carries the saved percentage when a policy is active.
+- Group view gained 展开全部 / 折叠全部; the toolbar now reads search → view mode
+  → channel filter → expand controls.
+- Tried a per-row size bar behind each row; it read as stray underlines, so it
+  was removed before release rather than shipped as decoration.
+
 ## 1.5.1 — 2026-11-15
 
 - Budget suggestions are summarised per suite: a 130-item "turn REA off"

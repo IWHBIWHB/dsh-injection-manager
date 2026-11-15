@@ -116,6 +116,8 @@
     "chars": "caracteres",
     "groups": "grupos",
     "required": "obligatorio",
-    "rulesLine": "Cadena AGENTS.md: {loaded} cargados / presupuesto {budget} B"
+    "rulesLine": "Cadena AGENTS.md: {loaded} cargados / presupuesto {budget} B",
+    "expandAll": "Expandir todo",
+    "collapseAll": "Contraer todo"
   }
 }

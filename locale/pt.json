@@ -116,6 +116,8 @@
     "chars": "caracteres",
     "groups": "grupos",
     "required": "obrigatório",
-    "rulesLine": "Cadeia AGENTS.md: {loaded} carregados / orçamento {budget} B"
+    "rulesLine": "Cadeia AGENTS.md: {loaded} carregados / orçamento {budget} B",
+    "expandAll": "Expandir tudo",
+    "collapseAll": "Recolher tudo"
   }
 }
