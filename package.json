@@ -1,29 +1,33 @@
 {
-  "name": "dsh-context-preflight",
-  "version": "0.3.1",
-  "private": true,
+  "name": "dsh-context-injection",
+  "version": "1.0.0",
   "type": "module",
-  "description": "Shows what a new DSH session will inject, and sets per-session defaults for skills, tool schemas and runtime context.",
+  "description": "Manage what a new DSH session injects before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules, with a token budget and per-item switches.",
   "keywords": [
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
     "context",
+    "injection",
+    "prompt",
     "tokens",
     "budget",
-    "usage",
     "skills",
+    "tools",
     "mcp"
   ],
   "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
   "engines": {
     "node": ">=20"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/IWHBIWHB/dsh-context-preflight.git"
+    "url": "git+https://github.com/IWHBIWHB/dsh-context-injection.git"
   },
-  "homepage": "https://github.com/IWHBIWHB/dsh-context-preflight#readme",
+  "homepage": "https://github.com/IWHBIWHB/dsh-context-injection#readme",
   "exports": {
     ".": {
       "default": "./index.js"
@@ -36,12 +40,16 @@
   },
   "files": [
     "index.js",
+    "lib",
     "client.js",
     "cordis.patch.yml",
     "locale/*.json",
     "docs",
     "icon.svg",
-    "assets/*.png"
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {

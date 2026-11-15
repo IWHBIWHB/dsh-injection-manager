@@ -1,66 +1,100 @@
-# dsh-context-preflight
+# 上下文注入管理 · dsh-context-injection
 
-每个新的 DSH 会话开局就被预先塞进工具 schema、技能目录、系统提示词段落和工作区规则。
-这个插件把这笔账显示出来，并让你决定"新会话默认带什么"。
+管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，逐条给开关，再给一个 token 预算和两套预设。
 
-在真实 profile 上实测：首条用户消息发出前，注入面已经占 **84,230 token**，
-其中 76,202 来自单个 MCP 服务器的工具 schema。
+![上下文注入面板](docs/preview.svg)
 
-## 它做什么
+## 为什么需要它
 
-- **量出注入面**：四类分开统计——系统提示词段落、技能目录、工具 schema、工作区规则，
-  并可下钻到最大的若干条。
-- **定新会话默认**：选择哪些技能对模型可见、哪些工具不下发（支持**前缀**，一条就能
-  摘掉整个 MCP 服务器）、可选运行时上下文是否注入。
-- **显示省了多少**：改完立刻给出"新会话首轮 ≈ N k"，以及与当前设置的差额。
+在一次典型的 DSH 会话里，首轮注入的大头不是你的话，而是工具 schema：本机一个装了 MCP 的环境，280 个工具的描述可以吃掉 75k token，而整个首轮注入是 84k。这些内容你既看不见，也没有统一的开关。
 
-策略在会话创建时生效，**不会半路修改正在运行的会话**。
+这个插件把首轮注入摊平成一张清单，并把「能关的」真的关掉——不是改你的文件，而是在新会话的作用域里登记一层更近的配置。
+
+## 它管什么
+
+| 通道 | 怎么管 | 关掉后 |
+| --- | --- | --- |
+| 系统提示词段落 | 会话作用域的 `system-prompt/assemble` 过滤器按名字移除 | 该段文字不再出现在系统提示词里 |
+| 运行时上下文 | 同上，按名字移除（必填项除外） | 审批策略、沙箱策略等快照不再进首轮 |
+| 技能目录 | 在会话作用域注册同名、不可调用的技能，覆盖目录条目 | 该技能从模型可见目录里消失 |
+| 工具 schema | `tools.restrict({ deny })` | 该工具的说明与参数不再随请求发送 |
+| 工作区规则 | **只读展示** | — |
+
+工作区规则（`AGENTS.md` / `CLAUDE.md` 链）由 `dsh-agent-instructions` 在 `agent/pre-step` 直接注入成一条 user 消息，0.2.2 没有公开的抑制入口。本插件不替你改名、删文件或改内容：面板会明确标成「只读」，并显示每个文件是否真的在加载路径上、有没有超预算。
+
+必填上下文（当前目录、子智能体身份）同样标成「只读」，任何策略都不会把它们关掉。
+
+## 五个入口
+
+| 入口 | 位置 | 用途 |
+| --- | --- | --- |
+| 侧栏图标 | 左侧面板列表「注入」 | 一键打开管理页 |
+| 管理页 | 主区域 | 清单 / 策略 / 预算 / 说明 四个标签 |
+| 输入框徽标 | 输入框下方 | 一行摘要：首轮注入多少、可关多少 |
+| 工具 `context_injection` | 模型可调用 | 只读快照，含 markdown 卡片 |
+| 斜杠命令 `/inject` | 输入框 | 文本清单；`/inject minimal`、`/inject all`、`/inject budget 20000` |
+
+模型侧工具是只读的：模型不能自己放宽或收紧策略，所有写操作只能由你在面板里点。
+
+## 策略语义
+
+策略存在 `$DSH_HOME/context-injection/policy.json`，只有一个文件，原子写入。
+
+每条通道有三种模式：
+
+- `all`：全注入；
+- `only`：只注入名单里的条目；
+- `except`：除了名单里的条目都注入。
+
+面板上的单个开关会自动落到 `except`（关一个）或把条目从 `only` 名单里去掉，因此手点与预设不会互相打架。
+
+### 预设
+
+- **全开**：等同于没有策略。
+- **极简**：只留身份声明、角色前缀、文件与终端工具（read / write / edit / glob / grep / pwsh / todo_write / ask_user_question / present），其余全关。在本机实测把首轮注入从 84k 压到 5k。
+
+### 预算
+
+填一个目标 token 数，插件按「先关最大的可关条目」贪心算出建议清单，再一键应用成策略。必填上下文与工作区规则不参与，如果关掉所有可关项仍然到不了目标，面板会直接说「到不了」，而不是假装成功。
+
+### 自定义前言 / 后记
+
+两段自由文本，分别替换 `deployment:persona-prefix` 与 `deployment:persona-suffix`。留空即不注入。它们会改变提示词前缀，从而影响缓存命中，面板里写明了这一点。
 
 ## 安装
 
-```sh
-dsh plugin add github:IWHBIWHB/dsh-context-preflight
+本地目录：
+
+```powershell
+# 在 DSH 里：Plugins → Add plugin → 选择这个目录
+# 或 CLI：
+dsh plugin --profile web add D:/path/to/dsh-context-injection
 ```
 
-或用发布的 tarball：
+发布后可以直接用包名安装（`dsh plugin add dsh-context-injection`）。装完刷新页面，左侧面板列表会出现「注入」。
 
-```sh
-dsh plugin add https://github.com/IWHBIWHB/dsh-context-preflight/releases/latest/download/dsh-context-preflight.tgz
-```
+从旧的 `dsh-context-preflight` 升级：第一次读取时如果只找到旧策略文件，插件会把它读进来当作当前策略，不会丢开关；写入始终落到新路径。
 
-## 使用
+## 设计取舍
 
-- 侧边栏「注入」打开面板：总量、四类明细、最大的工具 schema、默认策略。
-- 工具 `context_preflight` 返回同一份测量文本，不打开面板也能问模型当前注入构成。
+- **不碰用户文件**。旧版为了「停用某条规则」会重命名 `AGENTS.md`、改 `SKILL.md` 的 frontmatter；新版全部改成会话作用域的注册，随时可逆，也不会因为两个会话工作目录不同而改错项目。
+- **只影响新会话**。策略在 `agent/created` 应用，正在跑的会话不会被中途改写；面板会标明「本会话是否按策略处理」。
+- **一个快照**。清单、工具卡片、应用策略都从同一份快照算，预览数字就是实际会生效的数字，不做第二份客户端实现。
+- **评分口径写清楚**。token 是估算：ASCII ÷ 4、其他字符 ÷ 1.6，不是分词器结果。真实占用以输入框下方统计行为准。
 
-## 默认策略
+## 自查
 
-存放于 `~/.dsh/context-preflight/policy.json`：
-
-```json
-{
-  "version": 1,
-  "skills": { "mode": "all" },
-  "tools": { "mode": "except", "names": ["mcp__rexx__"] },
-  "runtimeContext": { "enabled": true }
-}
-```
-
-`mode` 取 `all` / `only` / `except`；`tools.names` 支持精确名与前缀。删除该文件即恢复默认。
-
-## 它不做什么
-
-- **不做延迟加载**。DSH 支持按工具声明 `deferLoading`，但那由注册该工具的插件决定，
-  本插件无法事后改写别人的工具。**摘掉工具 = 模型完全看不到它，能力会真的缺失。**
-- 不修改技能文件、工作区规则或任何其他插件。
-- 不修改已经发出去的请求。
-- 不估算整段对话：报的是注入面，不含聊天历史。面板会把"本会话已占用"单独列一行并注明口径。
+- `GET /plugins/dsh-context-injection/ping`：插件是否注册了路由。
+- `GET /plugins/dsh-context-injection/summary?session=<id>`：面板用的完整快照。
+- `GET /plugins/dsh-context-injection/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。
+- `GET /plugins/dsh-context-injection/diag`：客户端模块是否进了 boot 表、最近一次应用结果、`system-prompt/assemble` 过滤器被调用了几次、前后段落数。
 
 ## 限制
 
-- token 是估算公式 `ASCII / 4 + 非 ASCII / 1.6`，不是分词器结果；实测与厂商计数相差几个百分点。
-- 工作区规则文件（`AGENTS.md` 等）只读展示：DSH 在会话启动时加载，无法按会话开关。
-- 需要带客户端模块系统（`dsh.client`）的 DSH 版本。
+- 0.2.2 没有挂载顺序 API：预算只按条目大小贪心，不做全局最优。
+- 技能目录是 pre-step 消息，只有「逐条 shadow」与「关掉 skill 工具」两种粒度；关掉 `skill` 工具会整段清空目录。
+- 工作区规则、时间上下文这类 user 消息通道不可管，插件只做展示。
+- 中文与英文两套界面；其余语言回退到英文。
 
 ## 许可
 

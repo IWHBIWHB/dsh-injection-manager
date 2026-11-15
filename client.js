@@ -1,1377 +1,1074 @@
-// 浏览器侧（dsh-context-preflight v3）。
-//   main                     → 「注入上下文」面板本体（主入口）
-//   sidebar.panellist        → 侧边栏入口图标
-//   conversation.composer.dock → 输入框上方的细条（次要入口）
-// 数据来自宿主 /summary，前端只排版不重算；文案来自 locale/*.json 的 client 段。
-;(function () {
-  const BOOT_ENDPOINT = '/plugins/dsh-context-preflight/boot'
-  const BOOT_ID = 'dsh-context-preflight'
+// 上下文注入管理 — browser half.
+//
+// Loaded by the harness module loader as a lazy factory (no JSX; React comes
+// from the loader). Three surfaces share one dataset:
+//   - sidebar.panellist : narrow panel with totals and quick switches
+//   - main              : full page (清单 / 策略 / 预算 / 说明)
+//   - composer dock     : one-line chip with the first-turn total
+//
+// The host owns every number. This file renders snapshots and sends single-item
+// actions back; it never recomputes tokens or policy semantics.
+(function () {
+  const ID = 'dsh-context-injection'
+  const BASE = '/plugins/dsh-context-injection'
+  const ROUTES = {
+    summary: BASE + '/summary',
+    locale: BASE + '/locale',
+    action: BASE + '/action',
+    boot: BASE + '/boot',
+    registrations: BASE + '/registrations',
+  }
 
-  /** 启动上报：beacon 优先（页面正在卸载也不丢），否则 keepalive fetch。 */
-  function reportBoot(payload) {
-    const body = JSON.stringify({ id: BOOT_ID, loaderOk: true, ...payload })
+  const CHANNELS = ['sections', 'contexts', 'skills', 'tools', 'instructions']
+  const MANAGED = ['sections', 'contexts', 'skills', 'tools']
+  const COLOR = {
+    sections: '#4d6bfe',
+    contexts: '#14b8a6',
+    skills: '#a855f7',
+    tools: '#f59e0b',
+    instructions: '#94a3b8',
+  }
+
+  // Minimal Chinese fallback so controls still read when /locale fails.
+  const FALLBACK = {
+    panelLabel: '注入',
+    panelTitle: '上下文注入',
+    pageTitle: '上下文注入管理',
+    subtitle: '新会话的第一轮请求会带上这些内容；开关只影响之后新建的会话',
+    refresh: '刷新',
+    retry: '重试',
+    loading: '正在读取注入构成…',
+    failed: '读取失败',
+    total: '首轮注入',
+    savable: '可关闭',
+    items: '条目',
+    policy: '当前策略',
+    after: '策略后',
+    anchor: '本会话已占用',
+    sections: '系统提示词段落',
+    contexts: '运行时上下文',
+    skills: '技能目录',
+    tools: '工具 schema',
+    instructions: '工作区规则',
+    list: '清单',
+    settings: '策略',
+    budget: '预算',
+    about: '说明',
+    search: '搜索条目',
+    all: '全部',
+    name: '条目',
+    channel: '通道',
+    tokens: 'token',
+    share: '占比',
+    switch: '开关',
+    locked: '只读',
+    lockedHint: 'DSH 直接注入，0.2.2 没有公开的关闭入口',
+    preset: '预设',
+    presetAll: '全开',
+    presetMinimal: '极简',
+    custom: '自定义',
+    promptPrefix: '自定义前言（替换 persona 前缀）',
+    promptPrefixHint: '留空即不注入；改动从下一个新会话开始，会改变提示词前缀缓存',
+    promptSuffix: '自定义后记（替换 persona 后缀）',
+    budgetTarget: '预算目标（token）',
+    budgetHint: '按条目大小从大到小挑选可关项；必填上下文和工作区规则不参与',
+    budgetBefore: '当前',
+    budgetAfter: '预算后',
+    applyPlan: '应用这套建议',
+    planDrop: '建议关闭',
+    planEmpty: '当前注入已经在预算内，不需要关闭任何条目',
+    unreachable: '即使关掉全部可关条目也到不了这个预算',
+    saveHint: '改动即时写入策略文件，只影响之后新建的会话',
+    policyPath: '策略文件',
+    updatedAt: '更新时间',
+    appliedNow: '本会话已按策略处理',
+    appliedNot: '本会话未受策略影响（在策略保存前创建）',
+    lastApply: '最近一次应用',
+    anchorHint: '含对话历史，与首轮注入量不可直接比较',
+    aboutManageable: '能管的',
+    aboutLocked: '不能管的',
+    aboutTokens: '这些 token 是估算：ASCII ÷ 4，其他字符 ÷ 1.6，不是分词器结果',
+    aboutFiles: '插件不读写你的 AGENTS.md / SKILL.md，只登记会话作用域内的注册',
+    aboutNew: '策略只作用于之后新建的会话；正在跑的会话不会被改写',
+    aboutTool: '模型侧工具 context_injection 只读，管理动作只能由你在这里点',
+    aboutBudget: '预算按「关掉最大的可关条目优先」贪心计算，结果可逆',
+    close: '关闭',
+    open: '打开面板',
+    empty: '没有匹配的条目',
+    shareOf: '占首轮注入',
+    applied: '已写入',
+    actionFailed: '操作失败',
+  }
+
+  const NAMES_ZH = {
+    'harness:identity': '身份声明',
+    'deployment:persona-prefix': '角色前缀',
+    'deployment:persona-suffix': '角色后记',
+    'plan:policy': '计划模式',
+    'team:policy': '团队协作',
+    'tools:ptc-only': 'PTC 说明',
+    'context:file-reference': '文件引用',
+    'tools:sdk': '工具 SDK 文档',
+    'ui:deliverable-file-references': '交付物引用',
+    'harness:source': '源码位置',
+    'app:web-surface': 'GUI 地址',
+    'working-directory:current': '当前目录',
+    'sandbox:policy': '沙箱策略',
+    'approval:policy': '审批策略',
+    'subagent:identity': '子智能体身份',
+    'subagent:delegation': '委派说明',
+  }
+
+  // ------------------------------------------------------------ helpers
+
+  function pickSessionId(props) {
+    const candidates = [
+      props && props.sessionId,
+      props && props.session && props.session.id,
+      props && props.conversation && props.conversation.sessionId,
+      props && props.conversation && props.conversation.session && props.conversation.session.id,
+    ]
+    for (const candidate of candidates) if (typeof candidate === 'string' && candidate.length > 0) return candidate
+    return ''
+  }
+
+  async function getJson(url) {
+    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return response.json()
+  }
+
+  async function postJson(url, body) {
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    })
+    const text = await response.text()
+    let parsed = null
     try {
-      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function' && typeof Blob !== 'undefined') {
-        if (navigator.sendBeacon(BOOT_ENDPOINT, new Blob([body], { type: 'application/json' }))) return
-      }
+      parsed = text === '' ? null : JSON.parse(text)
     } catch {
-      /* 落到 fetch */
+      parsed = null
     }
-    try {
-      fetch(BOOT_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        keepalive: true,
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body,
-      }).catch((error) => {
-        console.error('[context-preflight] boot 上报失败（不影响界面）', error)
-      })
-    } catch (error) {
-      console.error('[context-preflight] boot 上报失败（不影响界面）', error)
-    }
+    if (!response.ok) throw new Error((parsed && parsed.message) || `HTTP ${response.status}`)
+    return parsed
   }
 
-  // 第一件事：报「脚本开始执行了」——在任何 loader 判断之前。
-  const initialLoader = typeof window !== 'undefined' ? window.__ModuleLoader__ : undefined
-  reportBoot({ stage: 'entered', hasLoader: typeof initialLoader?.load === 'function' })
-
-  let registered = false
-  let attempts = 0
-  let timer = null
-  const listeners = []
-
-  function cleanupWaiters() {
-    if (timer !== null) {
-      clearInterval(timer)
-      timer = null
-    }
-    for (const [type, listener] of listeners) {
-      if (type === 'load') window.removeEventListener('load', listener)
-      else document.removeEventListener(type, listener)
-    }
-    listeners.length = 0
+  const token = (value) => {
+    const number = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+    if (number < 1000) return String(number)
+    if (number < 1000000) return `${Math.round((number / 1000) * 10) / 10}k`
+    return `${Math.round((number / 1000000) * 10) / 10}M`
   }
+  const digits = (value) => String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0)
 
-  /** 拿到 loader 就注册，且只注册一次。 */
-  function start(loader, source) {
-    if (registered) return
-    registered = true
-    cleanupWaiters()
-    reportBoot({ stage: 'loader-ready', hasLoader: true, hasReact: false, source })
-    try {
-      loader.load({
-      id: BOOT_ID,
-      factory(require) {
-        reportBoot({ stage: 'factory-entered', hasLoader: true, hasReact: false })
-        console.info('[context-preflight] client module loaded')
-        try {
-          return buildModule(require)
-        } catch (error) {
-          reportBoot({ stage: 'factory-failed', hasLoader: true, hasReact: false, error: String(error?.message ?? error) })
-          console.error('[context-preflight] factory 抛错', error)
-          throw error
-        }
-      },
-      })
-    } catch (error) {
-      console.error('[context-preflight] loader.load 抛错', error)
-      reportBoot({ stage: 'loader-failed', hasLoader: true, error: String(error?.message ?? error) })
-    }
-  }
-
-  /** 模块主体：单独成函数，便于整体兜错。 */
-  function buildModule(require) {
-        let React
-        try {
-          reportBoot({ stage: 'react-require', hasLoader: true, hasReact: false })
-          React = require('react')
-          reportBoot({ stage: 'react-ok', hasLoader: true, hasReact: true })
-        } catch (error) {
-          reportBoot({ stage: 'react-failed', hasLoader: true, hasReact: false, error: String(error?.message ?? error) })
-          console.error('[context-preflight] react 依赖不可用，客户端模块放弃注册', error)
-          throw error
-        }
-
-    const { useCallback, useEffect, useMemo, useState } = React
-    const h = React.createElement
-
-    const NAMESPACE = 'context-preflight'
-    const PANEL_KEY = 'context-preflight'
-    const ENDPOINT = '/plugins/dsh-context-preflight/summary'
-    const LOCALE_ENDPOINT = '/plugins/dsh-context-preflight/locale'
-    const POLICY_ENDPOINT = '/plugins/dsh-context-preflight/policy'
-    const REGISTRATIONS_ENDPOINT = '/plugins/dsh-context-preflight/registrations'
-    const ACTION_ENDPOINT = '/plugins/dsh-context-preflight/action'
-    const DASH = '\u2014'
-    const DOT = '\u00b7'
-
-    // 内置兜底文案：locale 路由拿不到时也立刻渲染，绝不静默空白。
-    const FALLBACK = {
-      panelLabel: '注入',
-      panelTitle: '注入上下文',
-      heroTitle: '本轮注入',
-      close: '关闭',
-      policyTitle: '默认策略',
-      policySub: '每个新会话生效',
-      policyFixed: '固定加载，不可关',
-      policyContext: '运行时上下文',
-      policyContextLabel: '随会话注入',
-      modeAll: '全部',
-      modeOnly: '仅这些',
-      modeExcept: '排除',
-      addSkill: '技能名后回车',
-      addTool: '工具名或前缀（如 mcp__rea__）',
-      removeAria: '移除 {name}',
-      policyEstimate: '按此默认，新会话首轮注入 ≈ {tokens}（−{saved}，−{percent}%）',
-      saveFailed: '策略未保存：{reason}',
-      mgTitle: '管理',
-      mgSub: '开关立即生效 · 只改名或只改一行，正文不动',
-      mgOn: '已开',
-      mgOff: '已关',
-      mgLoaded: '加载中',
-      mgDisabled: '已停用',
-      kpiInstructions: '画像',
-      kpiSkills: '技能',
-      kpiTools: '工具',
-      kpiPrompts: '提示词',
-      subFiles: '{n} 文件',
-      subSkills: '{model} 可见',
-      subTools: '{n} 个',
-      subSections: '{n} 段',
-      donutTitle: '构成占比',
-      barsTitle: '最大的 8 个工具 schema',
-      mismatch: '分项之和 {sum} 与合计 {total} 不一致',
-      estimate: '估算',
-      loadingPanel: '正在读取注入构成…',
-      retry: '重试',
-      readFailed: '读取失败',
-      sessionUsage: '本会话已占用 {tokens}（含对话历史，与上方注入量不可直接比较）',
-      inject: '注入',
-      blocksInstructions: '画像/规则',
-      blocksSkills: '技能',
-      blocksTools: '工具',
-      blocksPrompts: '系统提示词',
-      aria: '注入上下文',
-      missing: '缺失',
-      notLoaded: '{bytes} B 未加载',
-      chars: '{n} 字',
-      skillsFailed: '技能目录读取失败',
-      reading: '读取中',
-    }
-
-    const localeState = { t: null }
-    const localeListeners = new Set()
-
-    function fallbackTranslate(key, params) {
-      const template = FALLBACK[key]
-      if (typeof template !== 'string') return key
-      if (params === undefined) return template
-      return template.replace(/\{(\w+)\}/g, (match, name) =>
-        params[name] === undefined ? match : String(params[name]),
-      )
-    }
-
-    localeState.t = fallbackTranslate
-    const currentT = () => localeState.t ?? fallbackTranslate
-
-    // 浅色是规格给的精确值；深色换成等价中性灰（宿主会打 body[data-ds-dark-theme]）。
-    const STYLE = `
-.cpf-v3{--ink:#18181b;--ink2:#52525b;--ink3:#a1a1aa;--ink4:#e4e4e7;--line:#ececec;--line2:#f4f4f5;--bg:#fafafa;--card:#ffffff;--warn:#b45309;--muted:#71717a;box-sizing:border-box;width:100%;height:100%;overflow:auto;background:var(--bg);color:var(--ink);font-size:13px;line-height:20px;container-type:inline-size}
-body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--ink4:#3f3f46;--line:#27272a;--line2:#1f1f22;--bg:#0f0f10;--card:#17171a;--warn:#d97706;--muted:#a1a1aa}
-.cpf-shell{max-width:1120px;margin:0 auto;padding:calc(24px + var(--dsh-frame-top-clearance,0px)) 24px 24px}
-.cpf-head{display:flex;align-items:center;gap:10px;min-height:56px;margin:-6px 0 16px}
-.cpf-title{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
-.cpf-spacer{flex:1}
-.cpf-close{width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink3);font:inherit;font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.cpf-close:hover{color:var(--ink);border-color:var(--ink4)}
-.cpf-kpi{display:grid;grid-template-columns:240px repeat(4,minmax(0,1fr));gap:16px}
-.cpf-hero-card{display:flex;flex-direction:column;justify-content:center}
-.cpf-hero-card .cpf-big{font-size:34px;line-height:40px}
-.cpf-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;min-width:0}
-.cpf-card-title{font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
-.cpf-policy{margin-top:16px}
-.cpf-policy-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.cpf-policy-rows{margin-top:6px;display:flex;flex-direction:column}
-.cpf-policy-row{display:flex;align-items:center;gap:12px;min-height:34px;border-top:1px solid var(--line2);flex-wrap:wrap}
-.cpf-policy-row:first-child{border-top:0}
-.cpf-policy-label{flex:none;width:96px;color:var(--ink);font-size:13px}
-.cpf-policy-value{flex:none;width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2);font-size:12px}
-.cpf-policy-ctl{flex:1;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.cpf-radio{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink2);cursor:pointer}
-.cpf-radio input{width:12px;height:12px;accent-color:var(--ink);margin:0}
-.cpf-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 8px;border-radius:6px;background:var(--line2);color:var(--ink2);font-size:13px;line-height:22px;max-width:220px}
-.cpf-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cpf-chip-x{border:0;background:transparent;color:var(--ink3);font:inherit;font-size:13px;line-height:1;cursor:pointer;padding:0 2px}
-.cpf-chip-x:hover{color:var(--ink)}
-.cpf-input{height:24px;width:150px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-size:12px;padding:0 8px}
-.cpf-input:focus-visible{outline:2px solid var(--ink3);outline-offset:1px}
-.cpf-policy-foot{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
-.cpf-banner{margin-top:12px;border-left:2px solid var(--warn);padding-left:8px;color:var(--warn);font-size:12px;line-height:18px}
-.cpf-mg-group{margin-top:10px}
-.cpf-mg-head{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em;margin-bottom:4px}
-.cpf-mg-list{max-height:220px;overflow:auto;border:1px solid var(--line2);border-radius:8px}
-.cpf-mg-row{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-top:1px solid var(--line2)}
-.cpf-mg-row:first-child{border-top:0}
-.cpf-mg-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--ink)}
-.cpf-mg-detail{flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
-.cpf-mg-btn{flex:none;height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink3);font:inherit;font-size:12px;cursor:pointer}
-.cpf-mg-btn:hover{color:var(--ink);border-color:var(--ink4)}
-.cpf-mg-btn.is-on{color:var(--ink);border-color:var(--ink4);background:var(--line2)}
-.cpf-mg-btn:disabled{opacity:.5;cursor:default}
-.cpf-big{display:flex;align-items:baseline;margin-top:6px;font-size:30px;line-height:36px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
-.cpf-unit{font-size:.6em;font-weight:600;color:var(--ink3);margin-left:1px}
-.cpf-sub{margin-top:2px;font-size:12px;color:var(--ink3)}
-.cpf-charts{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;margin-top:16px}
-.cpf-donut{display:flex;align-items:center;gap:20px;margin-top:12px;flex-wrap:wrap}
-.cpf-donut-ring{position:relative;flex:none;width:120px;height:120px}
-.cpf-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.cpf-donut-center .cpf-big{font-size:20px;line-height:24px;margin-top:0}
-.cpf-donut-caption{margin-top:-2px;font-size:11px;line-height:14px;color:var(--ink3)}
-.cpf-legend{flex:1;min-width:132px;display:flex;flex-direction:column;gap:6px}
-.cpf-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2)}
-.cpf-swatch{width:8px;height:8px;border-radius:2px;flex:none}
-.cpf-legend-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cpf-legend-pct{flex:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
-.cpf-bars{display:flex;flex-direction:column;margin-top:8px}
-.cpf-bar-row{display:flex;align-items:center;gap:10px;height:30px;border-bottom:1px solid var(--line2)}
-.cpf-bar-row:last-child{border-bottom:0}
-.cpf-bar-name{max-width:55%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--ink2)}
-.cpf-bar-track{flex:1;min-width:24px;height:6px;border-radius:3px;background:var(--line2);overflow:hidden}
-.cpf-bar-fill{height:100%;border-radius:3px;background:var(--ink)}
-.cpf-bar-value{flex:none;width:72px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink2)}
-.cpf-warn-card{margin-top:16px;display:flex;gap:10px;align-items:flex-start;border-left:2px solid var(--warn)}
-.cpf-warn-text{color:var(--warn);font-size:13px;line-height:20px;min-width:0;word-break:break-word}
-.cpf-foot{margin-top:16px;font-size:12px;color:var(--ink3)}
-.cpf-state{margin-top:16px;padding:16px 0;color:var(--ink3);font-size:13px}
-.cpf-retry{margin-left:8px;border:0;background:transparent;color:var(--warn);cursor:pointer;font:inherit;padding:0}
-.cpf-skel{background:var(--card);border:1px solid var(--line);border-radius:12px;height:104px}
-.cpf-skel-wide{height:168px;margin-top:16px}
-@container (max-width: 1000px){.cpf-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.cpf-hero-card{grid-column:1/-1}.cpf-charts{grid-template-columns:1fr}}
-@container (max-width: 560px){.cpf-kpi{grid-template-columns:1fr}}
-.cpf-strip-root{display:flex;align-items:center;justify-content:center;padding:4px 0;font-size:12px;line-height:20px;color:var(--ink2)}
-.cpf-strip{display:inline-flex;align-items:center;gap:8px;height:20px;padding:0;border:0;background:transparent;box-shadow:none;cursor:pointer;user-select:none;font:inherit;color:var(--ink3)}
-.cpf-strip:hover{color:var(--ink2)}
-.cpf-strip:focus-visible{outline:2px solid var(--ink2);outline-offset:2px;border-radius:4px}
-.cpf-sep{color:var(--ink3);opacity:.55}
-.cpf-caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;transition:transform .12s ease}
-.cpf-caret.cpf-open{transform:rotate(180deg)}
-.cpf-pop{margin-top:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;max-height:min(60vh,480px);overflow:auto;text-align:left;width:100%;box-sizing:border-box}
-.cpf-pop-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:26px;color:var(--ink3)}
-.cpf-pop-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cpf-pop-val{flex:none;font-variant-numeric:tabular-nums}
+  const STYLE = `
+.ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);color:var(--ci-fg);font-size:13px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
+body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8b95;--ci-line:rgba(255,255,255,.12);--ci-line2:rgba(255,255,255,.07);--ci-bg:#161619;--ci-card:#1d1d21;--ci-accent:#7c8dff;--ci-warn:#fbbf24}
+.ci-scroll{overflow:auto;min-height:0}
+.ci-scroll::-webkit-scrollbar{width:8px;height:8px}
+.ci-scroll::-webkit-scrollbar-thumb{background:var(--ci-line);border-radius:8px}
+.ci-head{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
+.ci-head h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.01em}
+.ci-head p{margin:2px 0 0;color:var(--ci-fg2);font-size:12px}
+.ci-head .ci-spacer{flex:1}
+.ci-btn{border:1px solid var(--ci-line);background:var(--ci-bg);color:var(--ci-fg);border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;line-height:1.5;white-space:nowrap}
+.ci-btn:hover{background:var(--ci-card)}
+.ci-btn[disabled]{opacity:.5;cursor:default}
+.ci-btn.ci-primary{background:var(--ci-accent);border-color:transparent;color:#fff}
+.ci-body{padding:16px 20px 24px;display:flex;flex-direction:column;gap:16px;flex:0 0 auto}
+.ci-body.grow{flex:1 1 auto;min-height:0;overflow:auto;padding-top:12px}
+.ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:10px;padding:10px 12px;min-width:0}
+.ci-kpi .k{font-size:11px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kpi .v{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-top:2px;white-space:nowrap}
+.ci-kpi .s{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--ci-line2)}
+.ci-bar span{display:block;height:100%;min-width:2px}
+.ci-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
+.ci-legend button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11px;cursor:pointer;padding:2px 0}
+.ci-legend i{width:8px;height:8px;border-radius:3px;display:block}
+.ci-legend b{color:var(--ci-fg);font-weight:600}
+.ci-tabs{display:flex;gap:4px;border-bottom:1px solid var(--ci-line2);padding:0 20px;flex:0 0 auto}
+.ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ci-tabs button.on{color:var(--ci-fg);border-bottom-color:var(--ci-accent);font-weight:600}
+.ci-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+.ci-input{flex:1;min-width:120px;border:1px solid var(--ci-line);border-radius:8px;padding:5px 10px;font-size:12px;background:var(--ci-bg);color:var(--ci-fg);outline:none}
+.ci-input:focus{border-color:var(--ci-accent)}
+.ci-chip{border:1px solid var(--ci-line);background:transparent;color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
+.ci-chip.on{background:var(--ci-fg);color:var(--ci-bg);border-color:transparent}
+.ci-table{border:1px solid var(--ci-line2);border-radius:10px;overflow:auto;background:var(--ci-bg);min-height:0}
+.ci-thead,.ci-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px 58px 52px;gap:8px;align-items:center;padding:7px 12px}
+.ci-thead{font-size:11px;color:var(--ci-fg3);background:var(--ci-card);border-bottom:1px solid var(--ci-line2);position:sticky;top:0;z-index:1}
+.ci-row{border-bottom:1px solid var(--ci-line2);font-size:12.5px}
+.ci-row:last-child{border-bottom:0}
+.ci-row:hover{background:var(--ci-card)}
+.ci-row .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-row .id{color:var(--ci-fg3);font-size:11px;margin-left:6px}
+.ci-row .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ci-fg2);white-space:nowrap}
+.ci-row .badge i{width:8px;height:8px;border-radius:3px;display:block}
+.ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
+.ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg3);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.ci-row.locked .n{color:var(--ci-fg2)}
+.ci-switch{position:relative;width:34px;height:20px;border-radius:999px;border:0;background:var(--ci-line);cursor:pointer;padding:0;justify-self:end;transition:background .15s}
+.ci-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.ci-switch.on{background:var(--ci-accent)}
+.ci-switch.on span{transform:translateX(14px)}
+.ci-switch[disabled]{opacity:.45;cursor:default}
+.ci-note{color:var(--ci-fg2);font-size:12px}
+.ci-note.warn{color:var(--ci-warn)}
+.ci-card{border:1px solid var(--ci-line2);border-radius:10px;padding:12px 14px;background:var(--ci-card);display:flex;flex-direction:column;gap:8px}
+.ci-card h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2)}
+.ci-rowline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ci-rowline .lbl{font-size:12.5px}
+.ci-rowline .hint{font-size:11px;color:var(--ci-fg3)}
+.ci-seg{display:inline-flex;border:1px solid var(--ci-line);border-radius:8px;overflow:hidden}
+.ci-seg button{border:0;background:transparent;color:var(--ci-fg2);padding:4px 10px;font-size:11.5px;cursor:pointer}
+.ci-seg button.on{background:var(--ci-fg);color:var(--ci-bg)}
+.ci-empty{padding:26px 12px;text-align:center;color:var(--ci-fg3);font-size:12px}
+.ci-skel{height:56px;border-radius:10px;background:var(--ci-card);border:1px solid var(--ci-line2)}
+.ci-foot{color:var(--ci-fg3);font-size:11px;padding-bottom:4px;word-break:break-all}
+.ci-list{display:flex;flex-direction:column;gap:6px}
+.ci-mini{display:flex;align-items:center;gap:8px}
+.ci-mini .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.ci-mini .t{font-size:11px;color:var(--ci-fg3);font-variant-numeric:tabular-nums}
+.ci-dock{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ci-line);background:var(--ci-bg);color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11.5px;cursor:pointer;line-height:1.4}
+.ci-dock:hover{background:var(--ci-card)}
+.ci-dock b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
+.ci-dock i{width:6px;height:6px;border-radius:50%;background:var(--ci-accent);display:block}
+.ci-side{display:flex;flex-direction:column;min-height:0;height:100%}
+.ci-side .ci-body{padding:12px 12px 16px;gap:10px;flex:1 1 auto;min-height:0;overflow:auto}
 `
 
-    function splitValue(value) {
-      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return { number: DASH, unit: '' }
-      if (value >= 10000) {
-        const scaled = value / 1000
-        return { number: scaled.toFixed(1), unit: 'k' }
-      }
-      return { number: String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ','), unit: '' }
+  function createTranslator(dictionary, language) {
+    const dict = dictionary || {}
+    const zh = language !== 'en'
+    return function t(key, vars) {
+      let value = dict[key]
+      if (typeof value !== 'string' || value === key) value = zh ? FALLBACK[key] : undefined
+      if (typeof value !== 'string') return key
+      if (vars === undefined) return value
+      return value.replace(/\{(\w+)\}/g, (match, name) => (vars[name] === undefined ? match : String(vars[name])))
     }
+  }
 
-    function formatTokens(value) {
-      const { number, unit } = splitValue(value)
-      return `${number}${unit}`
-    }
+  function nameOf(t, item) {
+    const dict = t.names || {}
+    const label = dict[item.name] || (t.language === 'zh' ? NAMES_ZH[item.name] : undefined)
+    return label && label !== item.name ? label : item.name
+  }
 
-    function formatChars(value) {
-      if (typeof value !== 'number' || !Number.isFinite(value)) return DASH
-      return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    }
+  window.__ModuleLoader__.load({
+    id: ID,
+    factory(require) {
+      const React = require('react')
+      const h = React.createElement
+      const { useCallback, useEffect, useMemo, useRef, useState } = React
 
-    function tr(t, key, params, fallback) {
-      const value = t(key, params)
-      if (typeof value !== 'string' || value === key) return fallback ?? key
-      return value
-    }
-
-    function blockKey(id) {
-      const suffix = String(id).charAt(0).toUpperCase() + String(id).slice(1)
-      return `blocks${suffix}`
-    }
-
-    function sessionIdOf(props) {
-      if (typeof props?.sessionId === 'string') return props.sessionId
-      if (props?.session && typeof props.session.id === 'string') return props.session.id
-      if (props?.conversation && typeof props.conversation.sessionId === 'string') return props.conversation.sessionId
-      return undefined
-    }
-
-    async function loadJson(url, signal) {
-      let response
-      try {
-        response = await fetch(url, {
-          credentials: 'same-origin',
-          headers: { accept: 'application/json' },
-          signal,
-        })
-      } catch (error) {
-        if (error?.name === 'AbortError') throw error
-        console.error('[context-preflight] fetch 失败', url, error)
-        throw error
-      }
-      if (!response.ok) {
-        console.error('[context-preflight] fetch 失败', url, `HTTP ${response.status}`)
-        throw new Error(`HTTP ${response.status}`)
-      }
-      return response.json()
-    }
-
-    async function savePolicy(policy, signal) {
-      let response
-      try {
-        response = await fetch(POLICY_ENDPOINT, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json', accept: 'application/json' },
-          body: JSON.stringify(policy),
-          signal,
-        })
-      } catch (error) {
-        if (error?.name === 'AbortError') throw error
-        console.error('[context-preflight] 策略写入失败', POLICY_ENDPOINT, error)
-        throw error
-      }
-      if (!response.ok) {
-        console.error('[context-preflight] 策略写入失败', POLICY_ENDPOINT, `HTTP ${response.status}`)
-        throw new Error(`HTTP ${response.status}`)
-      }
-      return response.json()
-    }
-
-    function notifyLocale() {
-      for (const listener of localeListeners) listener()
-    }
-
-    function useTranslate() {
-      const [revision, setRevision] = useState(0)
-      useEffect(() => {
-        const listener = () => setRevision((value) => value + 1)
-        localeListeners.add(listener)
-        return () => localeListeners.delete(listener)
-      }, [])
-      void revision
-      return currentT()
-    }
-
-    function useSummary(props) {
-      const sessionId = sessionIdOf(props)
-      const [data, setData] = useState(null)
-      const [failed, setFailed] = useState(false)
-      const [nonce, setNonce] = useState(0)
-
-      useEffect(() => {
-        const controller = new AbortController()
-        const url = sessionId ? `${ENDPOINT}?session=${encodeURIComponent(sessionId)}` : ENDPOINT
-        loadJson(url, controller.signal)
-          .then((next) => {
-            setData(next)
-            setFailed(false)
-          })
-          .catch((error) => {
-            if (error?.name === 'AbortError') return
-            setFailed(true)
-          })
-        return () => controller.abort()
-      }, [sessionId, nonce])
-
-      const reload = useCallback(() => setNonce((value) => value + 1), [])
-      const state = data !== null ? 'ready' : failed ? 'error' : 'loading'
-      return { state, data, reload }
-    }
-
-    // ---------------------------------------------------------------- 默认策略（客户端状态）
-
-    function usePolicy() {
-      const [draft, setDraft] = useState(null)
-      const [dirty, setDirty] = useState(false)
-      const [status, setStatus] = useState('idle')
-      const [error, setError] = useState(null)
-
-      useEffect(() => {
-        const controller = new AbortController()
-        loadJson(POLICY_ENDPOINT, controller.signal)
-          .then((payload) => {
-            setDraft(payload.policy)
-            setDirty(false)
-            setStatus('ready')
-            if (payload.error) setError(String(payload.error))
-          })
-          .catch((failure) => {
-            if (failure?.name === 'AbortError') return
-            setStatus('error')
-            setError(String(failure?.message ?? failure))
-          })
-        return () => controller.abort()
-      }, [])
-
-      // 改完立刻重算，落盘防抖 500ms。
-      useEffect(() => {
-        if (!dirty || draft === null) return undefined
-        const timer = setTimeout(() => {
-          setStatus('saving')
-          savePolicy(draft)
-            .then(() => {
-              setDirty(false)
-              setStatus('ready')
-              setError(null)
-            })
-            .catch((failure) => {
-              setStatus('error')
-              setError(String(failure?.message ?? failure))
-            })
-        }, 500)
-        return () => clearTimeout(timer)
-      }, [draft, dirty])
-
-      const update = useCallback((next) => {
-        setDraft(next)
-        setDirty(true)
-      }, [])
-
-      return { draft, update, status, error }
-    }
-
-    function toolMatcher(entries) {
-      const exact = new Set()
-      const prefixes = []
-      for (const raw of entries ?? []) {
-        const entry = String(raw ?? '').trim()
-        if (entry === '') continue
-        if (entry === '*') prefixes.push('')
-        else if (entry.endsWith('*')) prefixes.push(entry.slice(0, -1))
-        else if (entry.endsWith('_')) prefixes.push(entry)
-        else exact.add(entry)
-      }
-      return (name) => exact.has(name) || prefixes.some((prefix) => name.startsWith(prefix))
-    }
-
-    /** 与宿主 previewPolicy 同一口径：拿掉的部分从当前合计里减。 */
-    function previewFrom(policy, data) {
-      const total = data?.totals?.tokens ?? 0
-      const toolRows = data?.tools?.rows ?? []
-      const skillRows = data?.skills?.rows ?? []
-      const matcher = toolMatcher(policy?.tools?.names)
-      const exactSkills = new Set((policy?.skills?.names ?? []).map(String))
-      const excludedTools =
-        policy?.tools?.mode === 'all' || policy?.tools?.mode === undefined
-          ? []
-          : toolRows.filter((row) => (policy.tools.mode === 'only' ? !matcher(row.name) : matcher(row.name)))
-      const excludedSkills =
-        policy?.skills?.mode === 'all' || policy?.skills?.mode === undefined
-          ? []
-          : skillRows.filter((row) => (policy.skills.mode === 'only' ? !exactSkills.has(row.name) : exactSkills.has(row.name)))
-      const savedTools = excludedTools.reduce((sum, row) => sum + (row.tokens ?? 0), 0)
-      const savedSkills = excludedSkills.reduce((sum, row) => sum + (row.tokens ?? 0), 0)
-      const savedContexts = policy?.runtimeContext?.enabled === false ? (data?.prompts?.contextTokens ?? 0) : 0
-      const saved = savedTools + savedSkills + savedContexts
-      return {
-        tokens: Math.max(0, total - saved),
-        saved,
-        percent: total > 0 ? Math.round((saved / total) * 1000) / 10 : 0,
-        excludedTools: excludedTools.length,
-        excludedSkills: excludedSkills.length,
-      }
-    }
-
-    // ---------------------------------------------------------------- 原子块
-
-    function BigNumber({ value }) {
-      const { number, unit } = splitValue(value)
-      return h(
-        'div',
-        { className: 'cpf-big' },
-        number,
-        unit ? h('span', { className: 'cpf-unit' }, unit) : null,
-      )
-    }
-
-    function KpiCard({ title, tokens, sub }) {
-      return h(
-        'div',
-        { className: 'cpf-card' },
-        h('div', { className: 'cpf-card-title' }, title),
-        h(BigNumber, { value: tokens }),
-        h('div', { className: 'cpf-sub' }, sub),
-      )
-    }
-
-    // 手写环形图：viewBox 120，半径 48，线宽 14，段间 2px 间隙。
-    const RING_RADIUS = 48
-    const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
-    const RING_GAP = 2
-    const RING_COLORS = ['#18181b', '#52525b', '#a1a1aa', '#e4e4e7']
-
-    function Donut({ segments, total, t }) {
-      let offset = 0
-      const arcs = segments.map((segment, index) => {
-        const fraction = total > 0 ? segment.tokens / total : 0
-        const raw = fraction * RING_CIRCUMFERENCE
-        const length = Math.max(0, raw - (segments.length > 1 ? RING_GAP : 0))
-        const arc = h('circle', {
-          key: segment.id,
-          cx: 60,
-          cy: 60,
-          r: RING_RADIUS,
-          fill: 'none',
-          stroke: RING_COLORS[index % RING_COLORS.length],
-          strokeWidth: 14,
-          strokeLinecap: 'butt',
-          strokeDasharray: `${length} ${RING_CIRCUMFERENCE - length}`,
-          strokeDashoffset: -offset,
-          transform: 'rotate(-90 60 60)',
-        })
-        offset += raw
-        return arc
-      })
-
-      const legend = segments.map((segment, index) =>
-        h(
-          'div',
-          { key: segment.id, className: 'cpf-legend-row' },
-          h('span', {
-            className: 'cpf-swatch',
-            style: { background: RING_COLORS[index % RING_COLORS.length] },
-          }),
-          h('span', { className: 'cpf-legend-name' }, segment.label),
-          h(
-            'span',
-            { className: 'cpf-legend-pct' },
-            total > 0 ? `${((segment.tokens / total) * 100).toFixed(1)}%` : DASH,
-          ),
-        ),
-      )
-
-      return h(
-        'div',
-        { className: 'cpf-donut' },
-        h(
-          'div',
-          { className: 'cpf-donut-ring' },
-          h(
-            'svg',
-            { width: 120, height: 120, viewBox: '0 0 120 120', role: 'img', 'aria-label': tr(t, 'donutTitle') },
-            h('circle', { cx: 60, cy: 60, r: RING_RADIUS, fill: 'none', stroke: '#f4f4f5', strokeWidth: 14 }),
-            ...arcs,
-          ),
-          h(
-            'div',
-            { className: 'cpf-donut-center' },
-            h(BigNumber, { value: total }),
-            h('div', { className: 'cpf-donut-caption' }, tr(t, 'estimate')),
-          ),
-        ),
-        h('div', { className: 'cpf-legend' }, ...legend),
-      )
-    }
-
-    function Bars({ tools, t }) {
-      const rows = tools?.largest ?? []
-      const max = rows.reduce((value, row) => Math.max(value, row.chars ?? 0), 0)
-      return h(
-        'div',
-        { className: 'cpf-bars' },
-        ...rows.map((row) =>
-          h(
-            'div',
-            { className: 'cpf-bar-row', key: row.name },
-            h('span', { className: 'cpf-bar-name', title: row.name }, row.name),
-            h(
-              'span',
-              { className: 'cpf-bar-track' },
-              h('span', {
-                className: 'cpf-bar-fill',
-                style: { width: `${max > 0 ? Math.max(2, ((row.chars ?? 0) / max) * 100) : 0}%` },
-              }),
-            ),
-            h('span', { className: 'cpf-bar-value' }, formatChars(row.chars)),
-          ),
-        ),
-      )
-    }
-
-    // ---------------------------------------------------------------- 默认策略卡片
-
-    function Radio({ name, checked, label, onSelect }) {
-      return h(
-        'label',
-        { className: 'cpf-radio' },
-        h('input', { type: 'radio', name, checked, onChange: onSelect }),
-        h('span', null, label),
-      )
-    }
-
-    function NameAdder({ placeholder, onAdd, t }) {
-      const [text, setText] = useState('')
-      const commit = () => {
-        const value = text.trim()
-        if (value.length === 0) return
-        onAdd(value)
-        setText('')
-      }
-      return h('input', {
-        className: 'cpf-input',
-        type: 'text',
-        value: text,
-        placeholder,
-        'aria-label': placeholder,
-        onChange: (event) => setText(event.target.value),
-        onKeyDown: (event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            commit()
-          }
-        },
-        onBlur: commit,
-      })
-    }
-
-    function ToolChips({ policy, onChange, t }) {
-      const names = policy.tools.names ?? []
-      return h(
-        React.Fragment,
-        null,
-        ...names.map((name) =>
-          h(
-            'span',
-            { className: 'cpf-chip', key: name },
-            h('span', { className: 'cpf-chip-name' }, name),
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'cpf-chip-x',
-                'aria-label': tr(t, 'removeAria', { name }),
-                title: tr(t, 'removeAria', { name }),
-                onClick: () => onChange({ ...policy, tools: { ...policy.tools, names: names.filter((row) => row !== name) } }),
-              },
-              '\u00d7',
-            ),
-          ),
-        ),
-        h(NameAdder, {
-          t,
-          placeholder: tr(t, 'addTool'),
-          onAdd: (value) => onChange({ ...policy, tools: { ...policy.tools, names: [...names, value] } }),
-        }),
-      )
-    }
-
-    function SkillChips({ policy, onChange, t }) {
-      const names = policy.skills.names ?? []
-      return h(
-        React.Fragment,
-        null,
-        ...names.map((name) =>
-          h(
-            'span',
-            { className: 'cpf-chip', key: name },
-            h('span', { className: 'cpf-chip-name' }, name),
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'cpf-chip-x',
-                'aria-label': tr(t, 'removeAria', { name }),
-                title: tr(t, 'removeAria', { name }),
-                onClick: () =>
-                  onChange({ ...policy, skills: { ...policy.skills, names: names.filter((row) => row !== name) } }),
-              },
-              '\u00d7',
-            ),
-          ),
-        ),
-        h(NameAdder, {
-          t,
-          placeholder: tr(t, 'addSkill'),
-          onAdd: (value) => onChange({ ...policy, skills: { ...policy.skills, names: [...names, value] } }),
-        }),
-      )
-    }
-
-    function setMode(policy, section, mode) {
-      return { ...policy, [section]: { ...policy[section], mode } }
-    }
-
-    async function postAction(body) {
-      const response = await fetch(ACTION_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok || payload?.ok === false) throw new Error(payload?.error ?? `HTTP ${response.status}`)
-      return payload
-    }
-
-    /** 管理卡：技能与画像文件各自的开关（每个动作执行后回读真实状态）。 */
-    function ManagementCard({ data, t, onAction, busy, error }) {
-      const management = data?.management
-      if (management === undefined || management.error !== undefined) return null
-      const skills = management.skills ?? []
-      const rules = management.rules ?? []
-
-      function row(key, label, detail, active, onToggle) {
-        return h(
-          'div',
-          { className: 'cpf-mg-row', key },
-          h('span', { className: 'cpf-mg-name', title: label }, label),
-          h('span', { className: 'cpf-mg-detail' }, detail),
-          h(
-            'button',
-            {
-              type: 'button',
-              className: active ? 'cpf-mg-btn is-on' : 'cpf-mg-btn',
-              disabled: busy,
-              onClick: onToggle,
-            },
-            active ? tr(t, 'mgOn') : tr(t, 'mgOff'),
-          ),
-        )
-      }
-
-      return h(
-        'section',
-        { className: 'cpf-card cpf-policy' },
-        h(
-          'div',
-          { className: 'cpf-policy-head' },
-          h('div', { className: 'cpf-card-title' }, tr(t, 'mgTitle')),
-          h('div', { className: 'cpf-sub' }, tr(t, 'mgSub')),
-        ),
-        error ? h('div', { className: 'cpf-banner' }, error) : null,
-        h(
-          'div',
-          { className: 'cpf-mg-group' },
-          h('div', { className: 'cpf-mg-head' }, `${tr(t, 'kpiSkills')} ${skills.length}`),
-          h(
-            'div',
-            { className: 'cpf-mg-list' },
-            ...skills.map((skill) =>
-              row(
-                `s-${skill.path}`,
-                skill.name,
-                `${skill.descriptionLength} 字 · ${skill.hasKey ? skill.keyValue : '无键'}`,
-                !skill.disabled,
-                () => onAction('skill', skill.dir, skill.disabled ? 'on' : 'off'),
-              ),
-            ),
-          ),
-        ),
-        h(
-          'div',
-          { className: 'cpf-mg-group' },
-          h('div', { className: 'cpf-mg-head' }, `${tr(t, 'kpiInstructions')} ${rules.length}`),
-          h(
-            'div',
-            { className: 'cpf-mg-list' },
-            ...rules.map((rule, index) =>
-              row(
-                `r-${rule.path}`,
-                rule.path.split('\\').pop(),
-                rule.state === 'active' ? tr(t, 'mgLoaded') : tr(t, 'mgDisabled'),
-                rule.state === 'active',
-                () => onAction('rule', String(index + 1), rule.state === 'active' ? 'off' : 'on'),
-              ),
-            ),
-          ),
-        ),
-      )
-    }
-
-    function PolicyCard({ policy, onChange, t, data }) {      if (policy === null) return null
-      const preview = previewFrom(policy, data)
-      const instructions = data?.blocks?.find((block) => block.id === 'instructions')
-
-      return h(
-        'section',
-        { className: 'cpf-card cpf-policy' },
-        h(
-          'div',
-          { className: 'cpf-policy-head' },
-          h('div', { className: 'cpf-card-title' }, tr(t, 'policyTitle')),
-          h('div', { className: 'cpf-sub' }, tr(t, 'policySub')),
-        ),
-        h(
-          'div',
-          { className: 'cpf-policy-rows' },
-          h(
-            'div',
-            { className: 'cpf-policy-row' },
-            h('span', { className: 'cpf-policy-label' }, tr(t, 'kpiInstructions')),
-            h('span', { className: 'cpf-policy-value' }, formatTokens(instructions?.tokens)),
-            h('div', { className: 'cpf-policy-ctl' }, h('span', { className: 'cpf-sub' }, tr(t, 'policyFixed'))),
-          ),
-          h(
-            'div',
-            { className: 'cpf-policy-row' },
-            h('span', { className: 'cpf-policy-label' }, tr(t, 'kpiSkills')),
-            h('span', { className: 'cpf-policy-value' }, formatTokens(data?.skills?.tokens)),
-            h(
-              'div',
-              { className: 'cpf-policy-ctl' },
-              h(Radio, { name: 'cpf-skills', checked: policy.skills.mode === 'all', label: tr(t, 'modeAll'), onSelect: () => onChange(setMode(policy, 'skills', 'all')) }),
-              h(Radio, { name: 'cpf-skills', checked: policy.skills.mode === 'only', label: tr(t, 'modeOnly'), onSelect: () => onChange(setMode(policy, 'skills', 'only')) }),
-              h(Radio, { name: 'cpf-skills', checked: policy.skills.mode === 'except', label: tr(t, 'modeExcept'), onSelect: () => onChange(setMode(policy, 'skills', 'except')) }),
-              policy.skills.mode === 'all' ? null : h(SkillChips, { policy, onChange, t }),
-            ),
-          ),
-          h(
-            'div',
-            { className: 'cpf-policy-row' },
-            h('span', { className: 'cpf-policy-label' }, tr(t, 'kpiTools')),
-            h('span', { className: 'cpf-policy-value' }, formatTokens(data?.tools?.tokens)),
-            h(
-              'div',
-              { className: 'cpf-policy-ctl' },
-              h(Radio, { name: 'cpf-tools', checked: policy.tools.mode === 'all', label: tr(t, 'modeAll'), onSelect: () => onChange(setMode(policy, 'tools', 'all')) }),
-              h(Radio, { name: 'cpf-tools', checked: policy.tools.mode === 'only', label: tr(t, 'modeOnly'), onSelect: () => onChange(setMode(policy, 'tools', 'only')) }),
-              h(Radio, { name: 'cpf-tools', checked: policy.tools.mode === 'except', label: tr(t, 'modeExcept'), onSelect: () => onChange(setMode(policy, 'tools', 'except')) }),
-              policy.tools.mode === 'all' ? null : h(ToolChips, { policy, onChange, t }),
-            ),
-          ),
-          h(
-            'div',
-            { className: 'cpf-policy-row' },
-            h('span', { className: 'cpf-policy-label' }, tr(t, 'policyContext')),
-            h('span', { className: 'cpf-policy-value' }, formatTokens(data?.prompts?.contextTokens)),
-            h(
-              'div',
-              { className: 'cpf-policy-ctl' },
-              h(
-                'label',
-                { className: 'cpf-radio' },
-                h('input', {
-                  type: 'checkbox',
-                  role: 'switch',
-                  'aria-checked': policy.runtimeContext.enabled !== false,
-                  checked: policy.runtimeContext.enabled !== false,
-                  onChange: (event) =>
-                    onChange({ ...policy, runtimeContext: { enabled: event.target.checked } }),
-                }),
-                h('span', null, tr(t, 'policyContextLabel')),
-              ),
-            ),
-          ),
-        ),
-        h(
-          'div',
-          { className: 'cpf-policy-foot' },
-          tr(t, 'policyEstimate', {
-            tokens: formatTokens(preview.tokens),
-            saved: formatTokens(preview.saved),
-            percent: preview.percent,
-          }),
-        ),
-      )
-    }
-
-    function PanelBody({ state, data, t, reload, policy, onPolicyChange, onAction, actionBusy, actionError }) {
-      if (state === 'loading') {
-        return h(
-          React.Fragment,
-          null,
-          h('div', { className: 'cpf-kpi' }, ...[0, 1, 2, 3, 4].map((index) => h('div', { key: index, className: 'cpf-skel' }))),
-          h('div', { className: 'cpf-skel cpf-skel-wide' }),
-          h('div', { className: 'cpf-foot' }, tr(t, 'loadingPanel')),
-        )
-      }
-      if (state === 'error') {
-        return h(
-          'div',
-          { className: 'cpf-state' },
-          tr(t, 'readFailed'),
-          h('button', { type: 'button', className: 'cpf-retry', onClick: reload }, tr(t, 'retry')),
-        )
-      }
-
-      const blocks = Array.isArray(data.blocks) ? data.blocks : []
-      const total = data.totals?.tokens
-      const byId = new Map(blocks.map((block) => [block.id, block]))
-      const blockSum = blocks.reduce((sum, block) => sum + (block.tokens ?? 0), 0)
-      const mismatch = typeof total === 'number' && blockSum > 0 && Math.abs(blockSum - total) > 2
-
-      const kpi = [
-        {
-          id: 'instructions',
-          title: tr(t, 'kpiInstructions'),
-          block: byId.get('instructions'),
-          sub: tr(t, 'subFiles', { n: data.instructions?.loadedCount ?? DASH }),
-        },
-        {
-          id: 'skills',
-          title: tr(t, 'kpiSkills'),
-          block: byId.get('skills'),
-          sub: tr(t, 'subSkills', { model: data.skills?.modelVisible ?? DASH }),
-        },
-        {
-          id: 'tools',
-          title: tr(t, 'kpiTools'),
-          block: byId.get('tools'),
-          sub: tr(t, 'subTools', { n: data.tools?.count ?? DASH }),
-        },
-        {
-          id: 'prompts',
-          title: tr(t, 'kpiPrompts'),
-          block: byId.get('prompts'),
-          sub: tr(t, 'subSections', { n: data.prompts?.sectionCount ?? DASH }),
-        },
-      ]
-
-      const segments = [...kpi]
-        .filter((entry) => (entry.block?.tokens ?? 0) > 0)
-        .sort((a, b) => (b.block?.tokens ?? 0) - (a.block?.tokens ?? 0))
-        .map((entry) => ({
-          id: entry.id,
-          label: entry.title,
-          tokens: entry.block?.tokens ?? 0,
-        }))
-
-      const warnings = data.instructions?.warnings ?? []
-
-      return h(
-        React.Fragment,
-        null,
-        h(
-          'div',
-          { className: 'cpf-kpi' },
-          h(
-            'div',
-            { className: 'cpf-card cpf-hero-card' },
-            h('div', { className: 'cpf-card-title' }, tr(t, 'heroTitle')),
-            h(BigNumber, { value: total }),
-            h('div', { className: 'cpf-sub' }, tr(t, 'estimate')),
-          ),
-          ...kpi.map((entry) =>
-            h(KpiCard, {
-              key: entry.id,
-              title: entry.title,
-              tokens: entry.block?.tokens,
-              sub: entry.sub,
-            }),
-          ),
-        ),
-        h(
-          'div',
-          { className: 'cpf-charts' },
-          h(
-            'section',
-            { className: 'cpf-card' },
-            h('div', { className: 'cpf-card-title' }, tr(t, 'donutTitle')),
-            h(Donut, { segments, total: total ?? 0, t }),
-          ),
-          h(
-            'section',
-            { className: 'cpf-card' },
-            h('div', { className: 'cpf-card-title' }, tr(t, 'barsTitle')),
-            h(Bars, { tools: data.tools, t }),
-          ),
-        ),
-        mismatch
-          ? h(
-              'div',
-              { className: 'cpf-card cpf-warn-card' },
-              h(
-                'div',
-                { className: 'cpf-warn-text' },
-                tr(t, 'mismatch', { sum: formatChars(blockSum), total: formatChars(total) }),
-              ),
-            )
-          : null,
-        h(PolicyCard, { policy, onChange: onPolicyChange, t, data }),
-        h(ManagementCard, { data, t, onAction, busy: actionBusy, error: actionError }),
-        ...warnings.map((warning) =>
-          h(
-            'div',
-            { className: 'cpf-card cpf-warn-card', key: warning.path },
-            h(
-              'div',
-              { className: 'cpf-warn-text' },
-              `${warning.path} ${tr(t, 'notLoaded', { bytes: formatChars(warning.bytes) })}`,
-            ),
-          ),
-        ),
-        h(
-          'div',
-          { className: 'cpf-foot' },
-          tr(t, 'sessionUsage', {
-            tokens: data.totals?.anchor ? formatTokens(data.totals.anchor.tokens) : DASH,
-          }),
-        ),
-      )
-    }
-
-    function InjectedPanel(props) {
-      const t = useTranslate()
-      const { state, data, reload } = useSummary(props)
-      const policyState = usePolicy()
-      const [actionBusy, setActionBusy] = useState(false)
-      const [actionError, setActionError] = useState(null)
-
-      // 执行管理动作后立刻回读（不做乐观更新）。
-      const runAction = useCallback(
-        async (kind, id, op) => {
-          setActionBusy(true)
-          setActionError(null)
-          try {
-            const result = await postAction({ kind, id, op })
-            console.info('[context-preflight] action done', kind, id, op, '| undo:', result?.undo)
-            reload()
-          } catch (error) {
-            setActionError(String(error?.message ?? error))
-          } finally {
-            setActionBusy(false)
-          }
-        },
-        [reload],
-      )
-
-      const close = useCallback(() => {
-        const layout = layoutCtx?.get?.('layout') ?? layoutCtx?.layout
+      const ctxRef = { current: null }
+      const reportedStages = new Set()
+      const reportBoot = (stage, error) => {
+        if (reportedStages.has(stage) && stage !== 'render-error') return
+        reportedStages.add(stage)
         try {
-          layout?.selectPanel?.(null)
-        } catch (error) {
-          console.error('[context-preflight] 关闭面板失败', error)
-        }
-      }, [])
-
-      return h(
-        'div',
-        { className: 'cpf-v3' },
-        h('style', null, STYLE),
-        h(
-          'div',
-          { className: 'cpf-shell' },
-          h(
-            'div',
-            { className: 'cpf-head' },
-            h('span', { className: 'cpf-title' }, tr(t, 'panelTitle')),
-            h('span', { className: 'cpf-spacer' }),
-            h(
-              'button',
-              { type: 'button', className: 'cpf-close', onClick: close, 'aria-label': tr(t, 'close'), title: tr(t, 'close') },
-              '\u00d7',
-            ),
-          ),
-          policyState.status === 'error'
-            ? h(
-                'div',
-                { className: 'cpf-banner' },
-                tr(t, 'saveFailed', { reason: policyState.error ?? '?' }),
-              )
-            : null,
-          h(PanelBody, {
-            state,
-            data,
-            t,
-            reload,
-            policy: policyState.draft,
-            onPolicyChange: policyState.update,
-            onAction: runAction,
-            actionBusy,
-            actionError,
-          }),
-        ),
-      )
-    }
-
-    // ---------------------------------------------------------------- 侧边栏入口图标
-
-    function PanelIcon({ size = 20 }) {
-      return h(
-        'svg',
-        {
-          width: size,
-          height: size,
-          viewBox: '0 0 36 36',
-          fill: 'none',
-          'aria-hidden': 'true',
-          xmlns: 'http://www.w3.org/2000/svg',
-          style: { display: 'block' },
-        },
-        h('rect', {
-          x: 6.8,
-          y: 8.4,
-          width: 22.4,
-          height: 19.2,
-          rx: 2.6,
-          stroke: 'currentColor',
-          strokeWidth: 1.8,
-        }),
-        h('path', {
-          d: 'M11.6 14.6h12.8M11.6 19h12.8M11.6 23.4h8.2',
-          stroke: 'currentColor',
-          strokeWidth: 1.8,
-          strokeLinecap: 'round',
-        }),
-      )
-    }
-
-    // ---------------------------------------------------------------- 细条（次要入口）
-
-    function PreflightStrip(props) {
-      const t = useTranslate()
-      const { state, data, reload } = useSummary(props)
-      const [open, setOpen] = useState(false)
-
-      useEffect(() => {
-        if (!open) return undefined
-        const onKeyDown = (event) => {
-          if (event.key === 'Escape') setOpen(false)
-        }
-        window.addEventListener('keydown', onKeyDown)
-        return () => window.removeEventListener('keydown', onKeyDown)
-      }, [open])
-
-      const summary = useMemo(() => {
-        const blocks = Array.isArray(data?.blocks) ? data.blocks : []
-        const parts = []
-        blocks.forEach((block, index) => {
-          if (index > 0) parts.push(h('span', { key: `s${index}`, className: 'cpf-sep' }, DOT))
-          const label = tr(t, blockKey(block.id), undefined, block.title)
-          parts.push(h('span', { key: `b${index}`, className: 'cpf-num' }, `${label} ${formatTokens(block.tokens)}`))
-        })
-        return [
-          h('span', { key: 'label' }, tr(t, 'inject')),
-          h('span', { key: 'v', className: 'cpf-strong' }, data === null ? DASH : formatTokens(data.totals?.tokens)),
-          h('span', { key: 'gap', className: 'cpf-sep' }, ' '),
-          ...parts,
-        ]
-      }, [data, t])
-
-      const onToggle = useCallback(() => setOpen((value) => !value), [])
-
-      return h(
-        'div',
-        { className: 'cpf-v3 cpf-strip-root' },
-        h('style', null, STYLE),
-        h(
-          'button',
-          {
-            type: 'button',
-            className: 'cpf-strip',
-            'aria-expanded': open,
-            'aria-label': tr(t, 'aria'),
-            onClick: onToggle,
-          },
-          ...summary,
-          h('span', { className: open ? 'cpf-caret cpf-open' : 'cpf-caret' }),
-        ),
-        open
-          ? h(
-              'div',
-              { className: 'cpf-pop' },
-              state === 'error'
-                ? h(
-                    'div',
-                    { className: 'cpf-pop-row' },
-                    tr(t, 'readFailed'),
-                    h('button', { type: 'button', className: 'cpf-retry', onClick: reload }, tr(t, 'retry')),
-                  )
-                : h(
-                    React.Fragment,
-                    null,
-                    ...(data?.blocks ?? []).map((block) =>
-                      h(
-                        'div',
-                        { className: 'cpf-pop-row', key: block.id },
-                        h('span', { className: 'cpf-pop-name' }, tr(t, blockKey(block.id), undefined, block.title)),
-                        h('span', { className: 'cpf-pop-val' }, formatTokens(block.tokens)),
-                      ),
-                    ),
-                    h(
-                      'div',
-                      { className: 'cpf-pop-row', key: 'session' },
-                      h('span', { className: 'cpf-pop-name' }, tr(t, 'sessionUsage', {
-                        tokens: data?.totals?.anchor ? formatTokens(data.totals.anchor.tokens) : DASH,
-                      })),
-                      h('span', { className: 'cpf-pop-val' }, ''),
-                    ),
-                  ),
-            )
-          : null,
-      )
-    }
-
-    // ---------------------------------------------------------------- 注册
-
-    let layoutCtx = null
-    let applyStarted = false
-
-    function registerClient(ctx) {
-      layoutCtx = ctx
-      reportBoot({ stage: 'apply-entered', hasLoader: true, hasReact: true })
-
-      // 1) 槽位注册先做、同步做完、立刻上报——不依赖 locale，也不等任何异步。
-      const results = { sidebarPanellist: 'pending', main: 'pending', composerDock: 'pending' }
-      const failures = []
-
-      function attempt(slot, key, run, optional) {
-        try {
-          run()
-          results[key] = 'ok'
-          console.info(`[context-preflight] registered slot: ${slot}`)
-        } catch (error) {
-          const message = String(error?.message ?? error)
-          if (optional) {
-            results[key] = 'skipped'
-            console.info(`[context-preflight] optional slot unavailable, skipped: ${slot}`, message)
-          } else {
-            results[key] = 'failed'
-            failures.push({ slot, message })
-            console.error(`[context-preflight] register failed: ${slot}`, error)
-          }
+          void fetch(ROUTES.boot, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ stage, error: error === undefined ? null : String((error && error.message) || error) }),
+          }).catch(() => {})
+        } catch {
+          /* diagnostics never break the panel */
         }
       }
+      reportBoot('factory-entered')
 
-      attempt('sidebar.panellist', 'sidebarPanellist', () =>
-        ctx.slots.inject('sidebar.panellist', () =>
-          ctx.slots.register(
-            {
-              name: 'sidebar.panellist',
-              id: PANEL_KEY,
-              order: 6,
-              label: () => {
-                const t = currentT()
-                const value = t('panelLabel')
-                return typeof value === 'string' && value !== 'panelLabel' ? value : '注入'
-              },
-            },
-            PanelIcon,
-          ),
-        ),
-      )
-
-      attempt('main', 'main', () =>
-        ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL_KEY }, InjectedPanel)),
-      )
-
-      // 细条是可选入口：槽位没被声明就跳过（记 info，不报错）。
-      attempt(
-        'conversation.composer.dock',
-        'composerDock',
-        () =>
-          ctx.slots.inject('conversation.composer.dock', () =>
-            ctx.slots.register(
-              { name: 'conversation.composer.dock', id: 'context-preflight', order: 6 },
-              PreflightStrip,
-            ),
-          ),
-        true,
-      )
-
-      reportBoot({ stage: 'slots-registered', hasLoader: true, hasReact: true, slots: results })
-      reportRegistrations(results, failures)
-
-      // 2) locale 是旁路：注册完之后才去取字典，失败就继续用内置文案。
-      try {
-        ctx.effect(() => {
-          const controller = new AbortController()
-          let disposeDictionary = null
+      function useSnapshot(sessionId) {
+        const [state, setState] = useState({ status: 'loading', data: null, error: null })
+        const [nonce, setNonce] = useState(0)
+        useEffect(() => {
           let cancelled = false
-          loadJson(LOCALE_ENDPOINT, controller.signal)
-            .then((dictionary) => {
-              if (cancelled) return
-              const dispose = ctx.locale.register(NAMESPACE, {
-                zh: dictionary?.zh ?? {},
-                en: dictionary?.en ?? {},
-              })
-              disposeDictionary = typeof dispose === 'function' ? dispose : null
-              localeState.t = ctx.locale.bind(NAMESPACE)
-              notifyLocale()
+          const url = ROUTES.summary + (sessionId ? `?session=${encodeURIComponent(sessionId)}` : '')
+          setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
+          getJson(url)
+            .then((data) => {
+              if (!cancelled) setState({ status: 'ready', data, error: null })
             })
             .catch((error) => {
-              if (error?.name !== 'AbortError') {
-                console.error('[context-preflight] locale 字典加载失败，继续用内置兜底文案', LOCALE_ENDPOINT, error)
-              }
+              if (cancelled) return
+              setState((previous) => ({
+                status: previous.data === null ? 'failed' : 'ready',
+                data: previous.data,
+                error: String(error.message || error),
+              }))
             })
           return () => {
             cancelled = true
-            controller.abort()
-            if (typeof disposeDictionary === 'function') disposeDictionary()
-            localeState.t = fallbackTranslate
           }
-        }, 'context-preflight.client-locale')
-        reportBoot({ stage: 'locale-effect-ok', hasLoader: true, hasReact: true })
-      } catch (error) {
-        reportBoot({ stage: 'locale-effect-failed', hasLoader: true, hasReact: true, error: String(error?.message ?? error) })
-        console.error('[context-preflight] locale effect 注册失败（不影响面板与注册结果）', error)
+        }, [sessionId, nonce])
+        const reload = useCallback(() => setNonce((value) => value + 1), [])
+        return { ...state, reload }
       }
 
-      // 语言切换的实时联动：locale 服务的 subscribe 不是稳定公开 API（实测会抛
-      // "Cannot read properties of undefined (reading 'listeners')"），所以不再挂它。
-      // 文案仍会在下次数据刷新时跟随当前语言；registry 的 t 本身是按语言解析的。
-    }
+      function useLocale(payload) {
+        return useMemo(() => {
+          let language = 'zh'
+          try {
+            if (typeof navigator !== 'undefined' && typeof navigator.language === 'string' && navigator.language.toLowerCase().indexOf('zh') !== 0) {
+              language = 'en'
+            }
+          } catch {
+            /* keep Chinese */
+          }
+          const all = (payload && payload.locale) || {}
+          const primary = all[language] || all.zh || {}
+          const secondary = all[language === 'zh' ? 'en' : 'zh'] || {}
+          const t = createTranslator(Object.assign({}, secondary, primary), language)
+          t.names = Object.assign({}, secondary.names, primary.names)
+          t.language = language
+          return t
+        }, [payload])
+      }
 
-    /** 把三条注册结果报回宿主，/diag 里能一条 curl 看到断在哪一步。 */
-    function reportRegistrations(slots, errors) {
-      try {
-        fetch(REGISTRATIONS_ENDPOINT, {
+      // A slot entry that throws blanks that slot in the host; the boundary keeps
+      // the failure visible here (and reported to /diag) instead of silent.
+      class Boundary extends React.Component {
+        constructor(props) {
+          super(props)
+          this.state = { failed: null }
+        }
+
+        static getDerivedStateFromError(error) {
+          return { failed: String((error && error.message) || error) }
+        }
+
+        componentDidCatch(error) {
+          reportBoot('render-error', error)
+        }
+
+        render() {
+          if (this.state.failed !== null) {
+            return h('div', { className: 'ci-root' }, h('div', { className: 'ci-body' }, h('div', { className: 'ci-note warn' }, this.state.failed)))
+          }
+          return this.props.children
+        }
+      }
+
+      const guarded = (Component) => function Guarded(props) {
+        return h(Boundary, null, h(Component, props))
+      }
+
+      // ------------------------------------------------------------ atoms
+
+      function Switch({ on, disabled, onChange, title }) {
+        return h(
+          'button',
+          {
+            type: 'button',
+            className: 'ci-switch' + (on ? ' on' : ''),
+            role: 'switch',
+            'aria-checked': on ? 'true' : 'false',
+            'aria-label': title || '',
+            title: title || '',
+            disabled: disabled === true,
+            onClick: () => {
+              if (disabled !== true) onChange(!on)
+            },
+          },
+          h('span', null),
+        )
+      }
+
+      function Dot({ channel }) {
+        return h('i', { style: { background: COLOR[channel] || '#94a3b8' }, 'aria-hidden': 'true' })
+      }
+
+      function Kpis({ snapshot, t }) {
+        const totals = snapshot.totals
+        const policy = snapshot.policy
+        const rows = [
+          { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} 字 · ${snapshot.items.length} 条` },
+          { key: 'savable', value: token(totals.savableTokens), sub: `${totals.savablePercent}% · ${t('shareOf')}` },
+          { key: 'after', value: token(policy.preview.after), sub: `${t('preset')}: ${policy.preset}` },
+          { key: 'anchor', value: totals.anchor === null ? '—' : token(totals.anchor.tokens), sub: t('anchorHint') },
+        ]
+        return h(
+          'div',
+          { className: 'ci-kpis' },
+          rows.map((row) =>
+            h(
+              'div',
+              { className: 'ci-kpi', key: row.key },
+              h('div', { className: 'k' }, t(row.key)),
+              h('div', { className: 'v' }, row.value),
+              h('div', { className: 's', title: row.sub }, row.sub),
+            ),
+          ),
+        )
+      }
+
+      function Composition({ snapshot, t, filter, onFilter }) {
+        const total = snapshot.totals.tokens || 1
+        return h(
+          'div',
+          null,
+          h(
+            'div',
+            { className: 'ci-bar' },
+            snapshot.channels
+              .filter((channel) => channel.tokens > 0)
+              .map((channel) =>
+                h('span', {
+                  key: channel.id,
+                  style: { width: `${Math.max(1, (channel.tokens / total) * 100)}%`, background: COLOR[channel.id] },
+                  title: `${t(channel.id)} ${digits(channel.tokens)}`,
+                }),
+              ),
+          ),
+          h(
+            'div',
+            { className: 'ci-legend' },
+            snapshot.channels.map((channel) =>
+              h(
+                'button',
+                {
+                  key: channel.id,
+                  type: 'button',
+                  onClick: () => onFilter(filter === channel.id ? 'all' : channel.id),
+                  title: `${t(channel.id)} · ${digits(channel.tokens)} token`,
+                },
+                h(Dot, { channel: channel.id }),
+                t(channel.id),
+                ' ',
+                h('b', null, token(channel.tokens)),
+                ` · ${pct(channel.tokens, snapshot.totals.tokens)}%`,
+              ),
+            ),
+          ),
+        )
+      }
+
+      function channelEnabled(snapshot, channel) {
+        const state = snapshot.policy.channels[channel]
+        if (state === undefined) return true
+        if (state.mode === 'only') return state.names.length > 0
+        return true
+      }
+
+      function ChannelSwitches({ snapshot, t, act }) {
+        return h(
+          'div',
+          { className: 'ci-list' },
+          MANAGED.map((channel) => {
+            const info = snapshot.policy.channels[channel] || { total: 0, included: 0, mode: 'all', names: [] }
+            const row = snapshot.channels.find((entry) => entry.id === channel)
+            return h(
+              'div',
+              { className: 'ci-mini', key: channel },
+              h(Dot, { channel }),
+              h('span', { className: 'n', title: `${t(channel)} · ${info.names.join(', ')}` }, `${t(channel)} · ${info.included}/${info.total}`),
+              h('span', { className: 't' }, token(row ? row.tokens : 0)),
+              h(Switch, { on: channelEnabled(snapshot, channel), onChange: (next) => act({ kind: 'channel', channel, enabled: next }), title: t(channel) }),
+            )
+          }),
+        )
+      }
+
+      const itemKey = (item) => `${item.channel}\u0000${item.name}`
+
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, busy }) {
+        const [query, setQuery] = useState('')
+        const items = useMemo(() => {
+          const needle = query.trim().toLowerCase()
+          const names = t.names || {}
+          return snapshot.items
+            .filter((item) => filter === 'all' || item.channel === filter)
+            .filter((item) => {
+              if (needle.length === 0) return true
+              const label = names[item.name] || NAMES_ZH[item.name] || ''
+              return item.name.toLowerCase().indexOf(needle) >= 0 || label.toLowerCase().indexOf(needle) >= 0
+            })
+            .slice()
+            .sort((left, right) => right.tokens - left.tokens || left.name.localeCompare(right.name))
+        }, [snapshot.items, filter, query, t])
+
+        const isOn = (item) => {
+          const channel = snapshot.policy.channels[item.channel]
+          if (channel === undefined || channel.mode === 'all') return true
+          if (channel.mode === 'only') return channel.names.indexOf(item.name) >= 0
+          return channel.names.indexOf(item.name) < 0
+        }
+
+        return h(
+          'div',
+          { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
+          h(
+            'div',
+            { className: 'ci-toolbar' },
+            h('input', {
+              className: 'ci-input',
+              placeholder: t('search'),
+              value: query,
+              onChange: (event) => setQuery(event.target.value),
+              'aria-label': t('search'),
+            }),
+            h(
+              'div',
+              { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } },
+              ['all'].concat(CHANNELS).map((channel) =>
+                h(
+                  'button',
+                  { key: channel, type: 'button', className: 'ci-chip' + (filter === channel ? ' on' : ''), onClick: () => setFilter(channel) },
+                  channel === 'all' ? t('all') : t(channel),
+                ),
+              ),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'ci-table' },
+            h(
+              'div',
+              { className: 'ci-thead' },
+              h('div', null, t('name')),
+              h('div', null, t('channel')),
+              h('div', { style: { textAlign: 'right' } }, t('tokens')),
+              h('div', { style: { textAlign: 'right' } }, t('share')),
+              h('div', { style: { textAlign: 'right' } }, t('switch')),
+            ),
+            items.length === 0
+              ? h('div', { className: 'ci-empty' }, t('empty'))
+              : items.map((item) => {
+                  const label = nameOf(t, item)
+                  const locked = item.locked === true
+                  return h(
+                    'div',
+                    { className: 'ci-row' + (locked ? ' locked' : ''), key: itemKey(item) },
+                    h('div', { className: 'n', title: `${item.name} · ${item.tokens} token` }, label, label !== item.name ? h('span', { className: 'id' }, item.name) : null),
+                    h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
+                    h('div', { className: 'num' }, digits(item.tokens)),
+                    h('div', { className: 'num' }, `${pct(item.tokens, snapshot.totals.tokens)}%`),
+                    locked
+                      ? h('span', { className: 'ci-lock', title: t('lockedHint') }, t('locked'))
+                      : h(Switch, { on: isOn(item), disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
+                  )
+                }),
+          ),
+          h(
+            'div',
+            { className: 'ci-note' },
+            `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${t('locked')} ${snapshot.locks.length}`,
+          ),
+        )
+      }
+
+      function SettingsTab({ snapshot, t, act }) {
+        const policy = snapshot.policy
+        const [prefix, setPrefix] = useState(policy.prompt.prefix)
+        const [suffix, setSuffix] = useState(policy.prompt.suffix)
+        const [saving, setSaving] = useState(false)
+        const timer = useRef(null)
+
+        useEffect(() => {
+          setPrefix(policy.prompt.prefix)
+          setSuffix(policy.prompt.suffix)
+        }, [policy.prompt.prefix, policy.prompt.suffix])
+        useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+
+        const persist = (nextPrefix, nextSuffix) => {
+          if (timer.current !== null) clearTimeout(timer.current)
+          timer.current = setTimeout(() => {
+            setSaving(true)
+            act({ kind: 'prompt', prefix: nextPrefix, suffix: nextSuffix }).finally(() => setSaving(false))
+          }, 500)
+        }
+
+        return h(
+          'div',
+          { className: 'ci-list' },
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('preset')),
+            h(
+              'div',
+              { className: 'ci-rowline' },
+              h(
+                'div',
+                { className: 'ci-seg' },
+                [
+                  ['all', t('presetAll')],
+                  ['minimal', t('presetMinimal')],
+                ].map(([name, label]) =>
+                  h('button', { key: name, type: 'button', className: policy.preset === name ? 'on' : '', onClick: () => act({ kind: 'preset', name }) }, label),
+                ),
+              ),
+              h('span', { className: 'hint' }, policy.preset === 'custom' ? t('custom') : ''),
+            ),
+            h('div', { className: 'ci-note' }, t('saveHint')),
+          ),
+          h('div', { className: 'ci-card' }, h('h2', null, t('aboutManageable')), h(ChannelSwitches, { snapshot, t, act })),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('promptPrefix')),
+            h('textarea', {
+              className: 'ci-input',
+              style: { minHeight: 64, resize: 'vertical', fontFamily: 'inherit' },
+              value: prefix,
+              onChange: (event) => {
+                setPrefix(event.target.value)
+                persist(event.target.value, suffix)
+              },
+              'aria-label': t('promptPrefix'),
+            }),
+            h('div', { className: 'hint' }, t('promptPrefixHint')),
+            h('h2', { style: { marginTop: 6 } }, t('promptSuffix')),
+            h('textarea', {
+              className: 'ci-input',
+              style: { minHeight: 48, resize: 'vertical', fontFamily: 'inherit' },
+              value: suffix,
+              onChange: (event) => {
+                setSuffix(event.target.value)
+                persist(prefix, event.target.value)
+              },
+              'aria-label': t('promptSuffix'),
+            }),
+            saving ? h('div', { className: 'hint' }, t('applied')) : null,
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h(
+              'div',
+              { className: 'ci-rowline' },
+              h('h2', null, t('lastApply')),
+              h('span', { className: 'hint' }, policy.appliedToThisAgent ? t('appliedNow') : t('appliedNot')),
+            ),
+            h(
+              'div',
+              { className: 'ci-note' },
+              policy.lastApplication && policy.lastApplication.report
+                ? `${policy.lastApplication.report.sessionId || ''} · ${policy.lastApplication.report.error ? policy.lastApplication.report.error : `OK · −${token(policy.lastApplication.report.savedTokens || 0)}`}`
+                : '—',
+            ),
+            h('div', { className: 'ci-foot' }, `${t('policyPath')}：${policy.path}`),
+            policy.updatedAt ? h('div', { className: 'ci-foot' }, `${t('updatedAt')}：${policy.updatedAt}`) : null,
+            policy.error ? h('div', { className: 'ci-note warn' }, policy.error) : null,
+          ),
+        )
+      }
+
+      function BudgetTab({ snapshot, t, act }) {
+        const policy = snapshot.policy
+        const [target, setTarget] = useState(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
+        const plan = policy.plan
+        const timer = useRef(null)
+
+        useEffect(() => {
+          setTarget(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
+        }, [policy.budget.tokens])
+        useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+
+        const commit = (value) => {
+          if (timer.current !== null) clearTimeout(timer.current)
+          timer.current = setTimeout(() => act({ kind: 'budget', tokens: value.length > 0 ? Number(value) : 0 }), 450)
+        }
+
+        return h(
+          'div',
+          { className: 'ci-list' },
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('budgetTarget')),
+            h(
+              'div',
+              { className: 'ci-toolbar' },
+              h('input', {
+                className: 'ci-input',
+                inputMode: 'numeric',
+                placeholder: '24000',
+                value: target,
+                onChange: (event) => {
+                  const value = event.target.value.replace(/[^0-9]/g, '')
+                  setTarget(value)
+                  commit(value)
+                },
+                'aria-label': t('budgetTarget'),
+              }),
+              h(
+                'button',
+                { type: 'button', className: 'ci-btn ci-primary', disabled: plan.target <= 0, onClick: () => act({ kind: 'budget.apply', tokens: Number(target) || plan.target }) },
+                t('applyPlan'),
+              ),
+            ),
+            h('div', { className: 'hint' }, t('budgetHint')),
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h(
+              'div',
+              { className: 'ci-rowline' },
+              h('span', { className: 'lbl' }, `${t('budgetBefore')} ${digits(plan.before)}`),
+              h('span', { className: 'lbl' }, `${t('budgetAfter')} ${digits(plan.after)}`),
+            ),
+            h('div', { className: 'ci-bar' }, h('span', { style: { width: `${Math.min(100, pct(plan.after, Math.max(1, plan.before)))}%`, background: COLOR.sections } })),
+            plan.reachable ? null : h('div', { className: 'ci-note warn' }, t('unreachable')),
+            plan.drop.length === 0
+              ? h('div', { className: 'ci-note' }, t('planEmpty'))
+              : h(
+                  'div',
+                  null,
+                  h('div', { className: 'hint', style: { marginBottom: 4 } }, `${t('planDrop')} ${plan.drop.length} · −${digits(plan.savedTokens)} token`),
+                  h(
+                    'div',
+                    { className: 'ci-list' },
+                    plan.drop.slice(0, 12).map((entry) =>
+                      h(
+                        'div',
+                        { className: 'ci-mini', key: `${entry.channel}:${entry.name}` },
+                        h(Dot, { channel: entry.channel }),
+                        h('span', { className: 'n', title: entry.name }, (t.names || {})[entry.name] || NAMES_ZH[entry.name] || entry.name),
+                        h('span', { className: 't' }, digits(entry.tokens)),
+                      ),
+                    ),
+                  ),
+                  plan.drop.length > 12 ? h('div', { className: 'hint' }, `+${plan.drop.length - 12}`) : null,
+                ),
+          ),
+        )
+      }
+
+      function AboutTab({ snapshot, t }) {
+        const locked = snapshot.locks
+        return h(
+          'div',
+          { className: 'ci-list' },
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('aboutLocked')),
+            locked.length === 0
+              ? h('div', { className: 'ci-note' }, '—')
+              : h(
+                  'div',
+                  { className: 'ci-list' },
+                  locked.slice(0, 20).map((lock) =>
+                    h(
+                      'div',
+                      { className: 'ci-mini', key: `${lock.channel}:${lock.name}` },
+                      h(Dot, { channel: lock.channel }),
+                      h('span', { className: 'n', title: lock.name }, (t.names || {})[lock.name] || NAMES_ZH[lock.name] || lock.name),
+                      h('span', { className: 't' }, lock.reason === 'required-context' ? '必填' : t('locked')),
+                    ),
+                  ),
+                ),
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('about')),
+            h('div', { className: 'ci-note' }, t('aboutTokens')),
+            h('div', { className: 'ci-note' }, t('aboutFiles')),
+            h('div', { className: 'ci-note' }, t('aboutNew')),
+            h('div', { className: 'ci-note' }, t('aboutTool')),
+            h('div', { className: 'ci-note' }, t('aboutBudget')),
+            h(
+              'div',
+              { className: 'ci-foot' },
+              `AGENTS.md 链：${snapshot.instructions.files.filter((file) => file.status !== 'missing').length} 个已加载 / 预算 ${digits(snapshot.instructions.budgetBytes)} B`,
+            ),
+          ),
+        )
+      }
+
+      // ------------------------------------------------------------ panel
+
+      function Panel({ props, compact }) {
+        const sessionId = pickSessionId(props)
+        const { status, data, error, reload } = useSnapshot(sessionId)
+        const t = useLocale(data)
+        const [tab, setTab] = useState('list')
+        const [filter, setFilter] = useState('all')
+        const [busy, setBusy] = useState(false)
+
+        const act = useCallback(
+          async (action) => {
+            setBusy(true)
+            try {
+              await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
+              reload()
+            } catch (failure) {
+              console.error('[context-injection] action failed', failure)
+            } finally {
+              setBusy(false)
+            }
+          },
+          [sessionId, reload],
+        )
+
+        const onToggle = useCallback((item, next) => act({ kind: 'item', channel: item.channel, name: item.name, enabled: next }), [act])
+
+        const close = () => {
+          try {
+            const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
+            if (layout && typeof layout.selectPanel === 'function') layout.selectPanel(null)
+          } catch {
+            /* nothing to close without the layout service */
+          }
+        }
+
+        if (status === 'loading') {
+          return h(
+            'div',
+            { className: 'ci-root' },
+            h('style', null, STYLE),
+            h('div', { className: 'ci-head' }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle'))),
+            h('div', { className: 'ci-body' }, h('div', { className: 'ci-skel' }), h('div', { className: 'ci-skel' }), h('div', { className: 'ci-note' }, t('loading'))),
+          )
+        }
+
+        if (status === 'failed') {
+          return h(
+            'div',
+            { className: 'ci-root' },
+            h('style', null, STYLE),
+            h('div', { className: 'ci-head' }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle'))),
+            h('div', { className: 'ci-body' }, h('div', { className: 'ci-note warn' }, `${t('failed')}：${error}`), h('button', { type: 'button', className: 'ci-btn', onClick: reload }, t('retry'))),
+          )
+        }
+
+        const snapshot = data
+        const head = h(
+          'div',
+          { className: 'ci-head' },
+          h('div', { style: { minWidth: 0 } }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle')), h('p', null, t('subtitle'))),
+          h('div', { className: 'ci-spacer' }),
+          h('button', { type: 'button', className: 'ci-btn', onClick: reload, title: t('refresh') }, t('refresh')),
+          compact ? h('button', { type: 'button', className: 'ci-btn', onClick: close }, t('close')) : null,
+        )
+
+        if (compact) {
+          const top = snapshot.items
+            .filter((item) => !item.locked)
+            .slice()
+            .sort((left, right) => right.tokens - left.tokens)
+            .slice(0, 30)
+          return h(
+            'div',
+            { className: 'ci-root ci-side' },
+            h('style', null, STYLE),
+            head,
+            h(
+              'div',
+              { className: 'ci-body' },
+              h(Kpis, { snapshot, t }),
+              h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+              h('div', { className: 'ci-card', style: { padding: '8px 10px' } }, h(ChannelSwitches, { snapshot, t, act })),
+              h(
+                'div',
+                { className: 'ci-list' },
+                top.map((item) =>
+                  h(
+                    'div',
+                    { className: 'ci-mini', key: itemKey(item) },
+                    h(Dot, { channel: item.channel }),
+                    h('span', { className: 'n', title: item.name }, nameOf(t, item)),
+                    h('span', { className: 't' }, token(item.tokens)),
+                    h(Switch, {
+                      on: snapshot.policy.channels[item.channel] === undefined
+                        ? true
+                        : snapshot.policy.channels[item.channel].mode === 'all'
+                          ? true
+                          : snapshot.policy.channels[item.channel].mode === 'only'
+                            ? snapshot.policy.channels[item.channel].names.indexOf(item.name) >= 0
+                            : snapshot.policy.channels[item.channel].names.indexOf(item.name) < 0,
+                      disabled: busy,
+                      onChange: (next) => onToggle(item, next),
+                      title: item.name,
+                    }),
+                  ),
+                ),
+              ),
+              h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
+            ),
+          )
+        }
+
+        return h(
+          'div',
+          { className: 'ci-root' },
+          h('style', null, STYLE),
+          head,
+          h('div', { className: 'ci-body' }, h(Kpis, { snapshot, t }), h(Composition, { snapshot, t, filter, onFilter: setFilter })),
+          h(
+            'div',
+            { className: 'ci-tabs' },
+            [
+              ['list', t('list')],
+              ['settings', t('settings')],
+              ['budget', t('budget')],
+              ['about', t('about')],
+            ].map(([key, label]) => h('button', { key, type: 'button', className: tab === key ? 'on' : '', onClick: () => setTab(key) }, label)),
+          ),
+          h(
+            'div',
+            { className: 'ci-body grow' },
+            tab === 'list'
+              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, busy })
+              : tab === 'settings'
+                ? h(SettingsTab, { snapshot, t, act })
+                : tab === 'budget'
+                  ? h(BudgetTab, { snapshot, t, act })
+                  : h(AboutTab, { snapshot, t }),
+          ),
+        )
+      }
+
+      function MainPanel(props) {
+        return h(Panel, { props, compact: false })
+      }
+
+      function SidePanel(props) {
+        return h(Panel, { props, compact: true })
+      }
+
+      function DockChip(props) {
+        const sessionId = pickSessionId(props)
+        const { status, data } = useSnapshot(sessionId)
+        const t = useLocale(data)
+        if (status === 'failed') return null
+        const tokens = data ? data.totals.tokens : null
+        const open = () => {
+          try {
+            const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
+            if (layout && typeof layout.selectPanel === 'function') layout.selectPanel('context-injection')
+          } catch {
+            /* opening is best effort */
+          }
+        }
+        return h(
+          'button',
+          { type: 'button', className: 'ci-dock', onClick: open, title: t('open') },
+          h('i', null),
+          h('span', null, t('panelLabel')),
+          h('b', null, tokens === null ? '…' : token(tokens)),
+          data && data.totals.savableTokens > 0 ? h('span', null, `· ${t('savable')} ${data.totals.savablePercent}%`) : null,
+        )
+      }
+
+      function PanelIcon() {
+        // The sidebar panellist renders one icon per panel, so this is the
+        // entry point: three stacked source bands narrowing into one line.
+        return h(
+          'svg',
+          { viewBox: '0 0 20 20', width: 18, height: 18, fill: 'none', 'aria-hidden': 'true' },
+          h('rect', { x: 2.5, y: 3, width: 15, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.85 }),
+          h('rect', { x: 2.5, y: 8.2, width: 11, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.6 }),
+          h('rect', { x: 2.5, y: 13.4, width: 7, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.35 }),
+          h('circle', { cx: 16.4, cy: 14.7, r: 2.1, fill: '#4d6bfe' }),
+        )
+      }
+
+      let applyStarted = false
+      let localeRegistered = false
+
+      function panelLabel(ctx) {
+        try {
+          const bound = ctx.locale.bind('context-injection')
+          const value = bound('panelLabel')
+          if (typeof value === 'string' && value.length > 0 && value !== 'panelLabel') return value
+        } catch {
+          /* fall through to the Chinese label */
+        }
+        return FALLBACK.panelLabel
+      }
+
+      function registerClient(ctx) {
+        const attempts = []
+        const attempt = (key, run, optional) => {
+          try {
+            run()
+            attempts.push({ key, ok: true })
+          } catch (error) {
+            attempts.push({ key, ok: false, optional: optional === true, message: String((error && error.message) || error) })
+            if (optional !== true) console.error(`[context-injection] slot registration failed: ${key}`, error)
+          }
+        }
+
+        attempt(
+          'sidebar',
+          () => {
+            ctx.slots.inject('sidebar.panellist', () =>
+              ctx.slots.register({ name: 'sidebar.panellist', id: 'context-injection', order: 6, label: () => panelLabel(ctx) }, guarded(PanelIcon)),
+            )
+          },
+          false,
+        )
+        attempt('main', () => ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'context-injection' }, guarded(MainPanel))), false)
+        // Optional right-sidebar body: only registered when the host declares
+        // that slot, so profiles without it lose nothing.
+        attempt(
+          'sidebar-body',
+          () => ctx.slots.inject('sidebar.panel', () => ctx.slots.register({ name: 'sidebar.panel', id: 'context-injection', order: 6 }, guarded(SidePanel))),
+          true,
+        )
+        attempt(
+          'dock',
+          () =>
+            ctx.slots.inject('conversation.composer.dock', () =>
+              ctx.slots.register({ name: 'conversation.composer.dock', id: 'context-injection', order: 6 }, guarded(DockChip)),
+            ),
+          true,
+        )
+        attempt('icon', () => {
+          // The panel list uses the label function above; the icon component is
+          // exported for hosts that ask for one by name.
+          if (typeof ctx.slots.register === 'function') void PanelIcon
+        }, true)
+
+        reportBoot('slots-registered')
+        void fetch(ROUTES.registrations, {
           method: 'POST',
           credentials: 'same-origin',
-          headers: { 'content-type': 'application/json', accept: 'application/json' },
-          body: JSON.stringify({
-            moduleId: 'dsh-context-preflight',
-            loadedAt: Date.now(),
-            slots,
-            errors,
-          }),
-        }).catch((error) => {
-          console.error('[context-preflight] 注册结果上报失败（不影响界面）', REGISTRATIONS_ENDPOINT, error)
-        })
-      } catch (error) {
-        console.error('[context-preflight] 注册结果上报失败（不影响界面）', error)
-      }
-    }
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ slots: attempts, errors: attempts.filter((entry) => entry.ok === false) }),
+        }).catch(() => {})
 
-    return {
-      inject: ['slots', 'locale'],
-      apply(ctx) {
-        // count:45 说明 apply 会被反复进入；重复注册会让 slot 抛「已注册」并拖垮整轮。
-        if (applyStarted) {
-          reportBoot({ stage: 'apply-skipped', hasLoader: true, hasReact: true })
-          console.info('[context-preflight] apply 重复进入，跳过')
-          return
+        if (!localeRegistered) {
+          localeRegistered = true
+          void getJson(ROUTES.locale)
+            .then((payload) => {
+              try {
+                ctx.locale.register('context-injection', { zh: payload.zh || {}, en: payload.en || {} })
+              } catch (error) {
+                console.warn('[context-injection] locale registration unavailable', error)
+              }
+            })
+            .catch(() => {})
         }
-        applyStarted = true
-        try {
-          registerClient(ctx)
-        } catch (error) {
-          reportBoot({ stage: 'apply-failed', hasLoader: true, hasReact: true, error: String(error?.message ?? error) })
-          console.error('[context-preflight] 客户端注册失败', error)
-          throw error
-        }
-      },
-    }
-  }
-
-  // 已经就绪就立刻注册；否则等 DOMContentLoaded / load / 轮询（最多约 10 秒）。
-  if (typeof initialLoader?.load === 'function') {
-    start(initialLoader, 'immediate')
-  } else {
-    reportBoot({ stage: 'loader-missing', hasLoader: false })
-    const attempt = (source) => {
-      const loader = typeof window !== 'undefined' ? window.__ModuleLoader__ : undefined
-      if (typeof loader?.load === 'function') start(loader, source)
-    }
-    if (typeof document !== 'undefined') {
-      const onReady = () => attempt('DOMContentLoaded')
-      const onLoad = () => attempt('load')
-      document.addEventListener('DOMContentLoaded', onReady)
-      window.addEventListener('load', onLoad)
-      listeners.push(['DOMContentLoaded', onReady], ['load', onLoad])
-    }
-    timer = setInterval(() => {
-      attempts += 1
-      attempt(`poll#${attempts}`)
-      if (attempts >= 100 && !registered) {
-        cleanupWaiters()
-        console.error('[context-preflight] loader never appeared')
-        reportBoot({ stage: 'loader-timeout', hasLoader: false })
       }
-    }, 100)
-  }
+
+      return {
+        inject: ['slots', 'locale'],
+        apply(ctx) {
+          if (applyStarted) return
+          applyStarted = true
+          ctxRef.current = ctx
+          try {
+            registerClient(ctx)
+          } catch (error) {
+            reportBoot('apply-failed', error)
+            console.error('[context-injection] apply failed', error)
+          }
+        },
+      }
+    },
+  })
 })()
