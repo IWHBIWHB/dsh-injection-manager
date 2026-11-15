@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 — 2026-11-15
+
+- Accessibility: visible `:focus-visible` rings on every control, `role="alert"`
+  for failed actions and `role="status"` for confirmations, Escape closes the
+  sidebar panel, transitions respect `prefers-reduced-motion`, and the read-only
+  badge got a higher-contrast colour.
+- Policy tab: fixed-height text areas instead of stretching to the card.
+
 ## 1.2.0 — 2026-11-15
 
 - Export the manifest: `GET /plugins/dsh-injection-manager/export?format=md|json`

@@ -213,7 +213,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-row .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ci-fg2);white-space:nowrap}
 .ci-row .badge i{width:8px;height:8px;border-radius:3px;display:block}
 .ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
-.ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg3);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.ci-btn:focus-visible,.ci-chip:focus-visible,.ci-switch:focus-visible,.ci-seg button:focus-visible,.ci-tabs button:focus-visible,.ci-legend button:focus-visible,.ci-grouphead:focus-visible,.ci-input:focus-visible,.ci-dock:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.ci-root *{transition:none!important;animation:none!important}}
+.ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg2);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .ci-row.locked .n{color:var(--ci-fg2)}
 .ci-switch{position:relative;width:34px;height:20px;border-radius:999px;border:0;background:var(--ci-line);cursor:pointer;padding:0;justify-self:end;transition:background .15s}
 .ci-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
@@ -808,7 +810,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h('h2', null, t('promptPrefix')),
             h('textarea', {
               className: 'ci-input',
-              style: { minHeight: 64, resize: 'vertical', fontFamily: 'inherit' },
+              style: { height: 72, resize: 'vertical', fontFamily: 'inherit' },
               value: prefix,
               onChange: (event) => {
                 setPrefix(event.target.value)
@@ -820,7 +822,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h('h2', { style: { marginTop: 6 } }, t('promptSuffix')),
             h('textarea', {
               className: 'ci-input',
-              style: { minHeight: 48, resize: 'vertical', fontFamily: 'inherit' },
+              style: { height: 56, resize: 'vertical', fontFamily: 'inherit' },
               value: suffix,
               onChange: (event) => {
                 setSuffix(event.target.value)
@@ -1018,6 +1020,22 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           return () => window.removeEventListener('focus', onFocus)
         }, [data, reload])
 
+        // Escape closes the sidebar panel; the host owns the actual close.
+        useEffect(() => {
+          if (compact !== true) return undefined
+          const onKey = (event) => {
+            if (event.key !== 'Escape') return
+            try {
+              const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
+              if (layout && typeof layout.selectPanel === 'function') layout.selectPanel(null)
+            } catch {
+              /* no layout service */
+            }
+          }
+          window.addEventListener('keydown', onKey)
+          return () => window.removeEventListener('keydown', onKey)
+        }, [compact])
+
         const act = useCallback(
           async (action) => {
             setBusy(true)
@@ -1117,7 +1135,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 }),
               ),
               h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
-              notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : '') }, notice.text) : null,
+              notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : ''), role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': notice.kind === 'error' ? 'assertive' : 'polite' }, notice.text) : null,
             ),
           )
         }
@@ -1149,7 +1167,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t }),
           ),
-          notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : '') }, notice.text) : null,
+          notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : ''), role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': notice.kind === 'error' ? 'assertive' : 'polite' }, notice.text) : null,
         )
       }
 
