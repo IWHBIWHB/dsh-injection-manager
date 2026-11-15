@@ -15,7 +15,7 @@
     "failed": "Could not read",
     "total": "First-turn injection",
     "savable": "Switchable",
-    "items": "Items",
+    "items": "items",
     "policy": "Policy",
     "after": "With policy",
     "anchor": "This session",
@@ -112,6 +112,10 @@
       "working-directory": "Working directory",
       "subagent": "Subagent",
       "app": "Web GUI URL"
-    }
+    },
+    "chars": "chars",
+    "groups": "groups",
+    "required": "required",
+    "rulesLine": "AGENTS.md chain: {loaded} loaded / budget {budget} B"
   }
 }

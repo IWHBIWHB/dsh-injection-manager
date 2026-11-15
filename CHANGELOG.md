@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-11-15
+
+- Eight UI languages: Simplified Chinese, English, Japanese, Spanish, French,
+  German, Russian and Portuguese. The panel follows the browser language, and
+  the host locale service receives every dictionary, so switching the
+  application language works too. Units (`chars`/`items`/`groups`, the AGENTS.md
+  chain line, the "required" badge) are localized instead of hard-coded.
+- New screenshot of the Policy tab, now listed in `screenshots.json`.
+
 ## 1.2.1 — 2026-11-15
 
 - Accessibility: visible `:focus-visible` rings on every control, `role="alert"`

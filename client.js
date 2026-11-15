@@ -259,7 +259,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
   function createTranslator(dictionary, language) {
     const dict = dictionary || {}
-    const zh = language !== 'en'
+    const zh = language === 'zh'
     return function t(key, vars) {
       let value = dict[key]
       if (typeof value !== 'string' || value === key) value = zh ? FALLBACK[key] : undefined
@@ -327,19 +327,22 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return { ...state, reload }
       }
 
+      const SUPPORTED = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']
+
       function useLocale(payload) {
         return useMemo(() => {
-          let language = 'zh'
+          let base = 'zh'
           try {
-            if (typeof navigator !== 'undefined' && typeof navigator.language === 'string' && navigator.language.toLowerCase().indexOf('zh') !== 0) {
-              language = 'en'
+            if (typeof navigator !== 'undefined' && typeof navigator.language === 'string') {
+              base = navigator.language.toLowerCase().split('-')[0]
             }
           } catch {
             /* keep Chinese */
           }
           const all = (payload && payload.locale) || {}
-          const primary = all[language] || all.zh || {}
-          const secondary = all[language === 'zh' ? 'en' : 'zh'] || {}
+          const language = SUPPORTED.indexOf(base) >= 0 && all[base] ? base : 'en'
+          const primary = all[language] || all.en || all.zh || {}
+          const secondary = all.en || {}
           const t = createTranslator(Object.assign({}, secondary, primary), language)
           t.names = Object.assign({}, secondary.names, primary.names)
           t.groupNames = Object.assign({}, secondary.groupNames, primary.groupNames)
@@ -405,7 +408,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const totals = snapshot.totals
         const policy = snapshot.policy
         const rows = [
-          { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} 字 · ${snapshot.items.length} 条` },
+          { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} ${t('chars')} · ${snapshot.items.length} ${t('items')}` },
           { key: 'savable', value: token(totals.savableTokens), sub: `${totals.savablePercent}% · ${t('shareOf')}` },
           { key: 'after', value: token(policy.preview.after), sub: `${t('preset')}: ${policy.preset}` },
           { key: 'anchor', value: totals.anchor === null ? '—' : token(totals.anchor.tokens), sub: t('anchorHint') },
@@ -709,7 +712,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                           { className: 'n' },
                           h('span', { className: 'ci-caret' + (open ? ' open' : '') }, open ? '▾' : '▸'),
                           groupLabelOf(t, group),
-                          h('span', { className: 'id' }, `${group.items.length} 条`),
+                          h('span', { className: 'id' }, `${group.items.length} ${t('items')}`),
                         ),
                         h('div', { className: 'badge' }, h(Dot, { channel: group.channel }), t(group.channel)),
                         h('div', { className: 'num' }, digits(group.tokens)),
@@ -729,7 +732,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'span',
               null,
-              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} 组 · ${t('locked')} ${snapshot.locks.length}`,
+              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`,
             ),
             snapshot.undo && snapshot.undo.available
               ? h('button', { type: 'button', className: 'ci-btn', disabled: busy, onClick: () => onUndo() }, t('undo'))
@@ -969,7 +972,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                       { className: 'ci-mini', key: `${lock.channel}:${lock.name}` },
                       h(Dot, { channel: lock.channel }),
                       h('span', { className: 'n', title: lock.name }, (t.names || {})[lock.name] || NAMES_ZH[lock.name] || lock.name),
-                      h('span', { className: 't' }, lock.reason === 'required-context' ? '必填' : t('locked')),
+                      h('span', { className: 't' }, lock.reason === 'required-context' ? t('required') : t('locked')),
                     ),
                   ),
                 ),
@@ -986,7 +989,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'div',
               { className: 'ci-foot' },
-              `AGENTS.md 链：${snapshot.instructions.files.filter((file) => file.status !== 'missing').length} 个已加载 / 预算 ${digits(snapshot.instructions.budgetBytes)} B`,
+              t('rulesLine', { loaded: snapshot.instructions.files.filter((file) => file.status !== 'missing').length, budget: digits(snapshot.instructions.budgetBytes) }),
             ),
           ),
         )
@@ -1122,7 +1125,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                     'div',
                     { className: 'ci-mini', key: group.id },
                     h(Dot, { channel: group.channel }),
-                    h('span', { className: 'n', title: `${group.label} · ${group.count} 条` }, `${groupLabelOf(t, group)} · ${group.count}`),
+                    h('span', { className: 'n', title: `${group.label} · ${group.count} ${t('items')}` }, `${groupLabelOf(t, group)} · ${group.count}`),
                     h('span', { className: 't' }, token(group.tokens)),
                     h(Switch, {
                       on: state.on,
@@ -1288,7 +1291,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           void getJson(ROUTES.locale)
             .then((payload) => {
               try {
-                ctx.locale.register('injection-manager', { zh: payload.zh || {}, en: payload.en || {} })
+                const dicts = {}
+                for (const code of SUPPORTED) {
+                  if (payload && payload[code] !== undefined) dicts[code] = payload[code]
+                }
+                ctx.locale.register('injection-manager', dicts)
               } catch (error) {
                 console.warn('[injection-manager] locale registration unavailable', error)
               }

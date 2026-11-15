@@ -15,7 +15,7 @@
     "failed": "No se pudo leer",
     "total": "Inyección del primer turno",
     "savable": "Conmutable",
-    "items": "Elementos",
+    "items": "elementos",
     "policy": "Política",
     "after": "Con política",
     "anchor": "Esta sesión",
@@ -112,6 +112,10 @@
       "working-directory": "Directorio de trabajo",
       "subagent": "Subagente",
       "app": "URL de la GUI web"
-    }
+    },
+    "chars": "caracteres",
+    "groups": "grupos",
+    "required": "obligatorio",
+    "rulesLine": "Cadena AGENTS.md: {loaded} cargados / presupuesto {budget} B"
   }
 }

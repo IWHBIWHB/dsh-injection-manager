@@ -15,7 +15,7 @@
     "failed": "Falha ao ler",
     "total": "Injeção do primeiro turno",
     "savable": "Desativável",
-    "items": "Itens",
+    "items": "itens",
     "policy": "Política",
     "after": "Com política",
     "anchor": "Esta sessão",
@@ -112,6 +112,10 @@
       "working-directory": "Diretório de trabalho",
       "subagent": "Subagente",
       "app": "URL da GUI web"
-    }
+    },
+    "chars": "caracteres",
+    "groups": "grupos",
+    "required": "obrigatório",
+    "rulesLine": "Cadeia AGENTS.md: {loaded} carregados / orçamento {budget} B"
   }
 }

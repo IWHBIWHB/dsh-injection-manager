@@ -25,6 +25,11 @@ The sidebar shows the same snapshot compactly, and the composer carries a one-li
 
 ![Sidebar panel](docs/images/panel-sidebar.png)
 
+Policy tab: presets, four channel masters, custom prefix/suffix, export, and the
+last application record.
+
+![Policy tab](docs/images/panel-policy.png)
+
 ## Plugin configuration
 
 Plugins → dsh-injection-manager → Configuration exposes four presentation and
@@ -127,7 +132,7 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 - 0.2.2 has no ordering API for contributions; the budget is a greedy largest-first heuristic, not a global optimum.
 - The skill catalog is a pre-step message, so granularity is per-skill (or the whole catalog via the `skill` tool).
 - User-message channels such as workspace rules and time context cannot be switched off; the plugin shows them instead of pretending otherwise.
-- Chinese and English UI; other languages fall back to English.
+- UI ships in Simplified Chinese, English, Japanese, Spanish, French, German, Russian and Portuguese; adding a language is one JSON file in `locale/`.
 
 ## License
 

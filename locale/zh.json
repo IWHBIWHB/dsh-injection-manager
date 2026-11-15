@@ -50,7 +50,8 @@
     "exportHint": "同一份快照导出成 Markdown 或 JSON，便于贴到工单、对比两台机器。",
     "exportMd": "导出 Markdown",
     "exportJson": "导出 JSON",
-    "budgetTarget": "预算目标（token）",    "budgetHint": "按条目大小从大到小自动挑选可关项；必填上下文和工作区规则不参与",
+    "budgetTarget": "预算目标（token）",
+    "budgetHint": "按条目大小从大到小自动挑选可关项；必填上下文和工作区规则不参与",
     "budgetBefore": "当前",
     "budgetAfter": "预算后",
     "applyPlan": "应用这套建议",
@@ -111,6 +112,10 @@
       "working-directory": "工作目录",
       "subagent": "子智能体",
       "app": "GUI 地址"
-    }
+    },
+    "chars": "字",
+    "groups": "组",
+    "required": "必填",
+    "rulesLine": "AGENTS.md 链：{loaded} 个已加载 / 预算 {budget} B"
   }
 }

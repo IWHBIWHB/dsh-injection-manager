@@ -26,6 +26,10 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 
+策略页：预设、四条通道总开关、自定义前言/后记、导出与最近一次应用记录。
+
+![策略页](docs/images/panel-policy.png)
+
 ## 插件设置
 
 Plugins → dsh-injection-manager → Configuration 里有四项，只影响显示与首次默认值：
@@ -139,7 +143,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 - 0.2.2 没有挂载顺序 API：预算只按条目大小贪心，不做全局最优。
 - 技能目录是 pre-step 消息，只有「逐条 shadow」与「关掉 skill 工具」两种粒度；关掉 `skill` 工具会整段清空目录。
 - 工作区规则、时间上下文这类 user 消息通道不可管，插件只做展示。
-- 中文与英文两套界面；其余语言回退到英文。
+- 界面支持简体中文、English、日本語、Español、Français、Deutsch、Русский、Português 八种语言；新增语言只需在 `locale/` 加一个同键集的 JSON。
 
 ## 许可
 

@@ -15,7 +15,7 @@
     "failed": "Lecture impossible",
     "total": "Injection du premier tour",
     "savable": "Désactivable",
-    "items": "Éléments",
+    "items": "éléments",
     "policy": "Politique",
     "after": "Avec politique",
     "anchor": "Cette session",
@@ -112,6 +112,10 @@
       "working-directory": "Répertoire de travail",
       "subagent": "Sous-agent",
       "app": "URL de l'interface web"
-    }
+    },
+    "chars": "caractères",
+    "groups": "groupes",
+    "required": "obligatoire",
+    "rulesLine": "Chaîne AGENTS.md : {loaded} chargés / budget {budget} B"
   }
 }

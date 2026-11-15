@@ -112,6 +112,10 @@
       "working-directory": "Arbeitsverzeichnis",
       "subagent": "Subagent",
       "app": "Web-GUI-URL"
-    }
+    },
+    "chars": "Zeichen",
+    "groups": "Gruppen",
+    "required": "erforderlich",
+    "rulesLine": "AGENTS.md-Kette: {loaded} geladen / Budget {budget} B"
   }
 }
