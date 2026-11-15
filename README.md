@@ -6,6 +6,9 @@
 
 Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Items are clustered into suites, so a whole MCP server is one switch, and the result can be held to a token budget.
 
+> **1.5.0**: eight UI languages, undo, manifest export, and suite clustering.
+> See the [changelog](CHANGELOG.md).
+
 ```powershell
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
 # or: Plugins → Add plugin → pick this directory
@@ -142,6 +145,8 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 - [FAQ](docs/FAQ.md): why AGENTS.md cannot be switched off, unreachable budgets, relation to dsh-context
 - [Compatibility](docs/COMPATIBILITY.md): tested versions, required APIs, upgrade checks
 - [Performance](docs/PERFORMANCE.md): measured timings for 352 items, 34 suites, a 229-row expand
+- [Security](SECURITY.md): reporting, verifiable boundaries, accepted risks
+- [Contributing](CONTRIBUTING.md): local loop, pre-commit checks, release steps (`npm run smoke` runs the pipeline offline)
 
 ## Limitations
 

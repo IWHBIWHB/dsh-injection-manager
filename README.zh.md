@@ -6,6 +6,8 @@
 
 管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，按套件聚合，一套一个开关，再给一个 token 预算和两套预设。
 
+> **1.5.0**：八语言界面、撤销上一步、清单导出、按套件聚类。完整变化见 [CHANGELOG](CHANGELOG.md)。
+
 ```powershell
 # 装（GitHub 直装）
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
@@ -150,6 +152,8 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 - [常见问题](docs/FAQ.md)：关不掉、预算到不了、和 dsh-context 的关系
 - [兼容性](docs/COMPATIBILITY.md)：已验证版本、依赖接口、升级排查
 - [性能](docs/PERFORMANCE.md)：352 条 / 34 组 / 展开 229 行的实测耗时
+- [安全](SECURITY.md)：报告渠道、可验证的边界、已知风险
+- [参与开发](CONTRIBUTING.md)：本地循环、提交前检查、发布步骤（`npm run smoke` 可离线跑整条流水线）
 
 ## 限制
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 — 2026-11-15
+
+- `npm run smoke`: runs the whole snapshot pipeline against a fake context and
+  prints the text report, so the plugin can be sanity-checked without DSH. CI
+  runs it too.
+- SECURITY.md: reporting channel, verifiable boundaries (no eval, no network,
+  no workspace writes), accepted risks.
+- GitHub issue templates (bug / feature) and a pull-request template ask for the
+  `/diag` fields and the locale-key check that actually matter.
+
 ## 1.4.1 — 2026-11-15
 
 - Market screenshots extended to six: suites, budget, policy, sidebar, settings
