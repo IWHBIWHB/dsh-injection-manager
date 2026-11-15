@@ -9,6 +9,9 @@
   no workspace writes), accepted risks.
 - GitHub issue templates (bug / feature) and a pull-request template ask for the
   `/diag` fields and the locale-key check that actually matter.
+- Locale parity is now tested: every language must match English's key paths,
+  have non-empty values, keep identical `{placeholders}`, and ship its detail
+  document.
 
 ## 1.4.1 — 2026-11-15
 
