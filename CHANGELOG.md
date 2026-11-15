@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.0.2 — 2026-11-15
+## 1.1.0 — 2026-11-15
+
+- Undo: every policy write remembers the previous policy (20 deep), so a whole
+  229-item suite switch is one click away from being reverted. The panel shows
+  an Undo button whenever history is available.
 
 - Plugin configuration card (Plugins → Configuration): hide the composer chip,
   refresh on window focus, show raw key names, and seed a first-run token budget.

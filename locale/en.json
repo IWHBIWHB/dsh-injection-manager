@@ -73,6 +73,7 @@
     "empty": "No matching items",
     "shareOf": "of first-turn injection",
     "applied": "Saved",
+    "undo": "Undo",
     "actionFailed": "Action failed",
     "names": {
       "harness:identity": "Identity",

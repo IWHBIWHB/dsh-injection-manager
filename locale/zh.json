@@ -73,6 +73,7 @@
     "empty": "没有匹配的条目",
     "shareOf": "占首轮注入",
     "applied": "已写入",
+    "undo": "撤销上一步",
     "actionFailed": "操作失败",
     "names": {
       "harness:identity": "身份声明",

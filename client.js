@@ -573,7 +573,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, busy }) {
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useState('group')
         const [expanded, setExpanded] = useState({})
@@ -722,8 +722,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           ),
           h(
             'div',
-            { className: 'ci-note' },
-            `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} 组 · ${t('locked')} ${snapshot.locks.length}`,
+            { className: 'ci-note', style: { display: 'flex', alignItems: 'center', gap: 10 } },
+            h(
+              'span',
+              null,
+              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} 组 · ${t('locked')} ${snapshot.locks.length}`,
+            ),
+            snapshot.undo && snapshot.undo.available
+              ? h('button', { type: 'button', className: 'ci-btn', disabled: busy, onClick: () => onUndo() }, t('undo'))
+              : null,
           ),
         )
       }
@@ -1001,6 +1008,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           (group, enabled) => act({ kind: 'group', channel: group.channel, group: group.id, enabled }),
           [act],
         )
+        const onUndo = useCallback(() => act({ kind: 'undo' }), [act])
 
         const close = () => {
           try {
@@ -1101,7 +1109,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             'div',
             { className: 'ci-body grow' },
             tab === 'list'
-              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, busy })
+              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy })
               : tab === 'settings'
                 ? h(SettingsTab, { snapshot, t, act })
                 : tab === 'budget'
