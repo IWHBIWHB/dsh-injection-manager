@@ -144,6 +144,9 @@
     "restored": "Restaurado",
     "confirmRestore": "¿Confirmar restauración?",
     "cancel": "Cancelar",
-    "hostOld": "Este DSH es {version}, anterior a la versión probada {tested}; algunos interruptores pueden no aplicarse."
+    "hostOld": "Este DSH es {version}, anterior a la versión probada {tested}; algunos interruptores pueden no aplicarse.",
+    "moreGroups": "y {count} grupos más",
+    "sortTokens": "Por tokens",
+    "sortName": "Por nombre"
   }
 }

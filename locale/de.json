@@ -144,6 +144,9 @@
     "restored": "Wiederhergestellt",
     "confirmRestore": "Wiederherstellen bestätigen?",
     "cancel": "Abbrechen",
-    "hostOld": "Dieses DSH ist {version}, älter als die getestete Version {tested}; manche Schalter wirken möglicherweise nicht."
+    "hostOld": "Dieses DSH ist {version}, älter als die getestete Version {tested}; manche Schalter wirken möglicherweise nicht.",
+    "moreGroups": "und {count} weitere Gruppen",
+    "sortTokens": "Nach Tokens",
+    "sortName": "Nach Namen"
   }
 }

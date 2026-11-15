@@ -144,6 +144,9 @@
     "restored": "已回到该步",
     "confirmRestore": "确认回退？",
     "cancel": "取消",
-    "hostOld": "宿主 DSH {version} 低于验证版本 {tested}，部分开关可能不生效。"
+    "hostOld": "宿主 DSH {version} 低于验证版本 {tested}，部分开关可能不生效。",
+    "moreGroups": "还有 {count} 组未列出",
+    "sortTokens": "按 token",
+    "sortName": "按套件名"
   }
 }

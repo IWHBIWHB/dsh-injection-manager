@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.3 — 2026-11-15
+
+- Budget page: quick targets (24k / 48k / 80k), a sort switch for the suggestion
+  list (by tokens / by suite name, remembered), and a plain "还有 N 组未列出"
+  instead of a bare `+N`.
+- Real host check: setting 24000 yields `plan.after = 23945`, 147 drops in 7
+  groups; clearing the budget returns to 0 drops.
+
 ## 1.9.2 — 2026-11-15
 
 - Keyboard: `/` focuses the search box from anywhere outside a text field.

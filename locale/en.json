@@ -144,6 +144,9 @@
     "restored": "Restored",
     "confirmRestore": "Confirm restore?",
     "cancel": "Cancel",
-    "hostOld": "This DSH is {version}, older than the tested {tested}; some switches may not take effect."
+    "hostOld": "This DSH is {version}, older than the tested {tested}; some switches may not take effect.",
+    "moreGroups": "and {count} more groups",
+    "sortTokens": "By tokens",
+    "sortName": "By suite name"
   }
 }

@@ -1087,6 +1087,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [target, setTarget] = useState(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
         const plan = policy.plan
         const timer = useRef(null)
+        const [sort, setSort] = useStoredState('budgetSort', 'tokens')
+        const dropGroups = (plan.dropGroups || []).slice().sort((left, right) =>
+          sort === 'name'
+            ? groupLabelOf(t, left).localeCompare(groupLabelOf(t, right), undefined, { numeric: true })
+            : right.tokens - left.tokens,
+        )
 
         useEffect(() => {
           setTarget(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
@@ -1125,6 +1131,21 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 { type: 'button', className: 'ci-btn ci-primary', disabled: plan.target <= 0, onClick: () => act({ kind: 'budget.apply', tokens: Number(target) || plan.target }) },
                 t('applyPlan'),
               ),
+              [24000, 48000, 80000].map((value) =>
+                h(
+                  'button',
+                  {
+                    key: value,
+                    type: 'button',
+                    className: 'ci-chip' + (Number(target) === value ? ' on' : ''),
+                    onClick: () => {
+                      setTarget(String(value))
+                      commit(String(value))
+                    },
+                  },
+                  digits(value),
+                ),
+              ),
             ),
             h('div', { className: 'hint' }, t('budgetHint')),
           ),
@@ -1138,6 +1159,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               h('span', { className: 'lbl' }, `${t('budgetAfter')} ${digits(plan.after)}`),
             ),
             h('div', { className: 'ci-bar' }, h('span', { style: { width: `${Math.min(100, pct(plan.after, Math.max(1, plan.before)))}%`, background: COLOR.sections } })),
+            h(
+              'div',
+              { className: 'ci-toolbar', style: { margin: '6px 0' } },
+              h('button', { type: 'button', className: 'ci-chip' + (sort === 'tokens' ? ' on' : ''), onClick: () => setSort('tokens') }, t('sortTokens')),
+              h('button', { type: 'button', className: 'ci-chip' + (sort === 'name' ? ' on' : ''), onClick: () => setSort('name') }, t('sortName')),
+            ),
             plan.reachable ? null : h('div', { className: 'ci-note warn' }, t('unreachable')),
             plan.drop.length === 0
               ? h('div', { className: 'ci-note' }, t('planEmpty'))
@@ -1147,12 +1174,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   h(
                     'div',
                     { className: 'hint', style: { marginBottom: 4 } },
-                    `${t('planDrop')} ${plan.drop.length} ${t('items')} · ${(plan.dropGroups || []).length} ${t('groups')} · −${digits(plan.savedTokens)} token`,
+                    `${t('planDrop')} ${plan.drop.length} ${t('items')} · ${dropGroups.length} ${t('groups')} · −${digits(plan.savedTokens)} token`,
                   ),
                   h(
                     'div',
                     { className: 'ci-list' },
-                    (plan.dropGroups || []).slice(0, 8).map((group) =>
+                    dropGroups.slice(0, 8).map((group) =>
                       h(
                         'div',
                         { className: 'ci-mini', key: group.id },
@@ -1163,7 +1190,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                       ),
                     ),
                   ),
-                  (plan.dropGroups || []).length > 8 ? h('div', { className: 'hint' }, `+${(plan.dropGroups || []).length - 8}`) : null,
+                  dropGroups.length > 8 ? h('div', { className: 'hint' }, t('moreGroups', { count: dropGroups.length - 8 })) : null,
                 ),
           ),
         )
