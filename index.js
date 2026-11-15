@@ -11,14 +11,60 @@
 //     one snapshot, so they cannot drift apart.
 //   - Only sessions created after a policy change are affected; a running
 //     conversation is never rewritten mid-flight.
+import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { applyPolicyForAgent, releaseAll, savePolicy } from './lib/apply.js'
 import { createRoutes, ROUTES } from './lib/routes.js'
 import { buildSnapshot } from './lib/snapshot.js'
 import { presetPolicy } from './lib/presets.js'
 import { readPolicy } from './lib/policy.js'
+import { setSettings } from './lib/settings.js'
 import { renderCard, renderText } from './lib/text.js'
 
 export const name = 'injection-manager'
+
+// A linked plugin directory has no node_modules of its own, so the schema
+// library must be resolved from the profile that loaded us. If no anchor works
+// (a non-profile launch), Config stays undefined and the plugin still runs with
+// the defaults in lib/settings.js.
+function loadSchema() {
+  const anchors = []
+  if (process.env.DSH_PROFILE_DIR) anchors.push(join(process.env.DSH_PROFILE_DIR, 'package.json'))
+  const home = process.env.DSH_HOME || join(homedir(), '.dsh')
+  const profile = process.env.DSH_PROFILE || 'desktop'
+  anchors.push(join(home, 'profiles', profile, 'package.json'))
+  for (const anchor of anchors) {
+    try {
+      return createRequire(anchor)('@deepseek-ai/schemastery')
+    } catch {
+      /* try the next anchor */
+    }
+  }
+  return undefined
+}
+
+const Schema = loadSchema()
+
+// Presentation and one seeding default. Every actual switch lives in
+// policy.json, so this form stays short and safe to edit.
+export const Config =
+  Schema === undefined
+    ? undefined
+    : Schema.object({
+        dock: Schema.boolean()
+          .default(true)
+          .description('在输入框旁显示「注入 xxk · 可关 xx%」徽标；关掉只隐藏入口，不影响策略。'),
+        refreshOnFocus: Schema.boolean()
+          .default(true)
+          .description('窗口重新获得焦点时刷新面板，多窗口同时开关时不会看到旧数字。'),
+        showRawNames: Schema.boolean()
+          .default(true)
+          .description('在中文条目名旁显示原始键名（如 harness:identity），排障时有用。'),
+        budgetTokens: Schema.number()
+          .default(0)
+          .description('策略文件还没有时的默认预算 token（0 = 不设）；只在首次使用前作为初始值。'),
+      })
 
 // Hard dependencies: the tool needs the registry, the snapshot needs the prompt
 // registry, skills and the working directory, the panel needs a web server, and
@@ -115,7 +161,8 @@ function createCommand(ctx) {
   }
 }
 
-export function apply(ctx) {
+export function apply(ctx, config) {
+  setSettings(config)
   ctx.tools.register(createTool(ctx))
 
   ctx.effect(() => ctx.commands.register(createCommand(ctx)), 'injection-manager command')

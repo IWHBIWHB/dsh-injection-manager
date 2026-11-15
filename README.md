@@ -25,6 +25,21 @@ The sidebar shows the same snapshot compactly, and the composer carries a one-li
 
 ![Sidebar panel](docs/images/panel-sidebar.png)
 
+## Plugin configuration
+
+Plugins → dsh-injection-manager → Configuration exposes four presentation and
+first-run options:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `dock` | on | Show the "injection 84k · 97% switchable" chip next to the composer |
+| `refreshOnFocus` | on | Refresh the panel when the window regains focus |
+| `showRawNames` | on | Show the raw key (`harness:identity`) next to the readable label |
+| `budgetTokens` | 0 | Initial budget before a policy file exists; 0 = none |
+
+Actual switches stay in the policy file, so there is never a second source of
+truth that disagrees with the panel.
+
 ## Why
 
 In a typical DSH session the biggest part of the first request is not your prompt but the tool schemas. On a machine with one large MCP server, 280 tool definitions can cost 75k tokens out of an 84k first request. None of it is visible, and there is no single place to turn it off.

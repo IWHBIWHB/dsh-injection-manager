@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2 — 2026-11-15
+
+- Plugin configuration card (Plugins → Configuration): hide the composer chip,
+  refresh on window focus, show raw key names, and seed a first-run token budget.
+  The plugin keeps working when the schema library cannot be resolved (Config is
+  then omitted instead of failing activation).
+- The panel now reports a failed switch instead of silently doing nothing, and
+  confirms a successful write briefly.
+- Settings loader is covered by unit tests.
+
 ## 1.0.1 — 2026-11-15
 
 - Renamed to `dsh-injection-manager` (from the 1.0.0 development name

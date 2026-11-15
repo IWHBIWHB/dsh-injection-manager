@@ -247,6 +247,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-dock:hover{background:var(--ci-card)}
 .ci-dock b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
 .ci-dock i{width:6px;height:6px;border-radius:50%;background:var(--ci-accent);display:block}
+.ci-toast{position:sticky;bottom:8px;align-self:center;max-width:92%;display:flex;align-items:center;gap:10px;border:1px solid var(--ci-line);background:var(--ci-card);color:var(--ci-fg);border-radius:10px;padding:7px 12px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);z-index:5}
+.ci-toast.warn{border-color:var(--ci-warn);color:var(--ci-warn)}
+.ci-toast .ci-btn{padding:2px 8px;font-size:11px}
 .ci-side{display:flex;flex-direction:column;min-height:0;height:100%}
 .ci-side .ci-body{padding:12px 12px 16px;gap:10px;flex:1 1 auto;min-height:0;overflow:auto}
 `
@@ -551,10 +554,16 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
+        const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
         return h(
           'div',
           { className: 'ci-row' + (locked ? ' locked' : '') + (nested === true ? ' ci-row-nested' : ''), key: itemKey(item) },
-          h('div', { className: 'n', title: `${item.name} · ${item.tokens} token` }, label, label !== item.name ? h('span', { className: 'id' }, item.name) : null),
+          h(
+            'div',
+            { className: 'n', title: `${item.name} · ${item.tokens} token` },
+            label,
+            showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
+          ),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
           h('div', { className: 'num' }, digits(item.tokens)),
           h('div', { className: 'num' }, `${pct(item.tokens, snapshot.totals.tokens)}%`),
@@ -950,6 +959,24 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [tab, setTab] = useState('list')
         const [filter, setFilter] = useState('all')
         const [busy, setBusy] = useState(false)
+        const [notice, setNotice] = useState(null)
+        const noticeTimer = useRef(null)
+
+        const showNotice = useCallback((next, ttl) => {
+          setNotice(next)
+          if (noticeTimer.current !== null) clearTimeout(noticeTimer.current)
+          if (ttl !== undefined) noticeTimer.current = setTimeout(() => setNotice(null), ttl)
+        }, [])
+        useEffect(() => () => { if (noticeTimer.current !== null) clearTimeout(noticeTimer.current) }, [])
+
+        // Another window may have changed the policy; refresh when this one
+        // comes back into focus instead of showing stale numbers.
+        useEffect(() => {
+          if (!data || (data.settings && data.settings.refreshOnFocus === false)) return undefined
+          const onFocus = () => reload()
+          window.addEventListener('focus', onFocus)
+          return () => window.removeEventListener('focus', onFocus)
+        }, [data, reload])
 
         const act = useCallback(
           async (action) => {
@@ -957,13 +984,16 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             try {
               await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
               reload()
+              showNotice({ kind: 'ok', text: t('applied') }, 1800)
             } catch (failure) {
-              console.error('[injection-manager] action failed', failure)
+              // A failed switch must be visible: silence here would look like
+              // the click did nothing.
+              showNotice({ kind: 'error', text: `${t('actionFailed')}：${String((failure && failure.message) || failure)}` })
             } finally {
               setBusy(false)
             }
           },
-          [sessionId, reload],
+          [sessionId, reload, showNotice, t],
         )
 
         const onToggle = useCallback((item, next) => act({ kind: 'item', channel: item.channel, name: item.name, enabled: next }), [act])
@@ -1046,6 +1076,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 }),
               ),
               h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
+              notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : '') }, notice.text) : null,
             ),
           )
         }
@@ -1077,6 +1108,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t }),
           ),
+          notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : '') }, notice.text) : null,
         )
       }
 
@@ -1093,6 +1125,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const { status, data } = useSnapshot(sessionId)
         const t = useLocale(data)
         if (status === 'failed') return null
+        // `dock: false` hides the composer chip without disabling the plugin.
+        if (data && data.settings && data.settings.dock === false) return null
         const tokens = data ? data.totals.tokens : null
         const open = () => {
           try {

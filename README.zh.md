@@ -26,6 +26,19 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 
+## 插件设置
+
+Plugins → dsh-injection-manager → Configuration 里有四项，只影响显示与首次默认值：
+
+| 设置 | 默认 | 作用 |
+| --- | --- | --- |
+| `dock` | 开 | 是否在输入框旁显示「注入 xxk · 可关 xx%」徽标 |
+| `refreshOnFocus` | 开 | 窗口重新获得焦点时刷新面板（多窗口同时开关不会看到旧数字） |
+| `showRawNames` | 开 | 在中文名旁显示原始键名（`harness:identity` 这类），排障用 |
+| `budgetTokens` | 0 | 策略文件还没建立时的初始预算；0 = 不设 |
+
+真正的开关都在策略文件里，不在这个表单里——避免出现「面板关了但配置还开着」的两套真相。
+
 ## 为什么需要它
 
 在一次典型的 DSH 会话里，首轮注入的大头不是你的话，而是工具 schema：本机一个装了 MCP 的环境，280 个工具的描述可以吃掉 75k token，而整个首轮注入是 84k。这些内容你既看不见，也没有统一的开关。
