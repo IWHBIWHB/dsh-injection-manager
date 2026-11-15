@@ -218,7 +218,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
 .ci-switch.on{background:var(--ci-accent)}
 .ci-switch.on span{transform:translateX(14px)}
+.ci-switch.mixed{background:var(--ci-line)}
+.ci-switch.mixed span{transform:translateX(7px)}
 .ci-switch[disabled]{opacity:.45;cursor:default}
+.ci-grouphead{cursor:pointer;font-weight:600;background:var(--ci-bg)}
+.ci-grouphead:hover{background:var(--ci-card)}
+.ci-caret{display:inline-block;width:14px;color:var(--ci-fg3);font-size:10px;transform:translateY(-1px)}
+.ci-row-nested{background:var(--ci-card);padding-left:34px;box-shadow:inset 2px 0 0 var(--ci-line2)}
+.ci-row-nested .n{font-weight:400}
 .ci-note{color:var(--ci-fg2);font-size:12px}
 .ci-note.warn{color:var(--ci-warn)}
 .ci-card{border:1px solid var(--ci-line2);border-radius:10px;padding:12px 14px;background:var(--ci-card);display:flex;flex-direction:column;gap:8px}
@@ -329,6 +336,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           const secondary = all[language === 'zh' ? 'en' : 'zh'] || {}
           const t = createTranslator(Object.assign({}, secondary, primary), language)
           t.names = Object.assign({}, secondary.names, primary.names)
+          t.groupNames = Object.assign({}, secondary.groupNames, primary.groupNames)
           t.language = language
           return t
         }, [payload])
@@ -480,8 +488,86 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       const itemKey = (item) => `${item.channel}\u0000${item.name}`
 
-      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, busy }) {
+      function Switch({ on, mixed, disabled, onChange, title }) {
+        return h(
+          'button',
+          {
+            type: 'button',
+            className: 'ci-switch' + (on ? ' on' : '') + (mixed === true ? ' mixed' : ''),
+            role: 'switch',
+            'aria-checked': mixed === true ? 'mixed' : on ? 'true' : 'false',
+            'aria-label': title || '',
+            title: title || '',
+            disabled: disabled === true,
+            onClick: (event) => {
+              if (event && typeof event.stopPropagation === 'function') event.stopPropagation()
+              if (disabled !== true) onChange(!on)
+            },
+          },
+          h('span', null),
+        )
+      }
+
+      const GROUP_ZH = {
+        core: '基础工具',
+        'tool-guidance': '工具说明',
+        rules: '工作区规则',
+        harness: '系统提示词',
+        deployment: '部署人设',
+        ui: '界面',
+        plan: '计划模式',
+        team: '团队协作',
+        context: '文件引用',
+        approval: '审批策略',
+        sandbox: '沙箱策略',
+        'working-directory': '工作目录',
+        subagent: '子智能体',
+        app: 'GUI 地址',
+      }
+
+      function groupLabelOf(t, group) {        const dict = t.groupNames || {}
+        const label = group.label
+        const mapped = dict[label] || dict[label.toLowerCase()]
+        if (typeof mapped === 'string' && mapped.length > 0) return mapped
+        if (t.language === 'zh') return GROUP_ZH[label.toLowerCase()] || label
+        return label
+      }
+
+      function policyItemOn(snapshot, item) {
+        const channel = snapshot.policy.channels[item.channel]
+        if (channel === undefined || channel.mode === 'all') return true
+        if (channel.mode === 'only') return channel.names.indexOf(item.name) >= 0
+        return channel.names.indexOf(item.name) < 0
+      }
+
+      function policyGroupState(snapshot, group) {
+        const rows = snapshot.items.filter((item) => item.group === group.id)
+        const unlocked = rows.filter((item) => !item.locked)
+        if (unlocked.length === 0) return { on: true, mixed: false, disabled: true }
+        const onCount = unlocked.filter((item) => policyItemOn(snapshot, item)).length
+        return { on: onCount === unlocked.length, mixed: onCount > 0 && onCount < unlocked.length, disabled: false }
+      }
+
+      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested }) {
+        const label = nameOf(t, item)
+        const locked = item.locked === true
+        return h(
+          'div',
+          { className: 'ci-row' + (locked ? ' locked' : '') + (nested === true ? ' ci-row-nested' : ''), key: itemKey(item) },
+          h('div', { className: 'n', title: `${item.name} · ${item.tokens} token` }, label, label !== item.name ? h('span', { className: 'id' }, item.name) : null),
+          h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
+          h('div', { className: 'num' }, digits(item.tokens)),
+          h('div', { className: 'num' }, `${pct(item.tokens, snapshot.totals.tokens)}%`),
+          locked
+            ? h('span', { className: 'ci-lock', title: t('lockedHint') }, t('locked'))
+            : h(Switch, { on: isOn(item), disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
+        )
+      }
+
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, busy }) {
         const [query, setQuery] = useState('')
+        const [view, setView] = useState('group')
+        const [expanded, setExpanded] = useState({})
         const items = useMemo(() => {
           const needle = query.trim().toLowerCase()
           const names = t.names || {}
@@ -503,6 +589,40 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           return channel.names.indexOf(item.name) < 0
         }
 
+        const groups = useMemo(() => {
+          const map = new Map()
+          for (const item of items) {
+            const entry = map.get(item.group) ?? {
+              id: item.group,
+              channel: item.channel,
+              label: item.groupLabel,
+              items: [],
+              tokens: 0,
+              savableTokens: 0,
+            }
+            entry.items.push(item)
+            entry.tokens += item.tokens
+            if (!item.locked) entry.savableTokens += item.tokens
+            map.set(item.group, entry)
+          }
+          return [...map.values()].sort((left, right) => right.tokens - left.tokens)
+        }, [items])
+
+        const groupState = (group) => {
+          const unlocked = group.items.filter((item) => !item.locked)
+          if (unlocked.length === 0) return { on: true, mixed: false, disabled: true }
+          const onCount = unlocked.filter(isOn).length
+          return { on: onCount === unlocked.length, mixed: onCount > 0 && onCount < unlocked.length, disabled: false }
+        }
+
+        const toggleGroup = (group) => {
+          const state = groupState(group)
+          if (state.disabled) return
+          onGroup(group, !state.on)
+        }
+
+        const toggleExpanded = (id) => setExpanded((previous) => ({ ...previous, [id]: previous[id] !== true }))
+
         return h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
@@ -516,6 +636,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               onChange: (event) => setQuery(event.target.value),
               'aria-label': t('search'),
             }),
+            h(
+              'div',
+              { className: 'ci-seg' },
+              [
+                ['group', t('group')],
+                ['flat', t('flat')],
+              ].map(([key, label]) => h('button', { key, type: 'button', className: view === key ? 'on' : '', onClick: () => setView(key) }, label)),
+            ),
             h(
               'div',
               { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } },
@@ -542,26 +670,51 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             ),
             items.length === 0
               ? h('div', { className: 'ci-empty' }, t('empty'))
-              : items.map((item) => {
-                  const label = nameOf(t, item)
-                  const locked = item.locked === true
-                  return h(
-                    'div',
-                    { className: 'ci-row' + (locked ? ' locked' : ''), key: itemKey(item) },
-                    h('div', { className: 'n', title: `${item.name} · ${item.tokens} token` }, label, label !== item.name ? h('span', { className: 'id' }, item.name) : null),
-                    h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
-                    h('div', { className: 'num' }, digits(item.tokens)),
-                    h('div', { className: 'num' }, `${pct(item.tokens, snapshot.totals.tokens)}%`),
-                    locked
-                      ? h('span', { className: 'ci-lock', title: t('lockedHint') }, t('locked'))
-                      : h(Switch, { on: isOn(item), disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
-                  )
-                }),
+              : view === 'group'
+                ? groups.map((group) => {
+                    const state = groupState(group)
+                    const open = expanded[group.id] === true
+                    return h(
+                      'div',
+                      { className: 'ci-group', key: group.id },
+                      h(
+                        'div',
+                        {
+                          className: 'ci-row ci-grouphead',
+                          role: 'button',
+                          tabIndex: 0,
+                          'aria-expanded': open ? 'true' : 'false',
+                          onClick: () => toggleExpanded(group.id),
+                          onKeyDown: (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              toggleExpanded(group.id)
+                            }
+                          },
+                        },
+                        h(
+                          'div',
+                          { className: 'n' },
+                          h('span', { className: 'ci-caret' + (open ? ' open' : '') }, open ? '▾' : '▸'),
+                          groupLabelOf(t, group),
+                          h('span', { className: 'id' }, `${group.items.length} 条`),
+                        ),
+                        h('div', { className: 'badge' }, h(Dot, { channel: group.channel }), t(group.channel)),
+                        h('div', { className: 'num' }, digits(group.tokens)),
+                        h('div', { className: 'num' }, `${pct(group.tokens, snapshot.totals.tokens)}%`),
+                        h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
+                      ),
+                      open
+                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true }))
+                        : null,
+                    )
+                  })
+                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy })),
           ),
           h(
             'div',
             { className: 'ci-note' },
-            `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${t('locked')} ${snapshot.locks.length}`,
+            `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} 组 · ${t('locked')} ${snapshot.locks.length}`,
           ),
         )
       }
@@ -814,6 +967,10 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
 
         const onToggle = useCallback((item, next) => act({ kind: 'item', channel: item.channel, name: item.name, enabled: next }), [act])
+        const onGroupToggle = useCallback(
+          (group, enabled) => act({ kind: 'group', channel: group.channel, group: group.id, enabled }),
+          [act],
+        )
 
         const close = () => {
           try {
@@ -855,11 +1012,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
 
         if (compact) {
-          const top = snapshot.items
-            .filter((item) => !item.locked)
-            .slice()
-            .sort((left, right) => right.tokens - left.tokens)
-            .slice(0, 30)
+          const groups = snapshot.groups.slice(0, 12)
           return h(
             'div',
             { className: 'ci-root ci-side' },
@@ -874,27 +1027,23 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               h(
                 'div',
                 { className: 'ci-list' },
-                top.map((item) =>
-                  h(
+                groups.map((group) => {
+                  const state = policyGroupState(snapshot, group)
+                  return h(
                     'div',
-                    { className: 'ci-mini', key: itemKey(item) },
-                    h(Dot, { channel: item.channel }),
-                    h('span', { className: 'n', title: item.name }, nameOf(t, item)),
-                    h('span', { className: 't' }, token(item.tokens)),
+                    { className: 'ci-mini', key: group.id },
+                    h(Dot, { channel: group.channel }),
+                    h('span', { className: 'n', title: `${group.label} · ${group.count} 条` }, `${groupLabelOf(t, group)} · ${group.count}`),
+                    h('span', { className: 't' }, token(group.tokens)),
                     h(Switch, {
-                      on: snapshot.policy.channels[item.channel] === undefined
-                        ? true
-                        : snapshot.policy.channels[item.channel].mode === 'all'
-                          ? true
-                          : snapshot.policy.channels[item.channel].mode === 'only'
-                            ? snapshot.policy.channels[item.channel].names.indexOf(item.name) >= 0
-                            : snapshot.policy.channels[item.channel].names.indexOf(item.name) < 0,
-                      disabled: busy,
-                      onChange: (next) => onToggle(item, next),
-                      title: item.name,
+                      on: state.on,
+                      mixed: state.mixed,
+                      disabled: busy || state.disabled,
+                      onChange: () => onGroupToggle(group, !state.on),
+                      title: group.label,
                     }),
-                  ),
-                ),
+                  )
+                }),
               ),
               h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
             ),
@@ -921,7 +1070,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             'div',
             { className: 'ci-body grow' },
             tab === 'list'
-              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, busy })
+              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, busy })
               : tab === 'settings'
                 ? h(SettingsTab, { snapshot, t, act })
                 : tab === 'budget'

@@ -8,6 +8,9 @@ First release under the new name and package id `dsh-context-injection`
 - One snapshot of the first request: prompt sections, runtime contexts, skill
   catalog, tool schemas and the workspace-rule chain, each with characters and
   estimated tokens.
+- Suites: entries cluster into switchable groups (one MCP server = one suite,
+  otherwise shared naming prefixes, skills by provider, sections/contexts by
+  namespace), so 229 REA tools become a single switch with a tri-state state.
 - Per-item switches, per-channel master switches, `all` / `only` / `except`
   modes, two presets, a greedy token budget and custom persona prefix/suffix.
 - Effects are session-scoped registrations: prompt sections and runtime

@@ -10,6 +10,18 @@ In a typical DSH session the biggest part of the first request is not your promp
 
 This plugin flattens that first request into a list and actually applies the switches — not by editing your files, but by registering a nearer layer inside each new session's scope.
 
+## Clusters: switch a whole suite
+
+The list groups by suite by default instead of showing hundreds of rows:
+
+- One MCP server is one suite. On the machine this was built on, 229 `mcp__rea__*` tools collapse into "REA" — 65,979 tokens, 78.7% of the first request — and one switch turns the whole server off.
+- Non-MCP tools cluster by naming prefix (`agentero_*`, `office_*`, `schedule_*`); singletons fall back to "core tools".
+- Skills group by provider (for example 33 `filesystem` skills in one group).
+- Sections and contexts group by namespace; the `mcp:rea` instructions section joins the REA group instead of standing alone.
+- A group row shows item count, tokens, share and a tri-state switch; a partially disabled group shows the mixed state.
+
+Search and the channel filter work inside the grouped view and expand matching groups; a flat view remains for one-by-one tuning.
+
 ## What it manages
 
 | Channel | Mechanism | Effect when switched off |

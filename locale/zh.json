@@ -30,6 +30,8 @@
     "about": "说明",
     "search": "搜索条目",
     "all": "全部",
+    "group": "分组",
+    "flat": "平铺",
     "name": "条目",
     "channel": "通道",
     "tokens": "token",
@@ -89,6 +91,22 @@
       "approval:policy": "审批策略",
       "subagent:identity": "子智能体身份",
       "subagent:delegation": "委派说明"
+    },
+    "groupNames": {
+      "core": "基础工具",
+      "tool-guidance": "工具说明",
+      "rules": "工作区规则",
+      "harness": "系统提示词",
+      "deployment": "部署人设",
+      "ui": "界面",
+      "plan": "计划模式",
+      "team": "团队协作",
+      "context": "文件引用",
+      "approval": "审批策略",
+      "sandbox": "沙箱策略",
+      "working-directory": "工作目录",
+      "subagent": "子智能体",
+      "app": "GUI 地址"
     }
   }
 }

@@ -30,6 +30,8 @@
     "about": "Notes",
     "search": "Search items",
     "all": "All",
+    "group": "Groups",
+    "flat": "Flat",
     "name": "Item",
     "channel": "Channel",
     "tokens": "Tokens",
@@ -89,6 +91,22 @@
       "approval:policy": "Approval policy",
       "subagent:identity": "Subagent identity",
       "subagent:delegation": "Delegation notes"
+    },
+    "groupNames": {
+      "core": "Core tools",
+      "tool-guidance": "Tool guidance",
+      "rules": "Workspace rules",
+      "harness": "System prompt",
+      "deployment": "Deployment persona",
+      "ui": "UI",
+      "plan": "Plan mode",
+      "team": "Team collaboration",
+      "context": "File references",
+      "approval": "Approval policy",
+      "sandbox": "Sandbox policy",
+      "working-directory": "Working directory",
+      "subagent": "Subagent",
+      "app": "Web GUI URL"
     }
   }
 }
