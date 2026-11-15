@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1 — 2026-11-15
+
+- Budget suggestions are summarised per suite: a 130-item "turn REA off"
+  suggestion is one row instead of a flat list of 147 items, and the same suite
+  is never listed twice across channels. The plan still applies item names, so
+  applying it remains a normal policy write.
+
 ## 1.5.0 — 2026-11-15
 
 - `npm run smoke`: runs the whole snapshot pipeline against a fake context and

@@ -933,21 +933,26 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               : h(
                   'div',
                   null,
-                  h('div', { className: 'hint', style: { marginBottom: 4 } }, `${t('planDrop')} ${plan.drop.length} · −${digits(plan.savedTokens)} token`),
+                  h(
+                    'div',
+                    { className: 'hint', style: { marginBottom: 4 } },
+                    `${t('planDrop')} ${plan.drop.length} ${t('items')} · ${(plan.dropGroups || []).length} ${t('groups')} · −${digits(plan.savedTokens)} token`,
+                  ),
                   h(
                     'div',
                     { className: 'ci-list' },
-                    plan.drop.slice(0, 12).map((entry) =>
+                    (plan.dropGroups || []).slice(0, 8).map((group) =>
                       h(
                         'div',
-                        { className: 'ci-mini', key: `${entry.channel}:${entry.name}` },
-                        h(Dot, { channel: entry.channel }),
-                        h('span', { className: 'n', title: entry.name }, (t.names || {})[entry.name] || NAMES_ZH[entry.name] || entry.name),
-                        h('span', { className: 't' }, digits(entry.tokens)),
+                        { className: 'ci-mini', key: group.id },
+                        h(Dot, { channel: group.channel }),
+                        h('span', { className: 'n', title: group.id }, groupLabelOf(t, group)),
+                        h('span', { className: 't' }, `${group.count} ${t('items')}`),
+                        h('span', { className: 't' }, digits(group.tokens)),
                       ),
                     ),
                   ),
-                  plan.drop.length > 12 ? h('div', { className: 'hint' }, `+${plan.drop.length - 12}`) : null,
+                  (plan.dropGroups || []).length > 8 ? h('div', { className: 'hint' }, `+${(plan.dropGroups || []).length - 8}`) : null,
                 ),
           ),
         )

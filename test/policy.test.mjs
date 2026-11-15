@@ -13,8 +13,8 @@ const items = [
   { channel: 'contexts', name: 'working-directory:current', tokens: 30, chars: 120, locked: true },
   { channel: 'contexts', name: 'approval:policy', tokens: 40, chars: 160, locked: false },
   { channel: 'skills', name: 'dsh-doc', tokens: 50, chars: 200, locked: false },
-  { channel: 'tools', name: 'mcp__rea__analyze_function', tokens: 400, chars: 1600, locked: false },
-  { channel: 'tools', name: 'read', tokens: 60, chars: 240, locked: false },
+  { channel: 'tools', name: 'mcp__rea__analyze_function', tokens: 400, chars: 1600, locked: false, group: 'tools:mcp:rea', groupLabel: 'REA' },
+  { channel: 'tools', name: 'read', tokens: 60, chars: 240, locked: false, group: 'tools:core', groupLabel: 'core' },
   { channel: 'instructions', name: 'AGENTS.md', tokens: 70, chars: 280, locked: true },
 ]
 
@@ -69,6 +69,17 @@ test('budget planner drops the largest switchable items first', () => {
   assert.ok(!dropped.includes('AGENTS.md'))
   assert.ok(!dropped.includes('working-directory:current'))
   assert.ok(plan.after <= 700)
+  // Same drop list, summarised per suite: the REA tool is one group.
+  assert.equal(plan.dropGroups[0].label, 'REA')
+  assert.equal(plan.dropGroups[0].count, 1)
+  assert.equal(
+    plan.dropGroups.reduce((sum, group) => sum + group.count, 0),
+    plan.drop.length,
+  )
+  assert.equal(
+    plan.dropGroups.reduce((sum, group) => sum + group.tokens, 0),
+    plan.drop.reduce((sum, entry) => sum + entry.tokens, 0),
+  )
 })
 
 test('an unreachable budget is reported, not faked', () => {
