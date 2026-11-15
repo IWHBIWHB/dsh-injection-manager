@@ -102,6 +102,7 @@
     const LOCALE_ENDPOINT = '/plugins/dsh-context-preflight/locale'
     const POLICY_ENDPOINT = '/plugins/dsh-context-preflight/policy'
     const REGISTRATIONS_ENDPOINT = '/plugins/dsh-context-preflight/registrations'
+    const ACTION_ENDPOINT = '/plugins/dsh-context-preflight/action'
     const DASH = '\u2014'
     const DOT = '\u00b7'
 
@@ -124,6 +125,12 @@
       removeAria: '移除 {name}',
       policyEstimate: '按此默认，新会话首轮注入 ≈ {tokens}（−{saved}，−{percent}%）',
       saveFailed: '策略未保存：{reason}',
+      mgTitle: '管理',
+      mgSub: '开关立即生效 · 只改名或只改一行，正文不动',
+      mgOn: '已开',
+      mgOff: '已关',
+      mgLoaded: '加载中',
+      mgDisabled: '已停用',
       kpiInstructions: '画像',
       kpiSkills: '技能',
       kpiTools: '工具',
@@ -201,6 +208,17 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
 .cpf-input:focus-visible{outline:2px solid var(--ink3);outline-offset:1px}
 .cpf-policy-foot{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
 .cpf-banner{margin-top:12px;border-left:2px solid var(--warn);padding-left:8px;color:var(--warn);font-size:12px;line-height:18px}
+.cpf-mg-group{margin-top:10px}
+.cpf-mg-head{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em;margin-bottom:4px}
+.cpf-mg-list{max-height:220px;overflow:auto;border:1px solid var(--line2);border-radius:8px}
+.cpf-mg-row{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-top:1px solid var(--line2)}
+.cpf-mg-row:first-child{border-top:0}
+.cpf-mg-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--ink)}
+.cpf-mg-detail{flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.cpf-mg-btn{flex:none;height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink3);font:inherit;font-size:12px;cursor:pointer}
+.cpf-mg-btn:hover{color:var(--ink);border-color:var(--ink4)}
+.cpf-mg-btn.is-on{color:var(--ink);border-color:var(--ink4);background:var(--line2)}
+.cpf-mg-btn:disabled{opacity:.5;cursor:default}
 .cpf-big{display:flex;align-items:baseline;margin-top:6px;font-size:30px;line-height:36px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
 .cpf-unit{font-size:.6em;font-weight:600;color:var(--ink3);margin-left:1px}
 .cpf-sub{margin-top:2px;font-size:12px;color:var(--ink3)}
@@ -677,8 +695,94 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
       return { ...policy, [section]: { ...policy[section], mode } }
     }
 
-    function PolicyCard({ policy, onChange, t, data }) {
-      if (policy === null) return null
+    async function postAction(body) {
+      const response = await fetch(ACTION_ENDPOINT, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || payload?.ok === false) throw new Error(payload?.error ?? `HTTP ${response.status}`)
+      return payload
+    }
+
+    /** 管理卡：技能与画像文件各自的开关（每个动作执行后回读真实状态）。 */
+    function ManagementCard({ data, t, onAction, busy, error }) {
+      const management = data?.management
+      if (management === undefined || management.error !== undefined) return null
+      const skills = management.skills ?? []
+      const rules = management.rules ?? []
+
+      function row(key, label, detail, active, onToggle) {
+        return h(
+          'div',
+          { className: 'cpf-mg-row', key },
+          h('span', { className: 'cpf-mg-name', title: label }, label),
+          h('span', { className: 'cpf-mg-detail' }, detail),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: active ? 'cpf-mg-btn is-on' : 'cpf-mg-btn',
+              disabled: busy,
+              onClick: onToggle,
+            },
+            active ? tr(t, 'mgOn') : tr(t, 'mgOff'),
+          ),
+        )
+      }
+
+      return h(
+        'section',
+        { className: 'cpf-card cpf-policy' },
+        h(
+          'div',
+          { className: 'cpf-policy-head' },
+          h('div', { className: 'cpf-card-title' }, tr(t, 'mgTitle')),
+          h('div', { className: 'cpf-sub' }, tr(t, 'mgSub')),
+        ),
+        error ? h('div', { className: 'cpf-banner' }, error) : null,
+        h(
+          'div',
+          { className: 'cpf-mg-group' },
+          h('div', { className: 'cpf-mg-head' }, `${tr(t, 'kpiSkills')} ${skills.length}`),
+          h(
+            'div',
+            { className: 'cpf-mg-list' },
+            ...skills.map((skill) =>
+              row(
+                `s-${skill.path}`,
+                skill.name,
+                `${skill.descriptionLength} 字 · ${skill.hasKey ? skill.keyValue : '无键'}`,
+                !skill.disabled,
+                () => onAction('skill', skill.dir, skill.disabled ? 'on' : 'off'),
+              ),
+            ),
+          ),
+        ),
+        h(
+          'div',
+          { className: 'cpf-mg-group' },
+          h('div', { className: 'cpf-mg-head' }, `${tr(t, 'kpiInstructions')} ${rules.length}`),
+          h(
+            'div',
+            { className: 'cpf-mg-list' },
+            ...rules.map((rule, index) =>
+              row(
+                `r-${rule.path}`,
+                rule.path.split('\\').pop(),
+                rule.state === 'active' ? tr(t, 'mgLoaded') : tr(t, 'mgDisabled'),
+                rule.state === 'active',
+                () => onAction('rule', String(index + 1), rule.state === 'active' ? 'off' : 'on'),
+              ),
+            ),
+          ),
+        ),
+      )
+    }
+
+    function PolicyCard({ policy, onChange, t, data }) {      if (policy === null) return null
       const preview = previewFrom(policy, data)
       const instructions = data?.blocks?.find((block) => block.id === 'instructions')
 
@@ -765,7 +869,7 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
       )
     }
 
-    function PanelBody({ state, data, t, reload, policy, onPolicyChange }) {
+    function PanelBody({ state, data, t, reload, policy, onPolicyChange, onAction, actionBusy, actionError }) {
       if (state === 'loading') {
         return h(
           React.Fragment,
@@ -878,6 +982,7 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
             )
           : null,
         h(PolicyCard, { policy, onChange: onPolicyChange, t, data }),
+        h(ManagementCard, { data, t, onAction, busy: actionBusy, error: actionError }),
         ...warnings.map((warning) =>
           h(
             'div',
@@ -903,6 +1008,26 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
       const t = useTranslate()
       const { state, data, reload } = useSummary(props)
       const policyState = usePolicy()
+      const [actionBusy, setActionBusy] = useState(false)
+      const [actionError, setActionError] = useState(null)
+
+      // 执行管理动作后立刻回读（不做乐观更新）。
+      const runAction = useCallback(
+        async (kind, id, op) => {
+          setActionBusy(true)
+          setActionError(null)
+          try {
+            const result = await postAction({ kind, id, op })
+            console.info('[context-preflight] action done', kind, id, op, '| undo:', result?.undo)
+            reload()
+          } catch (error) {
+            setActionError(String(error?.message ?? error))
+          } finally {
+            setActionBusy(false)
+          }
+        },
+        [reload],
+      )
 
       const close = useCallback(() => {
         const layout = layoutCtx?.get?.('layout') ?? layoutCtx?.layout
@@ -945,6 +1070,9 @@ body[data-ds-dark-theme] .cpf-v3{--ink:#f4f4f5;--ink2:#a1a1aa;--ink3:#71717a;--i
             reload,
             policy: policyState.draft,
             onPolicyChange: policyState.update,
+            onAction: runAction,
+            actionBusy,
+            actionError,
           }),
         ),
       )

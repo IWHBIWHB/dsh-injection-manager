@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-preflight",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Shows what a new DSH session will inject, and sets per-session defaults for skills, tool schemas and runtime context.",

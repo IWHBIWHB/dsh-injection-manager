@@ -30,6 +30,7 @@ const ROUTE_PATH = '/plugins/dsh-context-preflight/summary'
 const LOCALE_ROUTE_PATH = '/plugins/dsh-context-preflight/locale'
 const POLICY_ROUTE_PATH = '/plugins/dsh-context-preflight/policy'
 const DIAG_ROUTE_PATH = '/plugins/dsh-context-preflight/diag'
+const ACTION_ROUTE_PATH = '/plugins/dsh-context-preflight/action'
 // 浏览器侧把「三条槽位注册各自成没成」报回来，/diag 才能一条 curl 看完。
 const REGISTRATIONS_ROUTE_PATH = '/plugins/dsh-context-preflight/registrations'
 const BOOT_ROUTE_PATH = '/plugins/dsh-context-preflight/boot'
@@ -701,6 +702,7 @@ async function resolveCwd(ctx, agent, signal) {
 /** 生成一份完整快照；宿主工具与浏览器面板共用同一份 JSON。 */
 async function buildSnapshot(ctx, agent, scopeSource, signal) {
   const cwd = await resolveCwd(ctx, agent, signal)
+  managementCwd = cwd
   const instructions = await collectInstructions(cwd)
   const skills = await collectSkills(ctx, agent, cwd, signal)
   const tools = collectTools(ctx, agent)
@@ -758,6 +760,12 @@ async function buildSnapshot(ctx, agent, scopeSource, signal) {
   }
   // 给「工具结果卡片」用的可视化版本：markdown 表格 + 分块，不依赖任何客户端模块。
   snapshot.card = renderCard(snapshot)
+  // 管理面板用的清单一并带上（技能 / 画像文件 / 全局位置）。
+  try {
+    snapshot.management = await collectManagement(cwd)
+  } catch (error) {
+    snapshot.management = { error: String(error?.message ?? error) }
+  }
   return snapshot
 }
 
@@ -1336,16 +1344,18 @@ function agentsSkillsRoot() {
   return join(envPath('DSH_AGENTS_HOME') ?? join(homedir(), '.agents'), 'skills')
 }
 
-/** 追加一行审计：时间 | 动作 | 文件 | 原值 | 备注 */
-async function appendAudit(action, file, original, note) {
+/** 追加一行审计：时间 | 动作 | 文件 | 原值 | sha256 | 备注 */
+async function appendAudit(action, file, original, note, sha256) {
   try {
     await mkdir(pluginDataDir(), { recursive: true })
-    const line = `${new Date().toISOString()} | ${action} | ${file} | ${original ?? '-'} | ${note ?? '-'}\n`
+    const line = `${new Date().toISOString()} | ${action} | ${file} | ${original ?? '-'} | ${sha256 ?? '-'} | ${note ?? '-'}\n`
     await writeFile(actionsLogPath(), line, { encoding: 'utf8', flag: 'a' })
   } catch (error) {
     console.error('[context-preflight] audit log failed', error)
   }
 }
+
+const sha256Of = (text) => createHash('sha256').update(text).digest('hex')
 
 async function readSkillState() {
   try {
@@ -1728,6 +1738,182 @@ function createCommand(ctx) {
   }
 }
 
+// ---------------------------------------------------------------- 管理动作 API（面板用）
+
+/** 从 SKILL.md 文本里取名字、描述长度、开关键是否存在。 */
+function readSkillInfo(text) {
+  const { lines, start, end } = splitFrontmatter(text)
+  const info = { name: null, descriptionLength: 0, hasKey: false, disabled: false, keyValue: null }
+  if (start < 0 || end < 0) return info
+  for (let index = start + 1; index < end; index += 1) {
+    const match = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(lines[index] ?? '')
+    if (match === null) continue
+    if (match[1] === 'name') info.name = match[2].trim()
+    if (match[1] === 'description') info.descriptionLength = match[2].trim().length
+    if (match[1] === SKILL_DISABLE_KEY) {
+      info.hasKey = true
+      info.keyValue = match[2].trim()
+      info.disabled = /^(true|yes|1)$/i.test(match[2].trim())
+    }
+  }
+  return info
+}
+
+/** 面板用的两份清单：技能 + 画像文件 + 两处全局位置。 */
+async function collectManagement(cwd) {
+  const skills = []
+  for (const file of await listSkillFiles()) {
+    try {
+      const info = readSkillInfo(await readFile(file.path, 'utf8'))
+      skills.push({
+        name: info.name ?? file.name,
+        dir: file.name,
+        path: file.path,
+        descriptionLength: info.descriptionLength,
+        hasKey: info.hasKey,
+        keyValue: info.keyValue,
+        disabled: info.disabled,
+      })
+    } catch (error) {
+      skills.push({ name: file.name, dir: file.name, path: file.path, error: String(error?.message ?? error) })
+    }
+  }
+
+  const rules = (await listRuleEntries(cwd)).map((entry) => {
+    let bytes = null
+    try {
+      bytes = statSync(entry.path).size
+    } catch {
+      bytes = null
+    }
+    return { path: entry.path, state: entry.state, bytes }
+  })
+
+  const home = homedir()
+  const globals = [
+    { path: join(envPath('DSH_HOME') ?? join(home, '.dsh'), 'AGENTS.md'), scope: 'dsh-home' },
+    { path: join(envPath('DSH_AGENTS_HOME') ?? join(home, '.agents'), 'AGENTS.md'), scope: 'agents-home' },
+  ].map((entry) => ({ ...entry, exists: existsSync(entry.path) }))
+
+  return { skills, rules, globals }
+}
+
+let managementCwd = null
+const resolveCwdForManagement = () => managementCwd ?? process.cwd()
+
+/** 面板/命令共用的动作执行：技能开关、画像文件开关、工具策略。 */
+async function runManagementAction(body) {
+  const kind = String(body?.kind ?? '')
+  const op = String(body?.op ?? '')
+  const id = body?.id === undefined || body?.id === null ? '' : String(body.id)
+
+  if (kind === 'skill') {
+    const file = await resolveSkillTarget(id)
+    const beforeText = await readFile(file.path, 'utf8')
+    const before = readSkillInfo(beforeText)
+    const sha256 = sha256Of(beforeText)
+    if (op !== 'off' && op !== 'on') throw new Error('skill 只支持 op=off/on')
+    await setSkillDisabled(file.path, op === 'off')
+    const after = readSkillInfo(await readFile(file.path, 'utf8'))
+    await appendAudit(
+      `skill.${op}`,
+      file.path,
+      before.disabled ? 'disabled' : 'enabled',
+      `now ${after.disabled ? 'disabled' : 'enabled'}`,
+      sha256,
+    )
+    return {
+      ok: true,
+      changed: before.disabled !== after.disabled,
+      undo: `/preflight skill ${op === 'off' ? 'on' : 'off'} ${file.name}`,
+      state: { name: after.name ?? file.name, path: file.path, disabled: after.disabled, hasKey: after.hasKey, keyValue: after.keyValue },
+    }
+  }
+
+  if (kind === 'rule') {
+    const entries = await listRuleEntries(resolveCwdForManagement())
+    if (!/^\d+$/.test(id)) throw new Error('rule 的 id 必须是序号')
+    const index = Number(id) - 1
+    if (index < 0 || index >= entries.length) throw new Error(`序号 ${id} 超出范围（1…${entries.length}）`)
+    const entry = entries[index]
+    if (op === 'off') {
+      if (entry.state !== 'active') throw new Error(`${entry.path} 已经是停用状态`)
+      const sha256 = sha256Of(await readFile(entry.path, 'utf8'))
+      const destination = `${entry.path}.disabled`
+      await rename(entry.path, destination)
+      await appendAudit('rule.off', entry.path, 'loaded', `renamed -> ${destination}`, sha256)
+      return { ok: true, changed: true, undo: `/preflight rule on ${id}`, state: { path: destination, state: 'disabled' } }
+    }
+    if (op === 'on') {
+      if (entry.state !== 'disabled') throw new Error(`${entry.path} 当前不是停用状态`)
+      const destination = entry.path.replace(/\.disabled$/, '')
+      if (existsSync(destination)) throw new Error(`${destination} 已存在`)
+      const sha256 = sha256Of(await readFile(entry.path, 'utf8'))
+      await rename(entry.path, destination)
+      await appendAudit('rule.on', entry.path, 'disabled', `renamed -> ${destination}`, sha256)
+      return { ok: true, changed: true, undo: `/preflight rule off ${id}`, state: { path: destination, state: 'active' } }
+    }
+    throw new Error('rule 只支持 op=off/on')
+  }
+
+  if (kind === 'tool') {
+    const { policy } = await readPolicy()
+    if (op === 'off') {
+      const prefix = id
+      if (prefix.length === 0) throw new Error('tool off 需要一个前缀或工具名')
+      const names = policy.tools.mode === 'except' ? [...policy.tools.names] : []
+      if (!names.includes(prefix)) names.push(prefix)
+      const beforeText = JSON.stringify(policy.tools)
+      const { path } = await writePolicy({ ...policy, tools: { mode: 'except', names } })
+      await appendAudit('tool.except', path, beforeText, `add ${prefix}`, sha256Of(beforeText))
+      return { ok: true, changed: true, undo: '/preflight tool reset', state: { mode: 'except', names } }
+    }
+    if (op === 'on') {
+      const names = (policy.tools.mode === 'except' ? policy.tools.names : []).filter((row) => row !== id)
+      const beforeText = JSON.stringify(policy.tools)
+      const { path } = await writePolicy({ ...policy, tools: { mode: names.length > 0 ? 'except' : 'all', names } })
+      await appendAudit('tool.remove', path, beforeText, `remove ${id}`, sha256Of(beforeText))
+      return { ok: true, changed: true, undo: `/preflight tool except ${id}`, state: { mode: names.length > 0 ? 'except' : 'all', names } }
+    }
+    if (op === 'set') {
+      const value = body?.value ?? {}
+      const next = {
+        ...policy,
+        tools: {
+          mode: value.mode === 'only' ? 'only' : value.mode === 'except' ? 'except' : 'all',
+          names: normalizeNames(value.names),
+        },
+      }
+      const beforeText = JSON.stringify(policy.tools)
+      const { path } = await writePolicy(next)
+      await appendAudit('tool.set', path, beforeText, JSON.stringify(next.tools), sha256Of(beforeText))
+      return { ok: true, changed: true, undo: '/preflight tool reset', state: next.tools }
+    }
+    throw new Error('tool 只支持 op=on/off/set')
+  }
+
+  throw new Error(`未知 kind ${kind}；只支持 skill / rule / tool`)
+}
+
+/** POST /action：{kind, id, op, value?} → {ok, changed, undo, state} */
+function createActionHandler() {
+  return async (req, res) => {
+    if (req.method !== 'POST') {
+      respondJson(res, 405, { error: 'method-not-allowed' })
+      return
+    }
+    try {
+      const raw = await readRequestBody(req, 65536)
+      const parsed = JSON.parse(raw === '' ? '{}' : raw)
+      const result = await runManagementAction(parsed)
+      console.info('[context-preflight] action', parsed, result.ok)
+      respondJson(res, 200, result)
+    } catch (error) {
+      respondJson(res, 400, { ok: false, changed: false, error: String(error?.message ?? error) })
+    }
+  }
+}
+
 export function apply(ctx) {
   ctx.tools.register(createTool(ctx))
 
@@ -1747,8 +1933,9 @@ export function apply(ctx) {
     registerRoute(ctx, DIAG_ROUTE_PATH, createDiagHandler(ctx), 'context-preflight.diag-route'),
     registerRoute(ctx, REGISTRATIONS_ROUTE_PATH, createRegistrationsHandler(), 'context-preflight.registrations-route'),
     registerRoute(ctx, BOOT_ROUTE_PATH, createBootHandler(), 'context-preflight.boot-route'),
+    registerRoute(ctx, ACTION_ROUTE_PATH, createActionHandler(), 'context-preflight.action-route'),
   ]
-  console.info(`[context-preflight] routes registered: ${registered.filter(Boolean).length}/7`)
+  console.info(`[context-preflight] routes registered: ${registered.filter(Boolean).length}/8`)
 
   // 默认策略：会话建立后（第一次注入之前）按 agent 作用域应用一次。
   // 只在全新会话（startup / clear）上生效；resume / compact 继续沿用原来的行为。
