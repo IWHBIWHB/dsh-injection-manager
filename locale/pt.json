@@ -134,6 +134,9 @@
     "verifyCounts": "Efetivo: {sections} seções · {contexts} contextos · {tools} ferramentas",
     "verifyFailed": "Falha na verificação",
     "onlySwitchable": "Apenas alternáveis",
-    "onlySwitchableHint": "Oculta itens somente leitura (regras do workspace, contextos obrigatórios)"
+    "onlySwitchableHint": "Oculta itens somente leitura (regras do workspace, contextos obrigatórios)",
+    "turnedOn": "Ativado",
+    "turnedOff": "Desativado",
+    "undone": "Desfeito"
   }
 }

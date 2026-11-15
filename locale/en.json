@@ -134,6 +134,9 @@
     "verifyCounts": "Effective: {sections} sections · {contexts} contexts · {tools} tools",
     "verifyFailed": "Check failed",
     "onlySwitchable": "Switchable only",
-    "onlySwitchableHint": "Hide read-only items (workspace rules, required contexts)"
+    "onlySwitchableHint": "Hide read-only items (workspace rules, required contexts)",
+    "turnedOn": "Enabled",
+    "turnedOff": "Disabled",
+    "undone": "Undone"
   }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.5 — 2026-11-15
+
+- Toasts now say what happened: "已关闭 REA · 229 条目" with Undo, instead of a
+  generic "已写入". Item, group, channel and preset actions each carry their own
+  message; undo says "已撤销".
+- Eight locales gained `turnedOn` / `turnedOff` / `undone`; the demo GIF was
+  re-recorded.
+
 ## 1.8.4 — 2026-11-15
 
 - "Switchable only" filter in the item toolbar: hides read-only entries

@@ -134,6 +134,9 @@
     "verifyCounts": "生效：段落 {sections} · 上下文 {contexts} · 工具 {tools}",
     "verifyFailed": "核对失败",
     "onlySwitchable": "只看可关",
-    "onlySwitchableHint": "隐藏只读条目（工作区规则、必填上下文）"
+    "onlySwitchableHint": "隐藏只读条目（工作区规则、必填上下文）",
+    "turnedOn": "已开启",
+    "turnedOff": "已关闭",
+    "undone": "已撤销"
   }
 }

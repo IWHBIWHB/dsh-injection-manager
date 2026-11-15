@@ -533,7 +533,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               h(Dot, { channel }),
               h('span', { className: 'n', title: `${t(channel)} · ${info.names.join(', ')}` }, `${t(channel)} · ${info.included}/${info.total}`),
               h('span', { className: 't' }, token(row ? row.tokens : 0)),
-              h(Switch, { on: channelEnabled(snapshot, channel), onChange: (next) => act({ kind: 'channel', channel, enabled: next }), title: t(channel) }),
+              h(Switch, {
+                on: channelEnabled(snapshot, channel),
+                onChange: (next) => act({ kind: 'channel', channel, enabled: next }, `${next ? t('turnedOn') : t('turnedOff')} ${t(channel)}`),
+                title: t(channel),
+              }),
             )
           }),
         )
@@ -921,7 +925,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ['all', t('presetAll')],
                   ['minimal', t('presetMinimal')],
                 ].map(([name, label]) =>
-                  h('button', { key: name, type: 'button', className: policy.preset === name ? 'on' : '', onClick: () => act({ kind: 'preset', name }) }, label),
+                  h('button', {
+                    key: name,
+                    type: 'button',
+                    className: policy.preset === name ? 'on' : '',
+                    onClick: () => act({ kind: 'preset', name }, `${t('preset')}: ${label}`),
+                  }, label),
                 ),
               ),
               h('span', { className: 'hint' }, policy.preset === 'custom' ? t('custom') : ''),
@@ -1225,12 +1234,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         }, [compact])
 
         const act = useCallback(
-          async (action) => {
+          async (action, message) => {
             setBusy(true)
             try {
               await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
               reload()
-              showNotice({ kind: 'ok', text: t('applied'), undo: true }, 6000)
+              showNotice({ kind: 'ok', text: message || t('applied'), undo: true }, 6000)
             } catch (failure) {
               // A failed switch must be visible: silence here would look like
               // the click did nothing.
@@ -1242,12 +1251,22 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           [sessionId, reload, showNotice, t],
         )
 
-        const onToggle = useCallback((item, next) => act({ kind: 'item', channel: item.channel, name: item.name, enabled: next }), [act])
-        const onGroupToggle = useCallback(
-          (group, enabled) => act({ kind: 'group', channel: group.channel, group: group.id, enabled }),
-          [act],
+        const onToggle = useCallback(
+          (item, next) => {
+            const verb = next ? t('turnedOn') : t('turnedOff')
+            act({ kind: 'item', channel: item.channel, name: item.name, enabled: next }, `${verb} ${nameOf(t, item)}`)
+          },
+          [act, t],
         )
-        const onUndo = useCallback(() => act({ kind: 'undo' }), [act])
+        const onGroupToggle = useCallback(
+          (group, enabled) => {
+            const verb = enabled ? t('turnedOn') : t('turnedOff')
+            const count = group.items ? group.items.length : group.count
+            act({ kind: 'group', channel: group.channel, group: group.id, enabled }, `${verb} ${groupLabelOf(t, group)} · ${count} ${t('items')}`)
+          },
+          [act, t],
+        )
+        const onUndo = useCallback(() => act({ kind: 'undo' }, t('undone')), [act, t])
 
         const close = () => {
           try {
@@ -1323,7 +1342,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 }),
               ),
               h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
-              h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }) } }),
+              h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
             ),
           )
         }
@@ -1355,7 +1374,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t, sessionId }),
           ),
-          h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }) } }),
+          h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
         )
       }
 

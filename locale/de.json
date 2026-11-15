@@ -134,6 +134,9 @@
     "verifyCounts": "Wirksam: {sections} Abschnitte · {contexts} Kontexte · {tools} Werkzeuge",
     "verifyFailed": "Prüfung fehlgeschlagen",
     "onlySwitchable": "Nur schaltbar",
-    "onlySwitchableHint": "Blendet schreibgeschützte Einträge aus (Workspace-Regeln, erforderliche Kontexte)"
+    "onlySwitchableHint": "Blendet schreibgeschützte Einträge aus (Workspace-Regeln, erforderliche Kontexte)",
+    "turnedOn": "Aktiviert",
+    "turnedOff": "Deaktiviert",
+    "undone": "Rückgängig gemacht"
   }
 }

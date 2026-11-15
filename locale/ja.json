@@ -134,6 +134,9 @@
     "verifyCounts": "適用中：セクション {sections} · コンテキスト {contexts} · ツール {tools}",
     "verifyFailed": "確認に失敗しました",
     "onlySwitchable": "切替可能のみ",
-    "onlySwitchableHint": "読み取り専用（ワークスペースルール、必須コンテキスト）を隠します"
+    "onlySwitchableHint": "読み取り専用（ワークスペースルール、必須コンテキスト）を隠します",
+    "turnedOn": "有効にしました",
+    "turnedOff": "無効にしました",
+    "undone": "元に戻しました"
   }
 }

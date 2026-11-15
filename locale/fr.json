@@ -134,6 +134,9 @@
     "verifyCounts": "Effectif : {sections} sections · {contexts} contextes · {tools} outils",
     "verifyFailed": "Échec de la vérification",
     "onlySwitchable": "Modifiables seulement",
-    "onlySwitchableHint": "Masque les éléments en lecture seule (règles de l'espace de travail, contextes obligatoires)"
+    "onlySwitchableHint": "Masque les éléments en lecture seule (règles de l'espace de travail, contextes obligatoires)",
+    "turnedOn": "Activé",
+    "turnedOff": "Désactivé",
+    "undone": "Annulé"
   }
 }
