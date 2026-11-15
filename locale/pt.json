@@ -147,6 +147,8 @@
     "hostOld": "Este DSH é {version}, anterior à versão testada {tested}; alguns interruptores podem não surtir efeito.",
     "moreGroups": "e mais {count} grupos",
     "sortTokens": "Por tokens",
-    "sortName": "Por nome"
+    "sortName": "Por nome",
+    "noMatch": "Nenhum item correspondente",
+    "clearFilters": "Limpar filtros"
   }
 }

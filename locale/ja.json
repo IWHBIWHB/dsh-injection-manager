@@ -147,6 +147,8 @@
     "hostOld": "ホストの DSH は {version} で、検証済みの {tested} より古いため、一部のスイッチが効かない可能性があります。",
     "moreGroups": "他に {count} グループ",
     "sortTokens": "token 順",
-    "sortName": "スイート名順"
+    "sortName": "スイート名順",
+    "noMatch": "一致する項目がありません",
+    "clearFilters": "フィルターを解除"
   }
 }

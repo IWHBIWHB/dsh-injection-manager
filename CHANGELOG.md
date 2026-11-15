@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.4 — 2026-11-15
+
+- The render boundary now shows what failed, offers Reload and Copy error, and
+  says the error is recorded at `/diag` (and that `/inject` still works) instead
+  of printing a bare message. Its copy is bilingual on purpose: the boundary can
+  render before locale data loads.
+- Empty list: "没有匹配的条目" plus a Clear filters button that resets search,
+  channel and the switchable-only filter in one click.
+- Eight locales gained `noMatch` / `clearFilters`.
+
 ## 1.9.3 — 2026-11-15
 
 - Budget page: quick targets (24k / 48k / 80k), a sort switch for the suggestion

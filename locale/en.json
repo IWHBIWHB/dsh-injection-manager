@@ -147,6 +147,8 @@
     "hostOld": "This DSH is {version}, older than the tested {tested}; some switches may not take effect.",
     "moreGroups": "and {count} more groups",
     "sortTokens": "By tokens",
-    "sortName": "By suite name"
+    "sortName": "By suite name",
+    "noMatch": "No matching items",
+    "clearFilters": "Clear filters"
   }
 }

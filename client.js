@@ -392,7 +392,45 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
         render() {
           if (this.state.failed !== null) {
-            return h('div', { className: 'ci-root' }, h('div', { className: 'ci-body' }, h('div', { className: 'ci-note warn' }, this.state.failed)))
+            return h(
+              'div',
+              { className: 'ci-root' },
+              h(
+                'div',
+                { className: 'ci-body' },
+                h(
+                  'div',
+                  { className: 'ci-card' },
+                  h('h2', null, '面板渲染失败 · Panel failed to render'),
+                  h('div', { className: 'ci-note warn' }, this.state.failed),
+                  h(
+                    'div',
+                    { className: 'ci-toolbar' },
+                    h(
+                      'button',
+                      { type: 'button', className: 'ci-btn ci-primary', onClick: () => window.location.reload() },
+                      '重新加载面板 · Reload',
+                    ),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: 'ci-btn',
+                        onClick: () => {
+                          try {
+                            void navigator.clipboard.writeText(String(this.state.failed))
+                          } catch {
+                            /* clipboard may be unavailable */
+                          }
+                        },
+                      },
+                      '复制错误 · Copy error',
+                    ),
+                  ),
+                  h('div', { className: 'hint' }, '错误已记录到 /diag；其余功能不受影响，仍可用 /inject 命令。'),
+                ),
+              ),
+            )
           }
           return this.props.children
         }
@@ -798,7 +836,27 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               h('div', { style: { textAlign: 'right' } }, t('switch')),
             ),
             items.length === 0
-              ? h('div', { className: 'ci-empty' }, t('empty'))
+              ? h(
+                  'div',
+                  { className: 'ci-empty' },
+                  h('div', null, query.trim().length > 0 ? t('noMatch') : t('empty')),
+                  query.trim().length > 0 || filter !== 'all' || onlySwitchable
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'ci-btn',
+                          style: { marginTop: 8 },
+                          onClick: () => {
+                            setQuery('')
+                            setFilter('all')
+                            setOnlySwitchable(false)
+                          },
+                        },
+                        t('clearFilters'),
+                      )
+                    : null,
+                )
               : view === 'group'
                 ? groups.map((group) => {
                     const state = groupState(group)
