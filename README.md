@@ -30,6 +30,10 @@ last application record.
 
 ![Policy tab](docs/images/panel-policy.png)
 
+Dark theme follows the host:
+
+![Dark theme](docs/images/panel-dark.png)
+
 Switching the REA suite off moves the first request from 83.8k to 17.8k tokens;
 Undo brings it back (real data, interactions recorded against the fixture):
 
@@ -137,6 +141,7 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 - [Architecture](docs/ARCHITECTURE.md): the four injection channels, the snapshot pipeline, and when a policy takes effect
 - [FAQ](docs/FAQ.md): why AGENTS.md cannot be switched off, unreachable budgets, relation to dsh-context
 - [Compatibility](docs/COMPATIBILITY.md): tested versions, required APIs, upgrade checks
+- [Performance](docs/PERFORMANCE.md): measured timings for 352 items, 34 suites, a 229-row expand
 
 ## Limitations
 

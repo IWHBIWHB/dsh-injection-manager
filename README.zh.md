@@ -26,9 +26,11 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 
-策略页：预设、四条通道总开关、自定义前言/后记、导出与最近一次应用记录。
+策略页：预设、四条通道总开关、自定义前言/后记、导出与最近一次应用记录。深色主题与宿主一致。
 
 ![策略页](docs/images/panel-policy.png)
+
+![深色主题](docs/images/panel-dark.png)
 
 关掉 REA 整套后首轮从 83.8k 降到 17.8k，再撤销回来（真实数据，交互在离线夹页里录制）：
 
@@ -147,6 +149,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 - [架构](docs/ARCHITECTURE.md)：四条注入通道、快照流水线、生效时序
 - [常见问题](docs/FAQ.md)：关不掉、预算到不了、和 dsh-context 的关系
 - [兼容性](docs/COMPATIBILITY.md)：已验证版本、依赖接口、升级排查
+- [性能](docs/PERFORMANCE.md)：352 条 / 34 组 / 展开 229 行的实测耗时
 
 ## 限制
 

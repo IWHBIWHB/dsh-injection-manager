@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.1 — 2026-11-15
+
+- Market screenshots extended to six: suites, budget, policy, sidebar, settings
+  and the dark theme; `screenshots.json` updated.
+- `docs/PERFORMANCE.md`: measured timings on the real 352-item snapshot
+  (panel ready 168–240 ms, 229-row expand 61–120 ms, search 37–54 ms) and the
+  conclusion that a virtual list is unnecessary.
+- README shows the dark theme and links the performance page.
+
 ## 1.4.0 — 2026-11-15
 
 - Security: JSON responses carry `nosniff` / `DENY` / `no-store`; writes also
