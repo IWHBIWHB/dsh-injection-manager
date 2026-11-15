@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.7 — 2026-11-15
+
+- Item list shows what the current budget plan would switch off: a small
+  "预算外" tag per row and "129 预算外" on the suite header, so the list and the
+  budget page tell the same story. Tags only appear when a budget target is set.
+- Eight locales gained `outsideBudget` / `outsideBudgetHint`; a one-line
+  formatting glitch in `groupLabelOf` was tidied while nearby.
+
 ## 1.9.6 — 2026-11-15
 
 - The Policy tab now warns before a preset switch replaces manual choices:

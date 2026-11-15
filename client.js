@@ -217,6 +217,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
 .ci-btn:focus-visible,.ci-chip:focus-visible,.ci-switch:focus-visible,.ci-seg button:focus-visible,.ci-tabs button:focus-visible,.ci-legend button:focus-visible,.ci-grouphead:focus-visible,.ci-input:focus-visible,.ci-dock:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.ci-root *{transition:none!important;animation:none!important}}
+.ci-tag{font-size:10px;line-height:1.6;padding:0 5px;border-radius:999px;border:1px solid var(--ci-line);color:var(--ci-fg3);margin-left:6px;white-space:nowrap}
 .ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg2);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .ci-row.locked .n{color:var(--ci-fg2)}
 .ci-switch{position:relative;width:34px;height:20px;border-radius:999px;border:0;background:var(--ci-line);cursor:pointer;padding:0;justify-self:end;transition:background .15s}
@@ -627,7 +628,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return name
       }
 
-      function groupLabelOf(t, group) {        const dict = t.groupNames || {}
+      function groupLabelOf(t, group) {
+        const dict = t.groupNames || {}
         const label = group.label
         const mapped = dict[label] || dict[label.toLowerCase()]
         if (typeof mapped === 'string' && mapped.length > 0) return mapped
@@ -660,7 +662,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return [value.slice(0, at), h('mark', { className: 'ci-hit', key: 'hit' }, value.slice(at, at + needle.length)), value.slice(at + needle.length)]
       }
 
-      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle }) {
+      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, planned }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
         const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
@@ -671,6 +673,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             'div',
             { className: 'n', title: `${item.name} · ${item.tokens} token` },
             h(HitMark, { text: label, needle }),
+            planned ? h('span', { className: 'ci-tag', title: t('outsideBudgetHint') }, t('outsideBudget')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
@@ -704,6 +707,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           return () => window.removeEventListener('keydown', onKeyDown)
         }, [])
         const needle = deferredQuery.trim().toLowerCase()
+        const plannedKeys = useMemo(() => {
+          const plan = snapshot.policy.plan
+          if (!plan || !Array.isArray(plan.drop) || snapshot.policy.budget.tokens <= 0) return new Set()
+          return new Set(plan.drop.map((entry) => entry.channel + ':' + entry.name))
+        }, [snapshot.policy])
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
@@ -885,6 +893,13 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                           h('span', { className: 'ci-caret' + (open ? ' open' : '') }, open ? '▾' : '▸'),
                           h(HitMark, { text: groupLabelOf(t, group), needle }),
                           h('span', { className: 'id' }, `${group.items.length} ${t('items')}`),
+                          plannedKeys.size > 0 && group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length > 0
+                            ? h(
+                                'span',
+                                { className: 'ci-tag' },
+                                `${group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length} ${t('outsideBudget')}`,
+                              )
+                            : null,
                         ),
                         h('div', { className: 'badge' }, h(Dot, { channel: group.channel }), t(group.channel)),
                         h('div', { className: 'num' }, digits(group.tokens)),
@@ -892,11 +907,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                         h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
                       ),
                       open
-                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true, needle }))
+                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true, needle, planned: plannedKeys.has(item.channel + ":" + item.name) }))
                         : null,
                     )
                   })
-                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, needle })),
+                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, needle, planned: plannedKeys.has(item.channel + ":" + item.name) })),
           ),
           h(
             'div',

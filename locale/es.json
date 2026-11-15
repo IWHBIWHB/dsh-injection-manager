@@ -151,6 +151,8 @@
     "noMatch": "No hay elementos coincidentes",
     "clearFilters": "Limpiar filtros",
     "budgetOverwrite": "{count} elementos están desactivados a mano; aplicar la sugerencia recalcula la política y reemplaza esas elecciones.",
-    "presetOverwrite": "{count} elementos están desactivados a mano; cambiar de preset recalcula y reemplaza esas elecciones."
+    "presetOverwrite": "{count} elementos están desactivados a mano; cambiar de preset recalcula y reemplaza esas elecciones.",
+    "outsideBudget": "fuera de presupuesto",
+    "outsideBudgetHint": "El plan de presupuesto actual desactiva este elemento"
   }
 }

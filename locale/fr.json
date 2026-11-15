@@ -151,6 +151,8 @@
     "noMatch": "Aucun élément correspondant",
     "clearFilters": "Effacer les filtres",
     "budgetOverwrite": "{count} éléments sont désactivés à la main ; appliquer la suggestion recalcule la politique et remplace ces choix.",
-    "presetOverwrite": "{count} éléments sont désactivés à la main ; changer de préréglage recalcule et remplace ces choix."
+    "presetOverwrite": "{count} éléments sont désactivés à la main ; changer de préréglage recalcule et remplace ces choix.",
+    "outsideBudget": "hors budget",
+    "outsideBudgetHint": "Le plan de budget actuel désactive cet élément"
   }
 }

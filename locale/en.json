@@ -151,6 +151,8 @@
     "noMatch": "No matching items",
     "clearFilters": "Clear filters",
     "budgetOverwrite": "{count} items are switched off by hand; applying the suggestion recomputes the policy and replaces those choices.",
-    "presetOverwrite": "{count} items are switched off by hand; switching presets recomputes and replaces those choices."
+    "presetOverwrite": "{count} items are switched off by hand; switching presets recomputes and replaces those choices.",
+    "outsideBudget": "over budget",
+    "outsideBudgetHint": "The current budget plan would switch this item off"
   }
 }
