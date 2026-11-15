@@ -122,6 +122,9 @@
     "ofSession": "{pct}% of this session",
     "importPolicy": "Import policy",
     "importHint": "Accepts an exported JSON file or a bare policy; Undo reverts an import.",
-    "importInvalid": "Import failed"
+    "importInvalid": "Import failed",
+    "copyReport": "Copy report",
+    "copied": "Report copied",
+    "copyFailed": "Copy failed"
   }
 }

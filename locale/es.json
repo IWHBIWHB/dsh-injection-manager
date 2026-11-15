@@ -122,6 +122,9 @@
     "ofSession": "{pct}% de esta sesión",
     "importPolicy": "Importar política",
     "importHint": "Acepta un JSON exportado o una política sin envoltorio; Deshacer revierte la importación.",
-    "importInvalid": "Error al importar"
+    "importInvalid": "Error al importar",
+    "copyReport": "Copiar informe",
+    "copied": "Informe copiado",
+    "copyFailed": "Error al copiar"
   }
 }

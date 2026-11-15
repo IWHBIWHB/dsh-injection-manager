@@ -122,6 +122,9 @@
     "ofSession": "このセッションの {pct}%",
     "importPolicy": "ポリシーを読み込む",
     "importHint": "書き出した JSON またはポリシー本体を受け付けます。読み込み後は「元に戻す」で戻せます。",
-    "importInvalid": "読み込み失敗"
+    "importInvalid": "読み込み失敗",
+    "copyReport": "レポートをコピー",
+    "copied": "コピーしました",
+    "copyFailed": "コピーに失敗しました"
   }
 }

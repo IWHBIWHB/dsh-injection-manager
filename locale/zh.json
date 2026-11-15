@@ -122,6 +122,9 @@
     "ofSession": "占本会话 {pct}%",
     "importPolicy": "导入策略",
     "importHint": "接受导出的 JSON 文件或裸策略；导入后可用「撤销上一步」退回。",
-    "importInvalid": "导入失败"
+    "importInvalid": "导入失败",
+    "copyReport": "复制清单",
+    "copied": "清单已复制",
+    "copyFailed": "复制失败"
   }
 }

@@ -400,6 +400,20 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return h(Boundary, null, h(Component, props))
       }
 
+      function Toast({ notice, t, onUndo }) {
+        if (!notice) return null
+        return h(
+          'div',
+          {
+            className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : ''),
+            role: notice.kind === 'error' ? 'alert' : 'status',
+            'aria-live': notice.kind === 'error' ? 'assertive' : 'polite',
+          },
+          h('span', null, notice.text),
+          notice.undo === true ? h('button', { type: 'button', className: 'ci-btn', onClick: onUndo }, t('undo')) : null,
+        )
+      }
+
       // ------------------------------------------------------------ atoms
 
       function Switch({ on, disabled, onChange, title }) {
@@ -810,6 +824,19 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
         const fileInput = useRef(null)
 
+        const copyReport = async () => {
+          try {
+            const text = typeof snapshot.text === 'string' ? snapshot.text : ''
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+              throw new Error('clipboard-unavailable')
+            }
+            await navigator.clipboard.writeText(text)
+            notify({ kind: 'ok', text: t('copied') }, 1800)
+          } catch (error) {
+            notify({ kind: 'error', text: `${t('copyFailed')}：${String((error && error.message) || error)}` })
+          }
+        }
+
         const importPolicy = async (event) => {
           const file = event.target.files && event.target.files[0]
           event.target.value = ''
@@ -912,6 +939,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'div',
               { className: 'ci-toolbar' },
+              h('button', { type: 'button', className: 'ci-btn', onClick: copyReport }, t('copyReport')),
               h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
               h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
               h('input', {
@@ -1130,7 +1158,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             try {
               await postJson(ROUTES.action, Object.assign({ session: sessionId }, action))
               reload()
-              showNotice({ kind: 'ok', text: t('applied') }, 1800)
+              showNotice({ kind: 'ok', text: t('applied'), undo: true }, 6000)
             } catch (failure) {
               // A failed switch must be visible: silence here would look like
               // the click did nothing.
@@ -1223,7 +1251,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 }),
               ),
               h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
-              notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : ''), role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': notice.kind === 'error' ? 'assertive' : 'polite' }, notice.text) : null,
+              h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }) } }),
             ),
           )
         }
@@ -1255,7 +1283,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ? h(BudgetTab, { snapshot, t, act })
                   : h(AboutTab, { snapshot, t }),
           ),
-          notice ? h('div', { className: 'ci-toast' + (notice.kind === 'error' ? ' warn' : ''), role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': notice.kind === 'error' ? 'assertive' : 'polite' }, notice.text) : null,
+          h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }) } }),
         )
       }
 

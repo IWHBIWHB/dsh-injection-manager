@@ -122,6 +122,9 @@
     "ofSession": "{pct}% dieser Sitzung",
     "importPolicy": "Richtlinie importieren",
     "importHint": "Akzeptiert eine exportierte JSON-Datei oder eine reine Richtlinie; Rückgängig macht den Import rückgängig.",
-    "importInvalid": "Import fehlgeschlagen"
+    "importInvalid": "Import fehlgeschlagen",
+    "copyReport": "Bericht kopieren",
+    "copied": "Bericht kopiert",
+    "copyFailed": "Kopieren fehlgeschlagen"
   }
 }

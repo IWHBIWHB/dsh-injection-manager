@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.1 — 2026-11-15
+
+- The success toast now carries an inline Undo for six seconds, so a mistaken
+  suite switch can be reverted without scrolling to the footer.
+- Policy tab: Copy report (clipboard), next to export/import; the settings
+  screenshot was regenerated with the new buttons.
+- Eight locales gained `copyReport` / `copied` / `copyFailed`.
+
 ## 1.8.0 — 2026-11-15
 
 - Policy import: the Policy tab accepts a JSON file — either a bare policy or a
