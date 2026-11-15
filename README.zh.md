@@ -91,7 +91,7 @@ Plugins → dsh-injection-manager → Configuration 里有四项，只影响显�
 | 管理页 | 主区域 | 清单 / 策略 / 预算 / 说明 四个标签 |
 | 输入框徽标 | 输入框下方 | 一行摘要：首轮注入多少、可关多少 |
 | 工具 `context_injection` | 模型可调用 | 只读快照，含 markdown 卡片 |
-| 斜杠命令 `/inject` | 输入框 | 文本清单；`/inject minimal`、`/inject all`、`/inject budget 20000` |
+| 斜杠命令 `/inject` | 输入框 | 文本清单；`/inject minimal`、`/inject all`、`/inject budget 20000`、`/inject apply [20000]`、`/inject undo` |
 
 模型侧工具是只读的：模型不能自己放宽或收紧策略，所有写操作只能由你在面板里点。
 

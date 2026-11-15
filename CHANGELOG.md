@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.0 — 2026-11-15
+
+- `/inject apply [tokens]`: turn the current (or given) budget into a policy from
+  the terminal, with the per-suite summary in the reply.
+- `/inject undo`: revert the last policy write from the command line.
+- Command writes now share the panel's undo history. The new command tests
+  caught that they previously bypassed it, so `/inject undo` after
+  `/inject apply` used to fail with "nothing-to-undo".
+- Six command tests cover budget, apply, undo, an already-fitting target and
+  unknown subcommands.
+
 ## 1.6.1 — 2026-11-15
 
 - The group/flat view and the selected tab persist across reloads (localStorage,

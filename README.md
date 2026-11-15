@@ -97,7 +97,7 @@ Required contexts (working directory, subagent identity) are read-only too; no p
 | Management page | Main area | Items / Policy / Budget / Notes |
 | Composer chip | Under the input | One line: first-turn total and how much is switchable |
 | `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card |
-| `/inject` command | Composer | Text report; `/inject minimal`, `/inject all`, `/inject budget 20000` |
+| `/inject` command | Composer | Text report; `/inject minimal`, `/inject all`, `/inject budget 20000`, `/inject apply [20000]`, `/inject undo` |
 
 The model-facing tool is read-only: the model cannot loosen or tighten the policy. Every write comes from a click in the panel.
 
