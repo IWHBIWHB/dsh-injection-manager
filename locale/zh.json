@@ -132,6 +132,8 @@
     "verifyApplied": "本会话已按策略处理",
     "verifyNotApplied": "本会话未按策略处理（在策略保存前创建）",
     "verifyCounts": "生效：段落 {sections} · 上下文 {contexts} · 工具 {tools}",
-    "verifyFailed": "核对失败"
+    "verifyFailed": "核对失败",
+    "onlySwitchable": "只看可关",
+    "onlySwitchableHint": "隐藏只读条目（工作区规则、必填上下文）"
   }
 }

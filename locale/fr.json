@@ -132,6 +132,8 @@
     "verifyApplied": "Cette session a été créée avec la politique",
     "verifyNotApplied": "Cette session précède la politique enregistrée",
     "verifyCounts": "Effectif : {sections} sections · {contexts} contextes · {tools} outils",
-    "verifyFailed": "Échec de la vérification"
+    "verifyFailed": "Échec de la vérification",
+    "onlySwitchable": "Modifiables seulement",
+    "onlySwitchableHint": "Masque les éléments en lecture seule (règles de l'espace de travail, contextes obligatoires)"
   }
 }

@@ -132,6 +132,8 @@
     "verifyApplied": "Diese Sitzung wurde mit der Richtlinie erstellt",
     "verifyNotApplied": "Diese Sitzung stammt von vor der gespeicherten Richtlinie",
     "verifyCounts": "Wirksam: {sections} Abschnitte · {contexts} Kontexte · {tools} Werkzeuge",
-    "verifyFailed": "Prüfung fehlgeschlagen"
+    "verifyFailed": "Prüfung fehlgeschlagen",
+    "onlySwitchable": "Nur schaltbar",
+    "onlySwitchableHint": "Blendet schreibgeschützte Einträge aus (Workspace-Regeln, erforderliche Kontexte)"
   }
 }

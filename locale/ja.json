@@ -132,6 +132,8 @@
     "verifyApplied": "このセッションはポリシー適用済みです",
     "verifyNotApplied": "このセッションはポリシー保存前に作成されました",
     "verifyCounts": "適用中：セクション {sections} · コンテキスト {contexts} · ツール {tools}",
-    "verifyFailed": "確認に失敗しました"
+    "verifyFailed": "確認に失敗しました",
+    "onlySwitchable": "切替可能のみ",
+    "onlySwitchableHint": "読み取り専用（ワークスペースルール、必須コンテキスト）を隠します"
   }
 }

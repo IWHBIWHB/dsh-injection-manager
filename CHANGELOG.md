@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.4 — 2026-11-15
+
+- "Switchable only" filter in the item toolbar: hides read-only entries
+  (workspace rules, required contexts), 34 groups become 31 on the reference
+  snapshot. The footer shows `31/34` while the filter is on, and the choice is
+  remembered like the view mode.
+- Eight locales gained `onlySwitchable` / `onlySwitchableHint`.
+
 ## 1.8.3 — 2026-11-15
 
 - The Notes tab now carries the effective-assembly check: one button calls

@@ -643,6 +643,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
+        const [onlySwitchable, setOnlySwitchable] = useStoredState('onlySwitchable', false)
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
         const needle = deferredQuery.trim().toLowerCase()
@@ -651,6 +652,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           const names = t.names || {}
           return snapshot.items
             .filter((item) => filter === 'all' || item.channel === filter)
+            .filter((item) => (onlySwitchable ? item.locked !== true : true))
             .filter((item) => {
               if (needle.length === 0) return true
               const label = names[item.name] || NAMES_ZH[item.name] || ''
@@ -658,7 +660,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             })
             .slice()
             .sort((left, right) => right.tokens - left.tokens || left.name.localeCompare(right.name))
-        }, [snapshot.items, filter, deferredQuery, t])
+        }, [snapshot.items, filter, onlySwitchable, deferredQuery, t])
 
         const isOn = (item) => {
           const channel = snapshot.policy.channels[item.channel]
@@ -732,6 +734,17 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   channel === 'all' ? t('all') : t(channel),
                 ),
               ),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'ci-chip' + (onlySwitchable ? ' on' : ''),
+                'aria-pressed': onlySwitchable,
+                title: t('onlySwitchableHint'),
+                onClick: () => setOnlySwitchable(!onlySwitchable),
+              },
+              t('onlySwitchable'),
             ),
             view === 'group'
               ? h(
@@ -813,7 +826,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'span',
               null,
-              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${snapshot.groups.length} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`,
+              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${onlySwitchable ? `${groups.length}/${snapshot.groups.length}` : String(snapshot.groups.length)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`,
             ),
             snapshot.undo && snapshot.undo.available
               ? h('button', { type: 'button', className: 'ci-btn', disabled: busy, onClick: () => onUndo() }, t('undo'))

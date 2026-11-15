@@ -132,6 +132,8 @@
     "verifyApplied": "Esta sessão foi criada com a política",
     "verifyNotApplied": "Esta sessão antecede a política salva",
     "verifyCounts": "Efetivo: {sections} seções · {contexts} contextos · {tools} ferramentas",
-    "verifyFailed": "Falha na verificação"
+    "verifyFailed": "Falha na verificação",
+    "onlySwitchable": "Apenas alternáveis",
+    "onlySwitchableHint": "Oculta itens somente leitura (regras do workspace, contextos obrigatórios)"
   }
 }

@@ -132,6 +132,8 @@
     "verifyApplied": "This session was created with the policy",
     "verifyNotApplied": "This session predates the saved policy",
     "verifyCounts": "Effective: {sections} sections · {contexts} contexts · {tools} tools",
-    "verifyFailed": "Check failed"
+    "verifyFailed": "Check failed",
+    "onlySwitchable": "Switchable only",
+    "onlySwitchableHint": "Hide read-only items (workspace rules, required contexts)"
   }
 }
