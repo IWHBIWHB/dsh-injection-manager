@@ -125,6 +125,13 @@
     "importInvalid": "Import failed",
     "copyReport": "Copy report",
     "copied": "Report copied",
-    "copyFailed": "Copy failed"
+    "copyFailed": "Copy failed",
+    "verifyTitle": "Effective assembly",
+    "verifyHint": "Re-assembles this session and compares it with the panel; read-only.",
+    "verifyNow": "Check this session",
+    "verifyApplied": "This session was created with the policy",
+    "verifyNotApplied": "This session predates the saved policy",
+    "verifyCounts": "Effective: {sections} sections · {contexts} contexts · {tools} tools",
+    "verifyFailed": "Check failed"
   }
 }

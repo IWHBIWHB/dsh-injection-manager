@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.3 — 2026-11-15
+
+- The Notes tab now carries the effective-assembly check: one button calls
+  `/verify`, shows whether this session was created with the policy, and prints
+  the effective section/context/tool counts next to the panel's own numbers.
+- Eight locales gained the `verify*` keys; the about screenshot was refreshed.
+
 ## 1.8.2 — 2026-11-15
 
 - Search highlights the matched substring in group labels and item names.

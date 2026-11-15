@@ -16,6 +16,7 @@
     locale: BASE + '/locale',
     action: BASE + '/action',
     export: BASE + '/export',
+    verify: BASE + '/verify',
     boot: BASE + '/boot',
     registrations: BASE + '/registrations',
   }
@@ -1077,11 +1078,57 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function AboutTab({ snapshot, t }) {
+      function AboutTab({ snapshot, t, sessionId }) {
         const locked = snapshot.locks
+        const [verification, setVerification] = useState(null)
+        const [verifying, setVerifying] = useState(false)
+
+        const runVerify = async () => {
+          setVerifying(true)
+          try {
+            const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''
+            const response = await fetch(ROUTES.verify + query, { credentials: 'same-origin' })
+            if (!response.ok) {
+              const body = await response.json().catch(() => null)
+              throw new Error((body && (body.error || body.message)) || `HTTP ${response.status}`)
+            }
+            setVerification(await response.json())
+          } catch (error) {
+            setVerification({ error: String((error && error.message) || error) })
+          } finally {
+            setVerifying(false)
+          }
+        }
+
         return h(
           'div',
           { className: 'ci-list' },
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('verifyTitle')),
+            h('div', { className: 'ci-note' }, t('verifyHint')),
+            h('button', { type: 'button', className: 'ci-btn', style: { alignSelf: 'flex-start' }, disabled: verifying, onClick: runVerify }, t('verifyNow')),
+            verification && verification.error
+              ? h('div', { className: 'ci-note warn' }, `${t('verifyFailed')}：${verification.error}`)
+              : null,
+            verification && !verification.error
+              ? h(
+                  'div',
+                  { className: 'ci-list' },
+                  h('div', { className: 'ci-note' }, verification.applied ? t('verifyApplied') : t('verifyNotApplied')),
+                  h(
+                    'div',
+                    { className: 'hint' },
+                    t('verifyCounts', {
+                      sections: (verification.sections || []).length,
+                      contexts: (verification.contexts || []).length,
+                      tools: (verification.tools || []).length,
+                    }),
+                  ),
+                )
+              : null,
+          ),
           h(
             'div',
             { className: 'ci-card' },
@@ -1293,7 +1340,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ? h(SettingsTab, { snapshot, t, act, sessionId, notify: showNotice })
                 : tab === 'budget'
                   ? h(BudgetTab, { snapshot, t, act })
-                  : h(AboutTab, { snapshot, t }),
+                  : h(AboutTab, { snapshot, t, sessionId }),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }) } }),
         )

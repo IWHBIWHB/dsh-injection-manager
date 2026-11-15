@@ -143,7 +143,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 - `GET /plugins/dsh-injection-manager/ping`：插件是否注册了路由。
 - `GET /plugins/dsh-injection-manager/summary?session=<id>`：面板用的完整快照。
-- `GET /plugins/dsh-injection-manager/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。
+- `GET /plugins/dsh-injection-manager/verify?session=<id>`：对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名——这是「策略真的落地了」的证据，不是「配置文件改了」。面板「说明」页也有「核对本会话」按钮，结果与这个接口一致。
 - `GET /plugins/dsh-injection-manager/diag`：客户端模块是否进了 boot 表、最近一次应用结果、`system-prompt/assemble` 过滤器被调用了几次、前后段落数。
 
 ## 文档

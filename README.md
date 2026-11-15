@@ -136,7 +136,7 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 
 - `GET /plugins/dsh-injection-manager/ping`
 - `GET /plugins/dsh-injection-manager/summary?session=<id>` — the snapshot the panel renders.
-- `GET /plugins/dsh-injection-manager/verify?session=<id>` — re-assembles a live session and returns the **effective** sections, contexts and tool names. This proves the policy landed, not just that a file changed.
+- `GET /plugins/dsh-injection-manager/verify?session=<id>` — re-assembles a live session and returns the **effective** sections, contexts and tool names. This proves the policy landed, not just that a file changed. The Notes tab has the same check behind a button.
 - `GET /plugins/dsh-injection-manager/diag` — client module presence in the boot table, last application result, how many times the assemble filter ran, and the before/after section counts.
 
 ## Docs

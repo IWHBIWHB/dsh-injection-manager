@@ -125,6 +125,13 @@
     "importInvalid": "Import fehlgeschlagen",
     "copyReport": "Bericht kopieren",
     "copied": "Bericht kopiert",
-    "copyFailed": "Kopieren fehlgeschlagen"
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "verifyTitle": "Tatsächliche Zusammensetzung",
+    "verifyHint": "Setzt diese Sitzung neu zusammen und vergleicht sie mit dem Panel; schreibgeschützt.",
+    "verifyNow": "Diese Sitzung prüfen",
+    "verifyApplied": "Diese Sitzung wurde mit der Richtlinie erstellt",
+    "verifyNotApplied": "Diese Sitzung stammt von vor der gespeicherten Richtlinie",
+    "verifyCounts": "Wirksam: {sections} Abschnitte · {contexts} Kontexte · {tools} Werkzeuge",
+    "verifyFailed": "Prüfung fehlgeschlagen"
   }
 }

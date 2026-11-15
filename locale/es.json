@@ -125,6 +125,13 @@
     "importInvalid": "Error al importar",
     "copyReport": "Copiar informe",
     "copied": "Informe copiado",
-    "copyFailed": "Error al copiar"
+    "copyFailed": "Error al copiar",
+    "verifyTitle": "Montaje efectivo",
+    "verifyHint": "Vuelve a montar esta sesión y la compara con el panel; solo lectura.",
+    "verifyNow": "Comprobar esta sesión",
+    "verifyApplied": "Esta sesión se creó con la política",
+    "verifyNotApplied": "Esta sesión es anterior a la política guardada",
+    "verifyCounts": "Efectivo: {sections} secciones · {contexts} contextos · {tools} herramientas",
+    "verifyFailed": "Error al comprobar"
   }
 }

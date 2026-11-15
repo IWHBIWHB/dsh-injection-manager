@@ -125,6 +125,13 @@
     "importInvalid": "Échec de l'import",
     "copyReport": "Copier le rapport",
     "copied": "Rapport copié",
-    "copyFailed": "Échec de la copie"
+    "copyFailed": "Échec de la copie",
+    "verifyTitle": "Assemblage effectif",
+    "verifyHint": "Réassemble cette session et la compare au panneau ; lecture seule.",
+    "verifyNow": "Vérifier cette session",
+    "verifyApplied": "Cette session a été créée avec la politique",
+    "verifyNotApplied": "Cette session précède la politique enregistrée",
+    "verifyCounts": "Effectif : {sections} sections · {contexts} contextes · {tools} outils",
+    "verifyFailed": "Échec de la vérification"
   }
 }
