@@ -101,6 +101,20 @@ Required contexts (working directory, subagent identity) are read-only too; no p
 
 The model-facing tool is read-only: the model cannot loosen or tighten the policy. Every write comes from a click in the panel.
 
+## At a glance
+
+| Capability | Where |
+| --- | --- |
+| Items and switches | Items: four channels in one list, clustered into suites (one MCP server = one switch) |
+| Presets and budget | Policy / Budget: everything, minimal, custom; greedy trim against a token budget, undoable |
+| Undo and history | Footer "undo"; Policy tab lists the last 20 steps and can restore any of them (asks once) |
+| Export / import / copy | Policy tab: Markdown and JSON export, undoable policy import, copy report |
+| Verify it landed | Notes tab "check this session", or `GET /verify?session=` |
+| Command line | `/inject all｜minimal｜budget N｜apply [N]｜undo` |
+| Model-side tool | `context_injection`: the same snapshot the panel shows |
+| Eight languages / dark / keyboard | Follows host language and theme; Esc closes, switches are tabbable |
+| Host check | Banner when the running DSH is older than 0.2.2 |
+
 ## Policy semantics
 
 The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file, written atomically.

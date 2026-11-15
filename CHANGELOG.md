@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.1 — 2026-11-15
+
+- The tool/command text report ends with `宿主 DSH … · 撤销栈 N 步 · 策略文件 …`,
+  so a pasted report carries the host version, undo depth and policy path.
+- Both READMEs gained "At a glance" / 「能力一览」: nine capabilities and where to
+  find each one.
+
 ## 1.9.0 — 2026-11-15
 
 - Host compatibility probe: the plugin reads the running DSH version
