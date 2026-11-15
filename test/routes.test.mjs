@@ -121,6 +121,21 @@ test('cross-site and non-JSON writes are rejected before touching the policy', a
     body: 'kind=reset',
   })
   assert.equal(formPost.status, 403)
+
+  const foreignOrigin = await invoke(routes.action, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', host: '127.0.0.1:42438', origin: 'https://evil.example' },
+    body: JSON.stringify({ kind: 'reset' }),
+  })
+  assert.equal(foreignOrigin.status, 403)
+})
+
+test('JSON responses carry hardening headers', async () => {
+  const routes = createRoutes(makeCtx())
+  const response = await invoke(routes.summary, { url: '/summary' })
+  assert.equal(response.headers['x-content-type-options'], 'nosniff')
+  assert.equal(response.headers['x-frame-options'], 'DENY')
+  assert.equal(response.headers['cache-control'], 'no-store')
 })
 
 test('export serves a downloadable JSON manifest of the same snapshot', async () => {

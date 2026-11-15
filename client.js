@@ -280,7 +280,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
     factory(require) {
       const React = require('react')
       const h = React.createElement
-      const { useCallback, useEffect, useMemo, useRef, useState } = React
+      const { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } = React
 
       const ctxRef = { current: null }
       const reportedStages = new Set()
@@ -583,8 +583,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [query, setQuery] = useState('')
         const [view, setView] = useState('group')
         const [expanded, setExpanded] = useState({})
+        const deferredQuery = useDeferredValue(query)
         const items = useMemo(() => {
-          const needle = query.trim().toLowerCase()
+          const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
           return snapshot.items
             .filter((item) => filter === 'all' || item.channel === filter)
@@ -595,7 +596,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             })
             .slice()
             .sort((left, right) => right.tokens - left.tokens || left.name.localeCompare(right.name))
-        }, [snapshot.items, filter, query, t])
+        }, [snapshot.items, filter, deferredQuery, t])
 
         const isOn = (item) => {
           const channel = snapshot.policy.channels[item.channel]

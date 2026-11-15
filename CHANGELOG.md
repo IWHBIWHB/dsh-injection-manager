@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 — 2026-11-15
+
+- Security: JSON responses carry `nosniff` / `DENY` / `no-store`; writes also
+  check that a present `Origin` matches the serving host (on top of the
+  `sec-fetch-site` and JSON content-type checks). Covered by tests.
+- Release pipeline: `.github/workflows/release.yml` runs on `v*` tags, verifies
+  the tag matches `package.json`, runs the full suite, checks the pack contents
+  and publishes to npm with the `NPM_TOKEN` secret (provenance enabled).
+- CONTRIBUTING.md: local loop, pre-commit checks, design constraints, release.
+- Search input is deferred (`useDeferredValue`) so typing stays responsive on a
+  350-row table.
+
 ## 1.3.1 — 2026-11-15
 
 - Integration tests: a fake context drives `applyPolicyForAgent` through all

@@ -88,6 +88,14 @@ client.js           浏览器半包：侧栏图标、主页面、输入框徽标
 locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 ```
 
+## 安全边界
+
+- 写操作（`POST /action`）要求 `content-type: application/json`，且 `sec-fetch-site` 不是跨站；带 `Origin` 时还要求 host 与页面一致。
+- 所有 JSON 响应带 `x-content-type-options: nosniff`、`x-frame-options: DENY`、`cache-control: no-store`。
+- 没有任何 GET 路由会写文件：`/summary`、`/verify`、`/export` 只读策略与当前会话。
+- 策略写入是同目录临时文件 + rename，崩溃时保留旧策略。
+- 插件不发起网络请求，不上传策略或会话内容。
+
 ## 测试
 
 | 文件 | 覆盖 |
