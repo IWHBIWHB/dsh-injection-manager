@@ -1151,6 +1151,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ? `${policy.lastApplication.report.sessionId || ''} · ${policy.lastApplication.report.error ? policy.lastApplication.report.error : `OK · −${token(policy.lastApplication.report.savedTokens || 0)}`}`
                 : '—',
             ),
+            policy.lastApplication && policy.lastApplication.report && policy.lastApplication.report.counts
+              ? h(
+                  'div',
+                  { className: 'hint' },
+                  CHANNELS.map((channel) => {
+                    const state = policy.lastApplication.report.counts[channel]
+                    return state === undefined ? null : `${t(channel)} ${state.on}/${state.total}`
+                  })
+                    .filter((line) => line !== null)
+                    .join(' · '),
+                )
+              : null,
             h('div', { className: 'ci-foot' }, `${t('policyPath')}：${policy.path}`),
             policy.updatedAt ? h('div', { className: 'ci-foot' }, `${t('updatedAt')}：${policy.updatedAt}`) : null,
             policy.error ? h('div', { className: 'ci-note warn' }, policy.error) : null,

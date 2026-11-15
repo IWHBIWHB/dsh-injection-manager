@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.8 — 2026-11-15
+
+- "最近一次应用" now says what the policy actually did to each channel:
+  `段落 2/25 · 上下文 0/9 · 技能 0/38 · 工具 9/280`. Counts are recorded in the
+  apply report via a shared `countChannelState()`, with three unit tests.
+- Real check: a new agent created under the minimal preset reported
+  `sections 2/25, contexts 0/9, skills 0/38, tools 9/280, saved 78,799`; the
+  policy was then restored to `all` with undo.
+
 ## 1.9.7 — 2026-11-15
 
 - Item list shows what the current budget plan would switch off: a small
