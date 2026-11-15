@@ -10,6 +10,8 @@
 | `0.2.2-rc.2` | 未验证 | — |
 | `0.2.1` / `0.2.0` | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测 |
 
+运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。`/diag` 的 `host` 字段给出实际读到的版本与来源。
+
 ## 依赖的接口（缺一个会降级或失效）
 
 | 接口 | 用途 | 缺失时 |

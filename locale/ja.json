@@ -143,6 +143,7 @@
     "historyEmpty": "取り消せる操作はまだありません",
     "restored": "その時点に戻しました",
     "confirmRestore": "戻してよろしいですか？",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "hostOld": "ホストの DSH は {version} で、検証済みの {tested} より古いため、一部のスイッチが効かない可能性があります。"
   }
 }

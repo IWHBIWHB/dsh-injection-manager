@@ -143,6 +143,7 @@
     "historyEmpty": "Noch keine Aktionen zum Rückgängigmachen",
     "restored": "Wiederhergestellt",
     "confirmRestore": "Wiederherstellen bestätigen?",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "hostOld": "Dieses DSH ist {version}, älter als die getestete Version {tested}; manche Schalter wirken möglicherweise nicht."
   }
 }

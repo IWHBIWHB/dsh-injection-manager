@@ -143,6 +143,7 @@
     "historyEmpty": "Aún no hay acciones que deshacer",
     "restored": "Restaurado",
     "confirmRestore": "¿Confirmar restauración?",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "hostOld": "Este DSH es {version}, anterior a la versión probada {tested}; algunos interruptores pueden no aplicarse."
   }
 }

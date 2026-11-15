@@ -143,6 +143,7 @@
     "historyEmpty": "No actions to undo yet",
     "restored": "Restored",
     "confirmRestore": "Confirm restore?",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "hostOld": "This DSH is {version}, older than the tested {tested}; some switches may not take effect."
   }
 }

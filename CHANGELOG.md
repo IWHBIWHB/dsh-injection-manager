@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0 — 2026-11-15
+
+- Host compatibility probe: the plugin reads the running DSH version
+  (`DSH_INSTALL_DIR`, then `@deepseek-ai/dsh` from the profile) and shows a
+  banner when it is older than the tested 0.2.2. Unknown versions stay unknown.
+  `/diag` exposes `host`, `/summary` carries it to the panel.
+- Three `hostinfo` tests cover rc suffixes, a newer manifest and an unknown host.
+
 ## 1.8.8 — 2026-11-15
 
 - Restoring an earlier step now asks once ("确认回退？" / Cancel): it discards

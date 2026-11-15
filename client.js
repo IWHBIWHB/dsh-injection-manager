@@ -1370,6 +1370,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'div',
               { className: 'ci-body' },
+              snapshot.host && snapshot.host.supported === false
+                ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
+                : null,
               h(Kpis, { snapshot, t }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               h('div', { className: 'ci-card', style: { padding: '8px 10px' } }, h(ChannelSwitches, { snapshot, t, act })),
@@ -1405,7 +1408,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           { className: 'ci-root' },
           h('style', null, STYLE),
           head,
-          h('div', { className: 'ci-body' }, h(Kpis, { snapshot, t }), h(Composition, { snapshot, t, filter, onFilter: setFilter })),
+          h(
+            'div',
+            { className: 'ci-body' },
+            snapshot.host && snapshot.host.supported === false
+              ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
+              : null,
+            h(Kpis, { snapshot, t }),
+            h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+          ),
           h(
             'div',
             { className: 'ci-tabs' },
