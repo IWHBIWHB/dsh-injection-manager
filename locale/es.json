@@ -149,6 +149,7 @@
     "sortTokens": "Por tokens",
     "sortName": "Por nombre",
     "noMatch": "No hay elementos coincidentes",
-    "clearFilters": "Limpiar filtros"
+    "clearFilters": "Limpiar filtros",
+    "budgetOverwrite": "{count} elementos están desactivados a mano; aplicar la sugerencia recalcula la política y reemplaza esas elecciones."
   }
 }

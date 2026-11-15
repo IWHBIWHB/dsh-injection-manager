@@ -149,6 +149,7 @@
     "sortTokens": "Par tokens",
     "sortName": "Par nom",
     "noMatch": "Aucun élément correspondant",
-    "clearFilters": "Effacer les filtres"
+    "clearFilters": "Effacer les filtres",
+    "budgetOverwrite": "{count} éléments sont désactivés à la main ; appliquer la suggestion recalcule la politique et remplace ces choix."
   }
 }

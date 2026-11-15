@@ -149,6 +149,7 @@
     "sortTokens": "Nach Tokens",
     "sortName": "Nach Namen",
     "noMatch": "Keine passenden Einträge",
-    "clearFilters": "Filter zurücksetzen"
+    "clearFilters": "Filter zurücksetzen",
+    "budgetOverwrite": "{count} Einträge sind manuell deaktiviert; das Anwenden des Vorschlags berechnet neu und ersetzt diese Auswahl."
   }
 }

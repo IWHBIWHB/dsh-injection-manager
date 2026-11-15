@@ -149,6 +149,7 @@
     "sortTokens": "token 順",
     "sortName": "スイート名順",
     "noMatch": "一致する項目がありません",
-    "clearFilters": "フィルターを解除"
+    "clearFilters": "フィルターを解除",
+    "budgetOverwrite": "{count} 件が手動で無効です。提案を適用すると予算で再計算され、これらの選択は上書きされます。"
   }
 }

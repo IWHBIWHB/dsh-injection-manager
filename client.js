@@ -1146,6 +1146,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const plan = policy.plan
         const timer = useRef(null)
         const [sort, setSort] = useStoredState('budgetSort', 'tokens')
+
+        // How many items are switched off right now? Applying a budget plan
+        // recomputes every channel, so manual choices are replaced; say so
+        // before the click, not after.
+        const excludedCount = CHANNELS.reduce((sum, channel) => {
+          const state = snapshot.policy.channels[channel]
+          if (state === undefined || state.mode === 'all') return sum
+          const row = snapshot.channels.find((entry) => entry.id === channel)
+          const total = row === undefined ? 0 : row.count
+          if (state.mode === 'except') return sum + state.names.length
+          return sum + Math.max(0, total - state.names.length)
+        }, 0)
         const dropGroups = (plan.dropGroups || []).slice().sort((left, right) =>
           sort === 'name'
             ? groupLabelOf(t, left).localeCompare(groupLabelOf(t, right), undefined, { numeric: true })
@@ -1217,6 +1229,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               h('span', { className: 'lbl' }, `${t('budgetAfter')} ${digits(plan.after)}`),
             ),
             h('div', { className: 'ci-bar' }, h('span', { style: { width: `${Math.min(100, pct(plan.after, Math.max(1, plan.before)))}%`, background: COLOR.sections } })),
+            excludedCount > 0 ? h('div', { className: 'ci-note warn' }, t('budgetOverwrite', { count: excludedCount })) : null,
             h(
               'div',
               { className: 'ci-toolbar', style: { margin: '6px 0' } },

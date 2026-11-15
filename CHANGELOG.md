@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.5 — 2026-11-15
+
+- Budget page warns before it overwrites manual choices: "当前有 N 项被手动关闭；
+  应用建议会按预算重算，并覆盖这些选择。" with the real count (229 after one
+  REA switch in the fixture).
+- FAQ explains that applying a budget recomputes instead of stacking, and what
+  to do if you want to keep manual exclusions.
+
 ## 1.9.4 — 2026-11-15
 
 - The render boundary now shows what failed, offers Reload and Copy error, and

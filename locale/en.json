@@ -149,6 +149,7 @@
     "sortTokens": "By tokens",
     "sortName": "By suite name",
     "noMatch": "No matching items",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "budgetOverwrite": "{count} items are switched off by hand; applying the suggestion recomputes the policy and replaces those choices."
   }
 }
