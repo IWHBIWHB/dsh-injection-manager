@@ -109,7 +109,7 @@ Each channel has three modes: `all`, `only` (keep the listed names), `except` (d
 
 - **Everything** — no policy.
 - **Minimal** — identity, persona prefix, and the file/terminal tools only. On the machine this was built on, it moves the first request from 84k to 5k tokens.
-- **Budget** — enter a target, the plugin greedily suggests the largest switchable items to drop, and applies the suggestion on click. Required contexts and workspace rules never participate; an unreachable target is reported as unreachable instead of silently failing.
+- **Budget** — enter a target; the plugin greedily picks the largest switchable items and summarises them per suite (one row for turning REA off, 130 items), then applies the suggestion on click. Required contexts and workspace rules never participate; an unreachable target is reported as unreachable instead of silently failing.
 - **Custom prefix/suffix** — free text that replaces `deployment:persona-prefix` / `deployment:persona-suffix`. Empty means nothing is injected. Both change the prompt prefix and therefore cache reuse; the panel says so.
 
 ## Install
