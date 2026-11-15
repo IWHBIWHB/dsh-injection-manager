@@ -6,7 +6,7 @@
 
 Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Items are clustered into suites, so a whole MCP server is one switch, and the result can be held to a token budget.
 
-> **1.8.0**: eight UI languages, undo, manifest export/import, suite clustering, /inject apply.
+> **1.9.9**: eight UI languages, multi-step undo history, manifest export/import, suite clustering, over-budget markers, host check, /inject apply and undo.
 > See the [changelog](CHANGELOG.md).
 
 ```powershell

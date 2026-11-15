@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.10 — 2026-11-15
+
+- Corrected a stale limitation line: sections are filtered through the scoped
+  `system-prompt/assemble` waterfall, not "shadowed with an empty same-name
+  section" (that was the first approach and it threw).
+- README version callouts updated to 1.9.9 with the current feature list.
+
 ## 1.9.9 — 2026-11-15
 
 - Both READMEs gained a "60-second tour" / 「60 秒演示」: five steps with the
