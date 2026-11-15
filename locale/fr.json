@@ -137,6 +137,10 @@
     "onlySwitchableHint": "Masque les éléments en lecture seule (règles de l'espace de travail, contextes obligatoires)",
     "turnedOn": "Activé",
     "turnedOff": "Désactivé",
-    "undone": "Annulé"
+    "undone": "Annulé",
+    "historyTitle": "Historique d'annulation",
+    "restoreTo": "Restaurer",
+    "historyEmpty": "Aucune action à annuler pour l'instant",
+    "restored": "Restauré"
   }
 }

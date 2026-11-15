@@ -195,6 +195,40 @@ test('import accepts a bare policy and an exported manifest, then undo reverts i
   assert.match(invalid.json.message, /invalid-policy/)
 })
 
+test('restore jumps back to an earlier step and clears the rest of the history', async () => {
+  const { clearUndo } = await import('../lib/history.js')
+  const routes = createRoutes(makeCtx())
+  await invoke(routes.action, { method: 'POST', headers: sameOrigin, body: JSON.stringify({ kind: 'reset' }) })
+  clearUndo()
+  await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'group', channel: 'tools', group: 'tools:mcp:demo', enabled: false, label: 'first' }),
+  })
+  await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'item', channel: 'tools', name: 'read', enabled: false, label: 'second' }),
+  })
+  const summary = await invoke(routes.summary, { url: '/summary' })
+  assert.deepEqual(
+    summary.json.undo.entries.map((entry) => entry.label),
+    ['first', 'second'],
+  )
+
+  const restored = await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'restore', index: 0 }),
+  })
+  assert.equal(restored.status, 200)
+  assert.equal(restored.json.policy.tools.mode, 'all')
+  assert.deepEqual(restored.json.policy.tools.names, [])
+
+  const after = await invoke(routes.summary, { url: '/summary' })
+  assert.equal(after.json.undo.available, false)
+})
+
 test('cleanup', async () => {
   await rm(home, { recursive: true, force: true })
 })

@@ -137,6 +137,10 @@
     "onlySwitchableHint": "Blendet schreibgeschützte Einträge aus (Workspace-Regeln, erforderliche Kontexte)",
     "turnedOn": "Aktiviert",
     "turnedOff": "Deaktiviert",
-    "undone": "Rückgängig gemacht"
+    "undone": "Rückgängig gemacht",
+    "historyTitle": "Rückgängig-Verlauf",
+    "restoreTo": "Wiederherstellen",
+    "historyEmpty": "Noch keine Aktionen zum Rückgängigmachen",
+    "restored": "Wiederhergestellt"
   }
 }

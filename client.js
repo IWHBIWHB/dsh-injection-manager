@@ -952,6 +952,33 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           h(
             'div',
             { className: 'ci-card' },
+            h('h2', null, t('historyTitle')),
+            (snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries : []).length === 0
+              ? h('div', { className: 'ci-note' }, t('historyEmpty'))
+              : h(
+                  'div',
+                  { className: 'ci-list' },
+                  snapshot.undo.entries
+                    .slice()
+                    .reverse()
+                    .map((entry) =>
+                      h(
+                        'div',
+                        { className: 'ci-mini', key: entry.index },
+                        h('span', { className: 'n', title: entry.label }, entry.label),
+                        h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
+                        h(
+                          'button',
+                          { type: 'button', className: 'ci-btn', onClick: () => act({ kind: 'restore', index: entry.index }, t('restored')) },
+                          t('restoreTo'),
+                        ),
+                      ),
+                    ),
+                ),
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
             h('h2', null, t('promptPrefix')),
             h('textarea', {
               className: 'ci-input',

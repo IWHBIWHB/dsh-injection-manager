@@ -137,6 +137,10 @@
     "onlySwitchableHint": "読み取り専用（ワークスペースルール、必須コンテキスト）を隠します",
     "turnedOn": "有効にしました",
     "turnedOff": "無効にしました",
-    "undone": "元に戻しました"
+    "undone": "元に戻しました",
+    "historyTitle": "取り消し履歴",
+    "restoreTo": "この時点に戻す",
+    "historyEmpty": "取り消せる操作はまだありません",
+    "restored": "その時点に戻しました"
   }
 }

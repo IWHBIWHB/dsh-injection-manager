@@ -137,6 +137,10 @@
     "onlySwitchableHint": "隐藏只读条目（工作区规则、必填上下文）",
     "turnedOn": "已开启",
     "turnedOff": "已关闭",
-    "undone": "已撤销"
+    "undone": "已撤销",
+    "historyTitle": "撤销历史",
+    "restoreTo": "回到此步",
+    "historyEmpty": "还没有可撤销的操作",
+    "restored": "已回到该步"
   }
 }

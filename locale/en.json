@@ -137,6 +137,10 @@
     "onlySwitchableHint": "Hide read-only items (workspace rules, required contexts)",
     "turnedOn": "Enabled",
     "turnedOff": "Disabled",
-    "undone": "Undone"
+    "undone": "Undone",
+    "historyTitle": "Undo history",
+    "restoreTo": "Restore",
+    "historyEmpty": "No actions to undo yet",
+    "restored": "Restored"
   }
 }

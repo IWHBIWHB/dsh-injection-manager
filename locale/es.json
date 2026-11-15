@@ -137,6 +137,10 @@
     "onlySwitchableHint": "Oculta los elementos de solo lectura (reglas del espacio de trabajo, contextos obligatorios)",
     "turnedOn": "Activado",
     "turnedOff": "Desactivado",
-    "undone": "Deshecho"
+    "undone": "Deshecho",
+    "historyTitle": "Historial de deshacer",
+    "restoreTo": "Restaurar",
+    "historyEmpty": "Aún no hay acciones que deshacer",
+    "restored": "Restaurado"
   }
 }

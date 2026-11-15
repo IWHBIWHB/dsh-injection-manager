@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.7 — 2026-11-15
+
+- Multi-step undo: the Policy tab lists the last 20 remembered steps with their
+  label and time, and a Restore button jumps back to any of them (discarding the
+  newer ones). `/summary` exposes `undo.entries`; a new `restore` action drives
+  it. Restoring does not push a new history entry — it is an undo.
+- Route test covers two actions, the entry list, restore-to-first and an empty
+  history afterwards.
+
 ## 1.8.6 — 2026-11-15
 
 - Undo history entries carry the action label, so the footer button reads

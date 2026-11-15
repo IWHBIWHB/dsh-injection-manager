@@ -137,6 +137,10 @@
     "onlySwitchableHint": "Oculta itens somente leitura (regras do workspace, contextos obrigatórios)",
     "turnedOn": "Ativado",
     "turnedOff": "Desativado",
-    "undone": "Desfeito"
+    "undone": "Desfeito",
+    "historyTitle": "Histórico de desfazer",
+    "restoreTo": "Restaurar",
+    "historyEmpty": "Ainda não há ações para desfazer",
+    "restored": "Restaurado"
   }
 }
