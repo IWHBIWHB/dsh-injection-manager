@@ -112,7 +112,7 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 | Verify it landed | Notes tab "check this session", or `GET /verify?session=` |
 | Command line | `/inject all｜minimal｜budget N｜apply [N]｜undo` |
 | Model-side tool | `context_injection`: the same snapshot the panel shows |
-| Eight languages / dark / keyboard | Follows host language and theme; Esc closes, switches are tabbable |
+| Eight languages / dark / keyboard | Follows host language and theme; / focuses search, Esc closes, switches are tabbable |
 | Host check | Banner when the running DSH is older than 0.2.2 |
 
 ## Policy semantics

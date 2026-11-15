@@ -650,6 +650,21 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [onlySwitchable, setOnlySwitchable] = useStoredState('onlySwitchable', false)
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
+        const searchRef = useRef(null)
+
+        // "/" jumps to search unless the user is already typing somewhere.
+        useEffect(() => {
+          const onKeyDown = (event) => {
+            if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+            const target = event.target
+            const tag = target && target.tagName ? target.tagName.toLowerCase() : ''
+            if (tag === 'input' || tag === 'textarea' || (target && target.isContentEditable)) return
+            event.preventDefault()
+            if (searchRef.current) searchRef.current.focus()
+          }
+          window.addEventListener('keydown', onKeyDown)
+          return () => window.removeEventListener('keydown', onKeyDown)
+        }, [])
         const needle = deferredQuery.trim().toLowerCase()
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
@@ -714,6 +729,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             'div',
             { className: 'ci-toolbar' },
             h('input', {
+              ref: searchRef,
               className: 'ci-input',
               placeholder: t('search'),
               value: query,
@@ -771,7 +787,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           ),
           h(
             'div',
-            { className: 'ci-table' },
+            { className: 'ci-table', role: 'group', 'aria-label': t('items') + ' · ' + items.length },
             h(
               'div',
               { className: 'ci-thead' },

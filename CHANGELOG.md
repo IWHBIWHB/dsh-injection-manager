@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.2 — 2026-11-15
+
+- Keyboard: `/` focuses the search box from anywhere outside a text field.
+- The item list exposes `role="group"` with a count label, so screen readers
+  announce "条目 · 352" instead of an unnamed region.
+- Accessibility sweep over all four tabs (headless Chromium): 0 buttons without
+  an accessible name, 0 unlabeled inputs, 0 switches without a name, proper
+  `aria-pressed` / `aria-expanded`, H1 → H2 heading order.
+
 ## 1.9.1 — 2026-11-15
 
 - The tool/command text report ends with `宿主 DSH … · 撤销栈 N 步 · 策略文件 …`,

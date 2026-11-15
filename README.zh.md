@@ -106,7 +106,7 @@ Plugins → dsh-injection-manager → Configuration 里有四项，只影响显�
 | 生效核对 | 说明页「核对本会话」，或 `GET /verify?session=` |
 | 命令行 | `/inject all｜minimal｜budget N｜apply [N]｜undo` |
 | 模型只读工具 | `context_injection`：与面板同一份快照 |
-| 八语言 / 深色 / 键盘 | 跟随宿主语言与主题；Esc 关闭，开关可 Tab 聚焦 |
+| 八语言 / 深色 / 键盘 | 跟随宿主语言与主题；按 / 聚焦搜索，Esc 关闭，开关可 Tab 聚焦 |
 | 宿主自检 | 版本低于 0.2.2 时顶部提示「部分开关可能不生效」 |
 
 ## 策略语义
