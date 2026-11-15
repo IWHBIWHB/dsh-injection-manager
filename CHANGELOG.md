@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.9 — 2026-11-15
+
+- Both READMEs gained a "60-second tour" / 「60 秒演示」: five steps with the
+  expected numbers, including the part people misread (an existing session is
+  not affected by a policy saved later).
+
 ## 1.9.8 — 2026-11-15
 
 - "最近一次应用" now says what the policy actually did to each channel:

@@ -115,6 +115,16 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 | Eight languages / dark / keyboard | Follows host language and theme; / focuses search, Esc closes, switches are tabbable |
 | Host check | Banner when the running DSH is older than 0.2.2 |
 
+## 60-second tour
+
+1. Install, restart DSH, open "Injection" in the left panel list. The Items tab shows four channels and suite-clustered entries (reference snapshot: REA's 229 tools are 78.7%).
+2. Switch the whole REA suite off: the "after policy" KPI drops from 83.8k to 17.8k, the toast says "Disabled REA · 229 items", and it carries an undo.
+3. Open Notes and press "Check this session": the current session reports that it predates the saved policy. That is expected — a policy only affects sessions created after it is saved.
+4. Create a new session (or run `/inject` anywhere): the first request should only carry what you left on, and `/inject` prints the same numbers.
+5. To revert: the toast's undo, the footer's undo, or Notes → Undo history for an earlier step.
+
+Five steps is usually enough to decide whether it earns a place in your setup.
+
 ## Policy semantics
 
 The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file, written atomically.
