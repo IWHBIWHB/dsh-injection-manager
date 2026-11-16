@@ -783,18 +783,27 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const groups = useMemo(() => {
           const map = new Map()
           for (const item of items) {
-            const entry = map.get(item.group) ?? {
-              id: item.group,
+            // Same suite may own items in several channels (REA's tools plus its
+            // prompt section); merge by label so it reads as one switch.
+            const key = String(item.groupLabel ?? item.group).toLowerCase()
+            const entry = map.get(key) ?? {
+              id: key,
               channel: item.channel,
               label: item.groupLabel,
+              channels: [],
+              parts: [],
               items: [],
               tokens: 0,
               savableTokens: 0,
             }
+            if (!entry.channels.includes(item.channel)) entry.channels.push(item.channel)
+            if (!entry.parts.some((part) => part.channel === item.channel && part.group === item.group)) {
+              entry.parts.push({ channel: item.channel, group: item.group })
+            }
             entry.items.push(item)
             entry.tokens += item.tokens
             if (!item.locked) entry.savableTokens += item.tokens
-            map.set(item.group, entry)
+            map.set(key, entry)
           }
           const rows = [...map.values()]
           return rows.sort((left, right) =>
@@ -958,7 +967,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                               )
                             : null,
                         ),
-                        h('div', { className: 'badge' }, h(Dot, { channel: group.channel }), t(group.channel)),
+                        h(
+                          'div',
+                          { className: 'badge' },
+                          (group.channels || [group.channel]).map((channel) => h(Dot, { key: channel, channel })),
+                          (group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel),
+                        ),
                         h('div', { className: 'num' }, digits(group.tokens)),
                         h('div', { className: 'num' }, `${pct(group.tokens, snapshot.totals.tokens)}%`),
                         h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
@@ -1011,7 +1025,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'span',
               null,
-              `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%) · ${onlySwitchable ? `${groups.length}/${snapshot.groups.length}` : String(snapshot.groups.length)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`,
+              (() => {
+                const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
+                const shown = groups.length
+                const totalGroups = snapshot.groups.length
+                return `${t('total')} ${digits(view.tokens)} · ${t('savable')} ${digits(view.savableTokens)} (${view.savablePercent}%) · ${shown !== totalGroups ? `${shown}/${totalGroups}` : String(shown)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`
+              })(),
             ),
             snapshot.undo && snapshot.undo.available
               ? h(
@@ -1585,7 +1604,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           (group, enabled) => {
             const verb = enabled ? t('turnedOn') : t('turnedOff')
             const count = group.items ? group.items.length : group.count
-            act({ kind: 'group', channel: group.channel, group: group.id, enabled }, `${verb} ${groupLabelOf(t, group)} · ${count} ${t('items')}`)
+            const label = `${verb} ${groupLabelOf(t, group)} · ${count} ${t('items')}`
+            if (Array.isArray(group.parts) && group.parts.length > 1) {
+              act({ kind: 'groups', groups: group.parts, enabled }, label)
+            } else {
+              act({ kind: 'group', channel: group.channel, group: group.id, enabled }, label)
+            }
           },
           [act, t],
         )

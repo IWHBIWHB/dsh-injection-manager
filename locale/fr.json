@@ -164,6 +164,7 @@
     "closedHint": "Ils ne sont pas dans le prompt en ce moment, mais leur taille est mémorisée. Restaurer les réactive par nom.",
     "restoreGroup": "Restaurer la suite",
     "sessionNotApplied": "Cette session précède la politique et n'est pas affectée ; « après politique » est l'estimation pour la prochaine session.",
-    "baseline": "Sans politique"
+    "baseline": "Sans politique",
+    "mixed": "Mixte"
   }
 }

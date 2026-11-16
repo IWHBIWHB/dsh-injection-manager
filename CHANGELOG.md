@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.7 — 2026-11-16
+
+- Suites are merged by label across channels: REA's 229 MCP tools and its prompt
+  section are now one row (`REA · 230 条目 · 多通道 · 66,715`) instead of two rows
+  sorted far apart. Toggling it dispatches a new bulk `groups` action, so one
+  switch turns the whole suite on or off.
+- The footer now reports effective totals and merged group counts (`27/35 组`).
+- Route test covers the bulk action; the fixture understands `groups`.
+
 ## 1.10.6 — 2026-11-16
 
 - The top strip now always shows the **policy view**, in real time: 首轮注入 and

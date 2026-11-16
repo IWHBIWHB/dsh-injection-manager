@@ -195,6 +195,34 @@ test('import accepts a bare policy and an exported manifest, then undo reverts i
   assert.match(invalid.json.message, /invalid-policy/)
 })
 
+test('a bulk suite action toggles several channel groups at once', async () => {
+  const routes = createRoutes(makeCtx())
+  await invoke(routes.action, { method: 'POST', headers: sameOrigin, body: JSON.stringify({ kind: 'reset' }) })
+  await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'group', channel: 'tools', group: 'tools:mcp:demo', enabled: false }),
+  })
+  const off = await invoke(routes.summary, { url: '/summary' })
+  assert.equal(off.json.policy.tools.mode, 'except')
+
+  const on = await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({
+      kind: 'groups',
+      enabled: true,
+      groups: [
+        { channel: 'tools', group: 'tools:mcp:demo' },
+        { channel: 'tools', group: 'tools:mcp:demo' },
+      ],
+    }),
+  })
+  assert.equal(on.status, 200)
+  assert.equal(on.json.policy.tools.mode, 'all')
+  assert.deepEqual(on.json.policy.tools.names, [])
+})
+
 test('restore jumps back to an earlier step and clears the rest of the history', async () => {
   const { clearUndo } = await import('../lib/history.js')
   const routes = createRoutes(makeCtx())
