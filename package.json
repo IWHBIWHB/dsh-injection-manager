@@ -1,8 +1,8 @@
 {
   "name": "dsh-injection-manager",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "type": "module",
-  "description": "Manage and switch everything a new DSH session injects before its first request — prompt sections, runtime contexts, skill catalog, tool schemas and workspace rules — clustered into suites, with presets and a token budget.",
+  "description": "See and control everything a DSH session injects before its first request — prompt sections, runtime contexts, skill catalog, tool schemas and workspace rules — clustered into suites with one switch per MCP server, plus live context-window occupancy, compaction receipts and a token budget.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -14,7 +14,10 @@
     "budget",
     "skills",
     "tools",
-    "mcp"
+    "mcp",
+    "context-window",
+    "compaction",
+    "occupancy"
   ],
   "license": "MIT",
   "scripts": {

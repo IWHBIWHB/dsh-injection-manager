@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.11.1 — 2026-11-16
+
+- **The model-facing tool now says what to do with the numbers.** `context_injection`
+  gained a "能做什么" block: the biggest switchable suite and what it saves, whether
+  this session predates the policy, what compaction already removed (irreversible),
+  and the fact that the tool cannot flip switches itself. A model that reads only
+  that block can give its user the one action that matters.
+- **README opens with the three facts an agent needs** (what it measures, why it is
+  safe, that one suite is usually the whole win) before any screenshot.
+- `docs/DETAIL.md` and `docs/DETAIL.zh.md` are real pages instead of a stray image:
+  the two-numbers model, what each channel physically is, when a policy applies,
+  and what happens when a piece is missing.
+- npm description rewritten without the mojibake and with `context-window`,
+  `compaction`, `occupancy` keywords; awesome-listing draft updated to match.
+- 3 new tests for the advice block — 69 total.
+
 ## 1.11.0 — 2026-11-16
 
 - **The denominator exists.** Occupancy is now measured, not guessed: the panel

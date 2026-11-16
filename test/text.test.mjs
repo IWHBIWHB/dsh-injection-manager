@@ -107,3 +107,25 @@ test('without a measured window neither rendering invents one', () => {
     assert.doesNotMatch(render(snapshot), /上下文窗口/)
   }
 })
+
+test('the card tells a model what it can do, and that it cannot flip switches', () => {
+  const card = renderCard(snapshot)
+  assert.match(card, /\*\*能做什么\*\*/)
+  assert.match(card, /只读，没有写入口/)
+  assert.match(card, /REA/)
+  assert.match(card, /没有\*\*受当前策略影响/, 'an unapplied session is called out')
+})
+
+test('an applied session does not carry the "not applied" advice', () => {
+  const applied = { ...snapshot, policy: { ...snapshot.policy, appliedToThisAgent: true } }
+  assert.doesNotMatch(renderCard(applied), /没有\*\*受当前策略影响/)
+})
+
+test('near the window limit the advice names the biggest suite to close', () => {
+  const crowded = {
+    ...snapshot,
+    context: { window: 200000, used: 180000, occupancy: 90, remaining: 20000, compaction: { count: 0, prunes: 0, saved: 0, failures: 0 } },
+  }
+  assert.match(renderCard(crowded), /窗口已用 90%/)
+  assert.match(renderCard(crowded), /REA，−50/)
+})
