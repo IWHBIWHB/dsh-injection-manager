@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.13.1 — 2026-11-17
+
+- **The list toolbar got un-crowded.** Nine controls in one row became: scope,
+  search, group/flat, a channel `<select>` and three small view toggles. The
+  channel chips only appear as a removable "筛选：技能目录 ×" row when a filter is
+  actually on, so the idle toolbar is quiet and the active state is still visible.
+- The select and the view toggles collapse at narrow widths instead of wrapping
+  into a second line that shoves the table down.
+- 2 new locale keys × 8 languages.
+
 ## 1.13.0 — 2026-11-17
 
 - **Skills vs MCP tools, side by side.** The skills card now shows all four kinds of

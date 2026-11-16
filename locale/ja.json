@@ -202,6 +202,8 @@
     "closedBadge": "オフ",
     "closedRestoreHint": "新規セッションではオフ。ここで戻せます",
     "kindsLabel": "容量の内訳",
-    "kindsNote": "ツール定義はカタログより大きい：{tools}、最大は {top}（{topTokens}）。MCP ツールはスキルではなく JSON 宣言です。"
+    "kindsNote": "ツール定義はカタログより大きい：{tools}、最大は {top}（{topTokens}）。MCP ツールはスキルではなく JSON 宣言です。",
+    "filterLabel": "チャネルで絞り込み",
+    "activeFilters": "絞り込み："
   }
 }

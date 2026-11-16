@@ -1,6 +1,6 @@
 {
   "name": "dsh-injection-manager",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "type": "module",
   "description": "See and control everything a DSH session injects before its first request — prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules — clustered into suites with one switch per MCP server, plus what a collected skill catalog costs, live context-window occupancy, compaction receipts and a token budget.",
   "keywords": [

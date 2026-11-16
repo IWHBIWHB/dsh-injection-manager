@@ -202,6 +202,8 @@
     "closedBadge": "已关闭",
     "closedRestoreHint": "对新会话已关闭；在这里可以重新打开",
     "kindsLabel": "谁在占地方",
-    "kindsNote": "工具 schema 比技能目录大得多：{tools}，其中最大的一个是 {top}（{topTokens}）。MCP 工具不是技能——它是每个工具一份的 JSON 声明。"
+    "kindsNote": "工具 schema 比技能目录大得多：{tools}，其中最大的一个是 {top}（{topTokens}）。MCP 工具不是技能——它是每个工具一份的 JSON 声明。",
+    "filterLabel": "按通道筛选",
+    "activeFilters": "筛选："
   }
 }

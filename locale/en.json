@@ -202,6 +202,8 @@
     "closedBadge": "off",
     "closedRestoreHint": "Closed for new sessions; switch it back on here",
     "kindsLabel": "what takes the room",
-    "kindsNote": "Tool schemas outgrow the catalog by {tools} — the biggest server alone is {top} ({topTokens}). MCP tools are not skills: each one is a JSON declaration."
+    "kindsNote": "Tool schemas outgrow the catalog by {tools} — the biggest server alone is {top} ({topTokens}). MCP tools are not skills: each one is a JSON declaration.",
+    "filterLabel": "Filter by channel",
+    "activeFilters": "Filtered:"
   }
 }

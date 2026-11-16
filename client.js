@@ -145,6 +145,8 @@
     scopeSessionHint: '屏幕上这段对话此刻实际在发什么',
     closedBadge: '已关闭',
     closedRestoreHint: '对新会话已关闭；在这里可以重新打开',
+    filterLabel: '按通道筛选',
+    activeFilters: '筛选：',
   }
 
   const NAMES_ZH = {
@@ -334,6 +336,13 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-tabs button.on{background:var(--ci-bg);color:var(--ci-fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.07)}
 body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-shadow:none}
 .ci-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+.ci-select{border:1px solid var(--ci-line);border-radius:8px;background:var(--ci-bg);color:var(--ci-fg);font:inherit;font-size:12px;padding:4px 8px;cursor:pointer;max-width:150px}
+.ci-select:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
+.ci-viewopts button{font-size:11.5px;padding:4px 9px}
+@media (max-width:1220px){.ci-select{display:none}}
+@media (max-width:1040px){.ci-viewopts{display:none}}
+.ci-activefilters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);flex:0 0 auto}
+.ci-activefilters .lbl{white-space:nowrap}
 .ci-input{flex:1;min-width:120px;border:1px solid var(--ci-line);border-radius:8px;padding:5px 10px;font-size:12px;background:var(--ci-bg);color:var(--ci-fg);outline:none}
 .ci-input:focus{border-color:var(--ci-accent)}
 .ci-chip{border:1px solid var(--ci-line);background:transparent;color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
@@ -1441,6 +1450,10 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               ),
             ),
           ),
+          // Two rows, not one: scope + search + view + the filter menu on top,
+          // the active filters (when any) on a second line. Eight chips in a row
+          // was the densest thing in the panel and none of them was the primary
+          // action.
           h(
             'div',
             { className: 'ci-toolbar' },
@@ -1486,47 +1499,42 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                 ['flat', t('flat')],
               ].map(([key, label]) => h('button', { key, type: 'button', className: view === key ? 'on' : '', onClick: () => setView(key) }, label)),
             ),
+            h('select', {
+              className: 'ci-select',
+              value: filter,
+              'aria-label': t('filterLabel'),
+              title: t('filterLabel'),
+              onChange: (event) => setFilter(event.target.value),
+            }, ['all'].concat(CHANNELS).map((channel) => h('option', { key: channel, value: channel }, channel === 'all' ? t('all') : t(channel)))),
             h(
               'div',
-              { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } },
-              ['all'].concat(CHANNELS).map((channel) =>
+              { className: 'ci-seg ci-viewopts' },
+              [
+                ['only', onlySwitchable, t('onlySwitchable'), t('onlySwitchableHint'), () => setOnlySwitchable(!onlySwitchable), onlySwitchable ? 'true' : 'false'],
+                ['expand', false, t('expandAll'), t('expandAll'), () => {
+                  const next = {}
+                  for (const group of groups) next[group.id] = true
+                  setExpanded(next)
+                }, 'false', view === 'group'],
+                ['collapse', false, t('collapseAll'), t('collapseAll'), () => setExpanded({}), 'false', view === 'group'],
+              ].filter(([key, , , , , , visible]) => key === 'only' || visible !== false).map(([key, on, label, hint, onClick, pressed]) =>
                 h(
                   'button',
-                  { key: channel, type: 'button', className: 'ci-chip' + (filter === channel ? ' on' : ''), onClick: () => setFilter(channel) },
-                  channel === 'all' ? t('all') : t(channel),
+                  { key, type: 'button', className: on ? 'on' : '', title: hint || label, 'aria-pressed': pressed, onClick },
+                  label,
                 ),
               ),
             ),
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'ci-chip' + (onlySwitchable ? ' on' : ''),
-                'aria-pressed': onlySwitchable,
-                title: t('onlySwitchableHint'),
-                onClick: () => setOnlySwitchable(!onlySwitchable),
-              },
-              t('onlySwitchable'),
-            ),
-            view === 'group'
-              ? h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'ci-chip',
-                    onClick: () => {
-                      const next = {}
-                      for (const group of groups) next[group.id] = true
-                      setExpanded(next)
-                    },
-                  },
-                  t('expandAll'),
-                )
-              : null,
-            view === 'group' && Object.keys(expanded).length > 0
-              ? h('button', { type: 'button', className: 'ci-chip', onClick: () => setExpanded({}) }, t('collapseAll'))
-              : null,
           ),
+          filter !== 'all' || onlySwitchable
+            ? h(
+                'div',
+                { className: 'ci-activefilters' },
+                h('span', { className: 'lbl' }, t('activeFilters')),
+                filter === 'all' ? null : h('button', { type: 'button', className: 'ci-chip on', onClick: () => setFilter('all') }, t(filter), ' ×'),
+                onlySwitchable ? h('button', { type: 'button', className: 'ci-chip on', onClick: () => setOnlySwitchable(false) }, t('onlySwitchable'), ' ×') : null,
+              )
+            : null,
           h(
             'div',
             { className: 'ci-table', role: 'group', 'aria-label': t('items') + ' · ' + items.length },

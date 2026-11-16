@@ -202,6 +202,8 @@
     "closedBadge": "off",
     "closedRestoreHint": "Cerrado para sesiones nuevas; vuelve a activarlo aquí",
     "kindsLabel": "qué ocupa el espacio",
-    "kindsNote": "Los schemas de tools superan al catálogo: {tools}, y el mayor servidor es {top} ({topTokens}). Las tools MCP no son skills: son declaraciones JSON."
+    "kindsNote": "Los schemas de tools superan al catálogo: {tools}, y el mayor servidor es {top} ({topTokens}). Las tools MCP no son skills: son declaraciones JSON.",
+    "filterLabel": "Filtrar por canal",
+    "activeFilters": "Filtrado:"
   }
 }
