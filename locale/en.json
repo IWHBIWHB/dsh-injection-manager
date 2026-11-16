@@ -163,6 +163,7 @@
     "closedTitle": "Switched off",
     "closedHint": "These are not in the prompt right now; their size is remembered. Restore re-enables them by name.",
     "restoreGroup": "Restore suite",
-    "sessionNotApplied": "This session predates the policy, so it is unaffected; \"after policy\" is the estimate for your next new session."
+    "sessionNotApplied": "This session predates the policy, so it is unaffected; \"after policy\" is the estimate for your next new session.",
+    "baseline": "Without policy"
   }
 }

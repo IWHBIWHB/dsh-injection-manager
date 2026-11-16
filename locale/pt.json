@@ -163,6 +163,7 @@
     "closedTitle": "Desativados",
     "closedHint": "Eles não estão no prompt agora, mas o tamanho foi lembrado. Restaurar reativa pelos nomes.",
     "restoreGroup": "Restaurar suíte",
-    "sessionNotApplied": "Esta sessão antecede a política e não é afetada; «após a política» é a estimativa para a próxima sessão."
+    "sessionNotApplied": "Esta sessão antecede a política e não é afetada; «após a política» é a estimativa para a próxima sessão.",
+    "baseline": "Sem política"
   }
 }

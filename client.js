@@ -524,10 +524,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       function Kpis({ snapshot, t }) {
         const totals = snapshot.totals
         const policy = snapshot.policy
+        const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
         const rows = [
-          { key: 'total', value: token(totals.tokens), sub: `${digits(totals.chars)} ${t('chars')} · ${snapshot.items.length} ${t('items')}` },
-          { key: 'savable', value: token(totals.savableTokens), sub: `${totals.savablePercent}% · ${t('shareOf')}` },
-          { key: 'after', value: token(policy.preview.after), sub: `${policy.preview.savedPercent > 0 ? `−${policy.preview.savedPercent}% · ` : ''}${presetLabel(t, policy.preset)}` },
+          { key: 'total', value: token(view.tokens), sub: `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}` },
+          { key: 'savable', value: token(view.savableTokens), sub: `${view.savablePercent}% · ${t('shareOf')}` },
+          { key: 'baseline', value: token(totals.tokens), sub: policy.preview.savedPercent > 0 ? `−${policy.preview.savedPercent}% · ${presetLabel(t, policy.preset)}` : presetLabel(t, policy.preset) },
           {
             key: 'anchor',
             value: totals.anchor === null ? '—' : token(totals.anchor.tokens),
@@ -553,14 +554,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       }
 
       function Composition({ snapshot, t, filter, onFilter }) {
-        const total = snapshot.totals.tokens || 1
+        const channels = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
+        const total = (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1
         return h(
           'div',
           null,
           h(
             'div',
             { className: 'ci-bar' },
-            snapshot.channels
+            channels
               .filter((channel) => channel.tokens > 0)
               .map((channel) =>
                 h('span', {
@@ -573,7 +575,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           h(
             'div',
             { className: 'ci-legend' },
-            snapshot.channels.map((channel) =>
+            channels.map((channel) =>
               h(
                 'button',
                 {
@@ -586,7 +588,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 t(channel.id),
                 ' ',
                 h('b', null, token(channel.tokens)),
-                ` · ${pct(channel.tokens, snapshot.totals.tokens)}%`,
+                ` · ${pct(channel.tokens, total)}%`,
               ),
             ),
           ),

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.6 — 2026-11-16
+
+- The top strip now always shows the **policy view**, in real time: 首轮注入 and
+  可关闭 are the composition after the current policy (17.1k / 14.6k when REA is
+  off), the bar + legend use the same per-channel numbers, and the third card
+  became 全开时 (the un-policied baseline) so the comparison is explicit.
+  Previously the strip showed the session's assembled prompt, so closing a suite
+  changed only "策略后" and looked like a stale refresh.
+- Footer totals follow the same effective view; snapshots expose
+  `effective.channels` / `effective.totals`.
+
 ## 1.10.5 — 2026-11-16
 
 - First registry release: `npm i dsh-injection-manager` installs 1.10.4 (54 files,

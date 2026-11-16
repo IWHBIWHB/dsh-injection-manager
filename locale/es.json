@@ -163,6 +163,7 @@
     "closedTitle": "Desactivados",
     "closedHint": "Ahora no están en el prompt, pero se recuerda su tamaño. Restaurar los vuelve a activar por nombre.",
     "restoreGroup": "Restaurar suite",
-    "sessionNotApplied": "Esta sesión es anterior a la política y no se ve afectada; «tras la política» es la estimación para la próxima sesión."
+    "sessionNotApplied": "Esta sesión es anterior a la política y no se ve afectada; «tras la política» es la estimación para la próxima sesión.",
+    "baseline": "Sin política"
   }
 }
