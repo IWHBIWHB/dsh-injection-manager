@@ -193,6 +193,15 @@
     "skillsManage": "管理",
     "skillsJump": "スキルのみ表示",
     "truncatedHint": "{count} 件の説明が上限を超え、切り詰められます",
-    "heaviestSkill": "最大：{name}（{tokens}）"
+    "heaviestSkill": "最大：{name}（{tokens}）",
+    "scopeLabel": "表示範囲",
+    "scopeGlobal": "既定ポリシー",
+    "scopeGlobalHint": "いま作る新規セッションが受け取る内容",
+    "scopeSession": "このセッション",
+    "scopeSessionHint": "画面の会話が実際に送っている内容",
+    "closedBadge": "オフ",
+    "closedRestoreHint": "新規セッションではオフ。ここで戻せます",
+    "kindsLabel": "容量の内訳",
+    "kindsNote": "ツール定義はカタログより大きい：{tools}、最大は {top}（{topTokens}）。MCP ツールはスキルではなく JSON 宣言です。"
   }
 }

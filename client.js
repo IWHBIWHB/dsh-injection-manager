@@ -138,6 +138,13 @@
     skillsJump: '只看技能通道',
     truncatedHint: '{count} 条描述超过目录长度上限，会被截断',
     heaviestSkill: '最大：{name}（{tokens}）',
+    scopeLabel: '查看范围',
+    scopeGlobal: '默认策略',
+    scopeGlobalHint: '现在新建一个会话会收到什么',
+    scopeSession: '本会话',
+    scopeSessionHint: '屏幕上这段对话此刻实际在发什么',
+    closedBadge: '已关闭',
+    closedRestoreHint: '对新会话已关闭；在这里可以重新打开',
   }
 
   const NAMES_ZH = {
@@ -289,6 +296,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-skills-provider .n{max-width:none;flex:1 1 auto}
 }
 .ci-skills-note{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kinds{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ci-kinds .lbl{font-size:11.5px;color:var(--ci-fg3);margin-right:2px}
+.ci-kind{display:inline-flex;align-items:baseline;gap:5px;border:1px solid var(--ci-line2);background:var(--ci-bg);color:var(--ci-fg2);border-radius:999px;padding:2px 9px;font-size:11.5px;cursor:pointer}
+.ci-kind:hover{border-color:var(--ci-line);color:var(--ci-fg)}
+.ci-kind b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ci-fg)}
+.ci-kind .p{color:var(--ci-fg3);font-variant-numeric:tabular-nums}
+.ci-kind.on{border-color:var(--ci-accent);color:var(--ci-accent)}
+.ci-kind.on b{color:var(--ci-accent)}
 .ci-strip{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);min-width:0}
 .ci-strip .k{color:var(--ci-fg2);font-weight:600;white-space:nowrap}
 .ci-strip .ci-window-bar{flex:1 1 220px;min-width:110px}
@@ -365,6 +380,10 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-rowline .lbl{font-size:12.5px}
 .ci-rowline .hint{font-size:11px;color:var(--ci-fg3)}
 .ci-seg{display:inline-flex;border:1px solid var(--ci-line);border-radius:8px;overflow:hidden}
+.ci-seg.ci-scope{border-color:var(--ci-accent)}
+.ci-seg.ci-scope button{font-weight:600}
+.ci-seg.ci-scope button.on{background:var(--ci-accent);color:#fff}
+.ci-tag-closed{border-color:var(--ci-warn);color:var(--ci-warn)}
 .ci-seg button{border:0;background:transparent;color:var(--ci-fg2);padding:4px 10px;font-size:11.5px;cursor:pointer}
 .ci-seg button.on{background:var(--ci-fg);color:var(--ci-bg)}
 .ci-empty{padding:26px 12px;text-align:center;color:var(--ci-fg3);font-size:12px}
@@ -737,6 +756,15 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         const heaviest = state.heaviest
         const rows = (state.topProviders ?? []).slice(0, 3)
         const providerMax = rows.reduce((max, row) => Math.max(max, row.tokens), 1)
+        // Skills are one kind of line item; tool schemas are another. Saying
+        // both on the same card is what stops "my skills are only 3k, so why is
+        // the prompt 84k" from being a question in the first place.
+        const kinds = (state.kinds ?? []).filter((kind) => kind.tokens > 0)
+        // "tool schemas" is not a skill: say it on the card so a 3k skill block
+        // next to a 84k prompt does not read as a contradiction.
+        const labels = { skills: t('skills'), tools: t('tools'), prompts: t('sections'), rules: t('instructions') }
+        const toolsKind = (state.kinds ?? []).find((kind) => kind.id === 'tools')
+        const topTools = (snapshot.groups ?? []).filter((group) => group.channel === 'tools')[0]
         return h(
           'div',
           { className: 'ci-card ci-skills' },
@@ -765,6 +793,29 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               t('skillsManage'),
             ),
           ),
+          kinds.length > 0
+            ? h(
+                'div',
+                { className: 'ci-kinds' },
+                h('span', { className: 'lbl' }, t('kindsLabel')),
+                kinds.map((kind) =>
+                  h(
+                    'button',
+                    {
+                      key: kind.id,
+                      type: 'button',
+                      className: 'ci-kind' + (kind.id === 'skills' ? ' on' : ''),
+                      'aria-pressed': kind.id === 'skills' ? 'true' : 'false',
+                      title: `${labels[kind.id] ?? kind.id} · ${kind.count} ${t('items')} · ${digits(kind.tokens)} token`,
+                      onClick: () => onFilter(kind.id),
+                    },
+                    labels[kind.id] ?? t(kind.id),
+                    h('b', null, token(kind.tokens)),
+                    h('span', { className: 'p' }, `${kind.share}%`),
+                  ),
+                ),
+              )
+            : null,
           rows.length > 0
             ? h(
                 'div',
@@ -791,6 +842,17 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             : null,
           heaviest !== null && heaviest !== undefined
             ? h('div', { className: 'ci-skills-note' }, t('heaviestSkill', { name: heaviest.name, tokens: token(heaviest.tokens) }))
+            : null,
+          toolsKind !== undefined && toolsKind.tokens > state.catalogTokens
+            ? h(
+                'div',
+                { className: 'ci-skills-note' },
+                t('kindsNote', {
+                  tools: token(toolsKind.tokens),
+                  top: topTools === undefined ? '—' : topTools.label,
+                  topTokens: topTools === undefined ? '—' : token(topTools.tokens),
+                }),
+              )
             : null,
         )
       }
@@ -1120,6 +1182,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             h(HitMark, { text: label, needle }),
             planned ? h('span', { className: 'ci-tag', title: t('outsideBudgetHint') }, t('outsideBudget')) : null,
             !on && !locked ? h('span', { className: 'ci-tag' }, t('turnedOff')) : null,
+            item.offClosed === true ? h('span', { className: 'ci-tag ci-tag-closed', title: t('closedRestoreHint') }, t('closedBadge')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
@@ -1131,9 +1194,40 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         )
       }
 
+      // Where a list entry comes from. The policy is a *default for new
+      // sessions*, not the state of the running one: an already-open session
+      // keeps injecting everything until it is recreated (the host never
+      // rewrites a live assembly), which is exactly what the user sees in the
+      // transcript. Two scopes, two questions, no guessing:
+      //   默认策略 — what a session created now would receive (classic view)
+      //   本会话   — what the session on screen is actually sending right now
+      function buildItems(snapshot, filter, scope) {
+        const policyOn = (item) => {
+          const channel = snapshot.policy.channels[item.channel]
+          if (channel === undefined || channel.mode === 'all') return true
+          if (channel.mode === 'only') return channel.names.indexOf(item.name) >= 0
+          return channel.names.indexOf(item.name) < 0
+        }
+
+        const rows = snapshot.items.map((item) => ({
+          ...item,
+          on: scope === 'session' ? true : policyOn(item),
+          used: true,
+        }))
+        // A closed item keeps its remembered size so it can be switched back
+        // from the same list instead of from a separate card — the classic
+        // "I closed REA and now I cannot open it again" trap.
+        for (const item of snapshot.closed || []) {
+          if (item.unknown === true) continue
+          rows.push({ ...item, locked: false, on: scope === 'session' ? true : false, used: false, offClosed: true })
+        }
+        return rows.filter((item) => filter === 'all' || item.channel === filter)
+      }
+
       function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy, act }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
+        const [scope, setScope] = useStoredState('scope', 'global')
         const [onlySwitchable, setOnlySwitchable] = useStoredState('onlySwitchable', false)
         const [sort, setSort] = useStoredState('itemSort', 'tokens:desc')
         const [sortKey, sortDir] = String(sort).split(':')
@@ -1163,8 +1257,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
-          return snapshot.items
-            .filter((item) => filter === 'all' || item.channel === filter)
+          return buildItems(snapshot, filter, scope)
             .filter((item) => (onlySwitchable ? item.locked !== true : true))
             .filter((item) => {
               if (needle.length === 0) return true
@@ -1181,14 +1274,11 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                     : left.tokens - right.tokens || left.name.localeCompare(right.name)
               return sortDir === 'asc' ? compare : -compare
             })
-        }, [snapshot.items, filter, onlySwitchable, deferredQuery, t])
+        }, [snapshot, filter, scope, onlySwitchable, deferredQuery, t, sortKey, sortDir])
 
-        const isOn = (item) => {
-          const channel = snapshot.policy.channels[item.channel]
-          if (channel === undefined || channel.mode === 'all') return true
-          if (channel.mode === 'only') return channel.names.indexOf(item.name) >= 0
-          return channel.names.indexOf(item.name) < 0
-        }
+        // In the session scope nothing is blocked by the policy: the running
+        // session already has it all, so every row reads as on.
+        const isOn = (item) => (scope === 'session' ? true : item.on === true)
 
         const groups = useMemo(() => {
           const map = new Map()
@@ -1233,6 +1323,24 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           const onCount = unlocked.filter(isOn).length
           return { on: onCount === unlocked.length, mixed: onCount > 0 && onCount < unlocked.length, disabled: false }
         }
+
+      // In each scope, a suite whose rows are mixed or missing needs a
+      // different repair: the session scope can add back a suite the policy
+      // closed, but only by the exact channel:name rows the policy excludes —
+      // so the restore reads the excluded names back from the policy itself
+      // instead of guessing from labels.
+      function closedNamesFor(snapshot, label) {
+        const wanted = String(label).toLowerCase()
+        const out = []
+        for (const [channel, state] of Object.entries(snapshot.policy.channels || {})) {
+          if (state.mode !== 'except') continue
+          for (const name of state.names) {
+            const labelOf = (name) => (/^mcp:([^:]+)$/.exec(name) || /^mcp__([^_]+(?:_[^_]+)*?)__/.exec(name) || []).at(1)
+            if (String(labelOf(name) || name).toLowerCase() === wanted) out.push({ channel, name })
+          }
+        }
+        return out
+      }
 
         const toggleGroup = (group) => {
           const state = groupState(group)
@@ -1336,6 +1444,32 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           h(
             'div',
             { className: 'ci-toolbar' },
+            h(
+              // The default view answers "what does a new session get"; the
+              // session view answers "what is this conversation actually
+              // sending". A policy never rewrites a live session, so both are
+              // true at once and the user must be able to see which is which.
+              'div',
+              { className: 'ci-seg ci-scope', role: 'tablist', 'aria-label': t('scopeLabel') },
+              [
+                ['global', t('scopeGlobal'), t('scopeGlobalHint')],
+                ['session', t('scopeSession'), t('scopeSessionHint')],
+              ].map(([key, label, hint]) =>
+                h(
+                  'button',
+                  {
+                    key,
+                    type: 'button',
+                    role: 'tab',
+                    'aria-selected': scope === key ? 'true' : 'false',
+                    className: scope === key ? 'on' : '',
+                    title: hint,
+                    onClick: () => setScope(key),
+                  },
+                  label,
+                ),
+              ),
+            ),
             h('input', {
               ref: searchRef,
               className: 'ci-input',
@@ -2178,17 +2312,37 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                 { className: 'ci-list' },
                 groups.map((group) => {
                   const state = policyGroupState(snapshot, group)
+                  // Does the policy keep this suite out of a new session? If so,
+                  // the row says 已关闭 and its switch is the way back.
                   return h(
                     'div',
                     { className: 'ci-mini', key: group.id },
                     h(Dot, { channel: group.channel }),
-                    h('span', { className: 'n', title: `${group.label} · ${group.count} ${t('items')}` }, `${groupLabelOf(t, group)} · ${group.count}`),
+                    h(
+                      'span',
+                      { className: 'n', title: `${group.label} · ${group.count} ${t('items')}` },
+                      `${groupLabelOf(t, group)} · ${group.count}`,
+                      state.on ? null : h('span', { className: 'ci-tag' }, t('closedBadge')),
+                    ),
                     h('span', { className: 't' }, token(group.tokens)),
                     h(Switch, {
                       on: state.on,
                       mixed: state.mixed,
                       disabled: busy || state.disabled,
-                      onChange: () => onGroupToggle(group, !state.on),
+                      onChange: () => {
+                        // Turning a suite back on has to also restore the rows
+                        // the policy had removed, or it reads as "on" while
+                        // half of it is still closed.
+                        const closed = state.on ? [] : closedNamesFor(snapshot, group.label)
+                        if (closed.length === 0) {
+                          onGroupToggle(group, !state.on)
+                          return
+                        }
+                        for (const channel of new Set(closed.map((entry) => entry.channel))) {
+                          const names = closed.filter((entry) => entry.channel === channel).map((entry) => entry.name)
+                          act({ kind: 'names', channel, names, enabled: true }, `${t('turnedOn')} ${groupLabelOf(t, group)}`)
+                        }
+                      },
                       title: group.label,
                     }),
                   )

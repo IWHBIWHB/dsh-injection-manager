@@ -193,6 +193,15 @@
     "skillsManage": "Manage",
     "skillsJump": "Filter the list to skills",
     "truncatedHint": "{count} descriptions are longer than the catalog line, so they are cut off",
-    "heaviestSkill": "Largest: {name} ({tokens})"
+    "heaviestSkill": "Largest: {name} ({tokens})",
+    "scopeLabel": "View scope",
+    "scopeGlobal": "Default policy",
+    "scopeGlobalHint": "What a session created right now would receive",
+    "scopeSession": "This session",
+    "scopeSessionHint": "What the conversation on screen is actually sending right now",
+    "closedBadge": "off",
+    "closedRestoreHint": "Closed for new sessions; switch it back on here",
+    "kindsLabel": "what takes the room",
+    "kindsNote": "Tool schemas outgrow the catalog by {tools} — the biggest server alone is {top} ({topTokens}). MCP tools are not skills: each one is a JSON declaration."
   }
 }

@@ -193,6 +193,15 @@
     "skillsManage": "Управлять",
     "skillsJump": "Только навыки",
     "truncatedHint": "описаний длиннее лимита обрезано: {count}",
-    "heaviestSkill": "Самый большой: {name} ({tokens})"
+    "heaviestSkill": "Самый большой: {name} ({tokens})",
+    "scopeLabel": "Область",
+    "scopeGlobal": "Политика по умолчанию",
+    "scopeGlobalHint": "Что получит сессия, созданная сейчас",
+    "scopeSession": "Эта сессия",
+    "scopeSessionHint": "Что на самом деле отправляет открытый диалог",
+    "closedBadge": "выкл",
+    "closedRestoreHint": "Отключено для новых сессий; включите обратно здесь",
+    "kindsLabel": "что занимает место",
+    "kindsNote": "Схемы инструментов больше каталога: {tools}, крупнейший сервер — {top} ({topTokens}). MCP-инструменты — это не навыки, а JSON-объявления."
   }
 }

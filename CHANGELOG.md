@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.13.0 — 2026-11-17
+
+- **Skills vs MCP tools, side by side.** The skills card now shows all four kinds of
+  line item (skills / tool schemas / prompt text / workspace rules) with their
+  shares, and one sentence that answers the obvious follow-up: tool schemas are not
+  skills — each MCP tool is its own JSON declaration, and on the reference machine
+  they outweigh the whole skill catalog by 75.9k to 3.0k.
+- **A closed suite no longer disappears.** The policy removes its rows from the
+  assembled prompt, so the list used to have nothing left to show — the suite
+  vanished and its switch with it. Closed suites now stay in the list with an
+  已关闭 badge and their remembered size; their switch restores the exact names the
+  policy excludes, per channel. A closed row reads "—" instead of a share above
+  100%.
+- **Two explicit scopes.** 默认策略 = what a session created right now would receive
+  (the policy view, and the default); 本会话 = what the conversation on screen is
+  actually sending, measured by the host. A policy never rewrites a live session, so
+  both are true at once — the reader now picks which question they are asking
+  instead of guessing from a single mixed table.
+- 7 new locale keys × 8 languages.
+
 ## 1.12.0 — 2026-11-16
 
 - **The plugin now leads with why people install it: collected skills.** A

@@ -193,6 +193,15 @@
     "skillsManage": "Verwalten",
     "skillsJump": "Nur Skills filtern",
     "truncatedHint": "{count} Beschreibungen überschreiten die Länge und werden gekürzt",
-    "heaviestSkill": "Größter: {name} ({tokens})"
+    "heaviestSkill": "Größter: {name} ({tokens})",
+    "scopeLabel": "Ansicht",
+    "scopeGlobal": "Standardrichtlinie",
+    "scopeGlobalHint": "Was eine jetzt erstellte Sitzung erhielte",
+    "scopeSession": "Diese Sitzung",
+    "scopeSessionHint": "Was das Gespräch am Bildschirm gerade wirklich sendet",
+    "closedBadge": "aus",
+    "closedRestoreHint": "Für neue Sitzungen aus; hier wieder einschalten",
+    "kindsLabel": "was den Platz füllt",
+    "kindsNote": "Tool-Schemas übertreffen den Katalog: {tools}, der größte Server allein {top} ({topTokens}). MCP-Tools sind keine Skills, sondern JSON-Deklarationen."
   }
 }

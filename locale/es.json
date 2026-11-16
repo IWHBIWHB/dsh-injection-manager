@@ -193,6 +193,15 @@
     "skillsManage": "Gestionar",
     "skillsJump": "Filtrar solo skills",
     "truncatedHint": "{count} descripciones superan el límite de la línea y se recortan",
-    "heaviestSkill": "La mayor: {name} ({tokens})"
+    "heaviestSkill": "La mayor: {name} ({tokens})",
+    "scopeLabel": "Ámbito",
+    "scopeGlobal": "Política por defecto",
+    "scopeGlobalHint": "Lo que recibiría una sesión creada ahora",
+    "scopeSession": "Esta sesión",
+    "scopeSessionHint": "Lo que la conversación en pantalla envía ahora mismo",
+    "closedBadge": "off",
+    "closedRestoreHint": "Cerrado para sesiones nuevas; vuelve a activarlo aquí",
+    "kindsLabel": "qué ocupa el espacio",
+    "kindsNote": "Los schemas de tools superan al catálogo: {tools}, y el mayor servidor es {top} ({topTokens}). Las tools MCP no son skills: son declaraciones JSON."
   }
 }
