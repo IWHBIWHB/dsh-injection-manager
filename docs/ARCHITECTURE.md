@@ -26,16 +26,19 @@ Config ───────┤
 工作目录 ─────┤   collectSkills (snapshot)
               │   collectTools (schemas)
               │   collectInstructions (固定路径探测)
+              │   readContext (tokenMeter + contextBreakdown + llm)
               ▼
          assignGroups()  → 按套件聚类
               ▼
          previewPolicy() → 关掉后剩多少 / 省多少
          planBudget()    → 目标预算下的关闭建议
               ▼
-   { items, groups, channels, totals, policy, undo }
+   { items, groups, channels, totals, context, policy, undo }
               ▼
    panel · context_injection 工具 · /export · applyPolicyForAgent
 ```
+
+`context` 那一路是唯一不由本插件估算的部分：`window` / `pressure` / `projected` 来自宿主的 `contextPressure` 投影，`breakdown` 来自 `contextBreakdown`，（缺分母时才）用 `ctx.llm.resolveModelInfo()` 的 `contextWindow` 兜底；压缩回执由 `session/event` 监听器从 `compaction/*` 累积。因此面板里的占用百分比与宿主自己的「上下文已用 x%」是同一个数，不会各说各话。
 
 关键不变量：**只有一份实现**。浏览器不重算 token、不重算预览；它拿到什么就画什么。这也让「预览数字」和「实际生效」不会打架。
 
@@ -67,7 +70,7 @@ agent/created (source=startup|clear)
 | `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记、预算 | 面板动作（原子写） |
 | `$DSH_HOME/injection-manager/` 的旧目录 | `context-injection/`、`context-preflight/` | 只在首次读取时迁移 |
 | 插件行 `config` | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration |
-| 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告 | 进程内，重启清空 |
+| 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告、压缩回执（按会话）、路由窗口容量缓存 | 进程内，重启清空 |
 
 不上传、不联网、不写 workspace 文件。
 
@@ -84,6 +87,8 @@ lib/history.js      撤销栈
 lib/settings.js     Config 归一化
 lib/text.js         模型卡片与文本报告
 lib/instructions.js 工作区规则只读探测
+lib/pressure.js     窗口占用（tokenMeter / contextBreakdown / llm 容量）
+lib/compaction.js   压缩回执（session/event 上的 compaction/*）
 client.js           浏览器半包：侧栏图标、主页面、输入框徽标
 locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 ```
@@ -106,3 +111,5 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 | `test/text.test.mjs` | 工具卡片与文本报告的数字/告警 |
 | `test/apply.test.mjs` | 假 ctx 下四条通道端到端、幂等、resume 跳过 |
 | `test/routes.test.mjs` | 动作/撤销/导出/同源校验（假 req/res） |
+| `test/pressure.test.mjs` | 占用分子/分母、容量兜底与缓存、缺数据不瞎猜、阈值档位 |
+| `test/compaction.test.mjs` | 摘要/剪枝/失败回执、未知会话、事件转发 |

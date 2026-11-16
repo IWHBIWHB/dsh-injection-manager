@@ -79,3 +79,31 @@ test('an anchored session is reported separately from the injection total', () =
   assert.match(text, /本会话已占用 900 token/)
   assert.match(text, /不可直接比较/)
 })
+
+test('the window line names the denominator, the split and the compaction receipt', () => {
+  const withContext = {
+    ...snapshot,
+    context: {
+      window: 200000,
+      pressure: 100000,
+      projected: 120000,
+      used: 120000,
+      occupancy: 60,
+      remaining: 80000,
+      breakdown: { system: 10000, tools: 80000, messages: 30000, total: 120000 },
+      compaction: { count: 2, prunes: 1, failures: 0, saved: 47000, lastAt: 1, lastSaved: 2000, lastKind: 'summary' },
+    },
+  }
+  const text = renderText(withContext)
+  assert.match(text, /上下文窗口：120,000 \/ 200,000 token（已用 60%，剩余 80,000）/)
+  assert.match(text, /系统 10,000 · 工具 80,000 · 消息 30,000/)
+  assert.match(text, /摘要 2 次 · 剪枝 1 次 · 省下 47,000 token/)
+  const card = renderCard(withContext)
+  assert.match(card, /\*\*上下文窗口\*\* 120,000 \/ 200,000 token/)
+})
+
+test('without a measured window neither rendering invents one', () => {
+  for (const render of [renderText, renderCard]) {
+    assert.doesNotMatch(render(snapshot), /上下文窗口/)
+  }
+})

@@ -38,7 +38,7 @@ Dark theme follows the host:
 
 ![Dark theme](docs/images/panel-dark.png)
 
-Switching the REA suite off moves the first request from 83.8k to 17.8k tokens;
+Switching the REA suite off moves the first request from 83.8k to 17.1k tokens;
 Undo brings it back (real data, interactions recorded against the fixture):
 
 ![Demo: suite switch and undo](docs/images/demo.gif)
@@ -50,8 +50,7 @@ first-run options:
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `dock` | on | Show the "injection 84k · 97% switchable" chip next to the composer |
-| `refreshOnFocus` | on | Refresh the panel when the window regains focus |
+| `dock` | on | Show the "injection 84k · 97% switchable" chip next to the composer || `refreshOnFocus` | on | Refresh the panel when the window regains focus |
 | `showRawNames` | on | Show the raw key (`harness:identity`) next to the readable label |
 | `budgetTokens` | 0 | Initial budget before a policy file exists; 0 = none |
 
@@ -64,11 +63,27 @@ In a typical DSH session the biggest part of the first request is not your promp
 
 This plugin flattens that first request into a list and actually applies the switches — not by editing your files, but by registering a nearer layer inside each new session's scope.
 
+## Context window: the denominator this plugin used to lack
+
+"Injection 83.8k" cannot tell you whether to switch anything off. The number that can is how
+much of the window is left, so the panel takes the denominator from the host's own measurement:
+
+| Number | Source | Meaning |
+| --- | --- | --- |
+| occupancy 24.6% | `contextPressure` (window from `request/context`, else `ctx.llm.resolveModelInfo().context.contextWindow`) | next request's expected prompt ÷ the model's window |
+| 258.4k / 1M | same | used / capacity, with "790.2k left" next to it |
+| system 2.4k · tools 77.9k · messages 129.7k | `contextBreakdown` projection | where this request goes, conversation history included |
+| compacted 2× · freed 78.4k | `shadowedTokenCount` on `compaction/summary` and `compaction/prune` | what the host already dropped for you |
+
+Past 70% the number turns amber, past 90% red, and the composer chip follows. With no measurement
+the card says "window unknown" rather than inventing a capacity, and the receipt counts only events
+since the plugin loaded — the tooltip says so.
+
 ## Clusters: switch a whole suite
 
 The list groups by suite by default instead of showing hundreds of rows:
 
-- One MCP server is one suite. On the machine this was built on, 229 `mcp__rea__*` tools collapse into "REA" — 65,979 tokens, 78.7% of the first request — and one switch turns the whole server off.
+- One MCP server is one suite. On the machine this was built on, 230 REA items (229 `mcp__rea__*` tools plus its prompt section) collapse into one row — 66,715 tokens, 79.6% of the first request — and one switch turns the whole server off.
 - Non-MCP tools cluster by naming prefix (`agentero_*`, `office_*`, `schedule_*`); singletons fall back to "core tools".
 - Skills group by provider (for example 33 `filesystem` skills in one group).
 - Sections and contexts group by namespace; the `mcp:rea` instructions section joins the REA group instead of standing alone.
@@ -96,7 +111,7 @@ Required contexts (working directory, subagent identity) are read-only too; no p
 | --- | --- | --- |
 | Sidebar icon | Left panel list, "Injection" | Opens the management page |
 | Management page | Main area | Items / Policy / Budget / Notes |
-| Composer chip | Under the input | First-turn total and switchable share, deliberately muted; × hides it, Notes can bring it back |
+| Composer chip | Under the input | First-turn total and window occupancy, deliberately muted; × hides it, Notes can bring it back |
 | `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card |
 | `/inject` command | Composer | Text report; `/inject minimal`, `/inject all`, `/inject budget 20000`, `/inject apply [20000]`, `/inject undo` |
 
@@ -108,6 +123,7 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 | --- | --- |
 | Items and switches | Items: four channels in one list, clustered into suites (one MCP server = one switch) |
 | Visual overview | Top of the Items tab: channel donut, largest-suite bars, first-turn sparkline |
+| Window occupancy and receipts | Top strip: occupancy %, room left, system/tools/messages split, tokens compaction freed |
 | Presets and budget | Policy / Budget: everything, minimal, custom; greedy trim against a token budget, undoable |
 | Undo and history | Footer "undo"; Policy tab lists the last 20 steps and can restore any of them (asks once) |
 | Export / import / copy | Policy tab: Markdown and JSON export, undoable policy import, copy report |
@@ -119,8 +135,8 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 
 ## 60-second tour
 
-1. Install, restart DSH, open "Injection" in the left panel list. The Items tab shows four channels and suite-clustered entries (reference snapshot: REA's 229 tools are 78.7%).
-2. Switch the whole REA suite off: the "after policy" KPI drops from 83.8k to 17.8k, the toast says "Disabled REA · 229 items", and it carries an undo.
+1. Install, restart DSH, open "Injection" in the left panel list. The Items tab shows four channels and suite-clustered entries (reference snapshot: REA's 230 items are 79.6%).
+2. Switch the whole REA suite off: the first-turn KPI drops from 83.8k to 17.1k, the largest-suite bar stays as wide as itself but empties out and reads "off", and the toast carries an undo.
 3. Open Notes and press "Check this session": the current session reports that it predates the saved policy. That is expected — a policy only affects sessions created after it is saved.
 4. Create a new session (or run `/inject` anywhere): the first request should only carry what you left on, and `/inject` prints the same numbers.
 5. To revert: the toast's undo, the footer's undo, or Notes → Undo history for an earlier step.
@@ -170,7 +186,7 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 - [Architecture](docs/ARCHITECTURE.md): the four injection channels, the snapshot pipeline, and when a policy takes effect
 - [FAQ](docs/FAQ.md): why AGENTS.md cannot be switched off, unreachable budgets, relation to dsh-context
 - [Compatibility](docs/COMPATIBILITY.md): tested versions, required APIs, upgrade checks
-- [Performance](docs/PERFORMANCE.md): measured timings for 352 items, 34 suites, a 229-row expand
+- [Performance](docs/PERFORMANCE.md): measured timings for 355 items, 27 suites, a 230-row expand
 - [Security](SECURITY.md): reporting, verifiable boundaries, accepted risks
 - [Contributing](CONTRIBUTING.md): local loop, pre-commit checks, release steps (`npm run smoke` runs the pipeline offline)
 

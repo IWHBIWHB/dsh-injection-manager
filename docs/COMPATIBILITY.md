@@ -24,6 +24,10 @@
 | `ctx.agents.get(id)` / `currentInitiator()` | 面板对会话取数 | 退回到最近活跃会话 |
 | `ctx.webServer.register({ kind: 'exact' })` | 面板路由 | 面板无数据（工具与命令仍可用） |
 | `agent/created` 事件的 `source` | 区分新会话与恢复/压缩 | 只按 `startup` / `clear` 兜底 |
+| `ctx.get('tokenMeter').contextPressure(session)` | 窗口占用：分子（provider 报的 prompt）与分母（`contextWindow`） | 窗口卡片显示「窗口未知」，其余功能不受影响 |
+| `ctx.get('sessionProjections').snapshot(session)` 的 `contextBreakdown` | 系统 / 工具 / 消息构成 | 只显示占用条，不显示构成 |
+| `ctx.llm.resolveModelInfo(provider, model)` | 首次请求前拿窗口容量（按路由缓存） | 首个请求之后才有分母 |
+| `session/event` 上的 `compaction/summary` / `compaction/prune` / `compaction/end` | 压缩回执与释放的 token | 不显示压缩行；数值来自宿主 `shadowedTokenCount`，缺失时不猜 |
 
 ## 明确不可管（不是兼容性问题）
 

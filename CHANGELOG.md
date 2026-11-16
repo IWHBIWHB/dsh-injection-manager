@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.11.0 — 2026-11-16
+
+- **The denominator exists.** Occupancy is now measured, not guessed: the panel
+  reads the host's own `contextPressure` projection (the next request's expected
+  prompt) and divides it by the model's window, so the strip can say "53% of the
+  window, 118k left" instead of leaving the user to compare two absolute numbers.
+  The window comes from `request/context`; before the first request it falls back
+  to `ctx.llm.resolveModelInfo().context.contextWindow` (cached per route). When
+  neither exists the card prints 窗口未知 — it never invents a capacity.
+- **Where the window goes.** A new card stacks the next request as system / tools
+  / messages against the window (from the `contextBreakdown` projection), colours
+  the bar amber at 70% and red at 90%, and labels the estimate as an estimate.
+- **Compaction receipts.** A `session/event` listener folds `compaction/summary`
+  and `compaction/prune` into "压缩 2 次 · 释放 78.4k" — the log already carries
+  `shadowedTokenCount`, so this is a fact rather than an inference. Receipts cover
+  events since the plugin loaded, and the tooltip says so.
+- KPI cards are four equal columns at an 8px radius; the sparkline spans the card
+  and carries an `aria-label` with its min/max; every chart is `role="img"`.
+- **Fixed: every share now uses one denominator.** Closing a suite left the
+  largest-suite bars and the table's 占比 column quoting shares of the all-on
+  total, so a closed REA row read "390.4%" next to a 17.1k first turn. The bars
+  keep their all-on width (a closed giant still looks like a giant) but fill only
+  what the policy left on and read 已关闭; rows share the effective total, and an
+  off row shows the tag instead of a meaningless percentage.
+- The dock chip shows the window percentage (red past 90%) and falls back to the
+  savable share when no window is known.
+- New icon: the same three bands narrowing into one dot, drawn as gradients at
+  36×36 so it survives a 20px sidebar. `assets/icon-512.png` is regenerated from
+  the same geometry.
+- 13 new tests (pressure, compaction, window rendering) — 66 total.
+
 ## 1.10.9 — 2026-11-16
 
 - The Items tab opens with a visual overview: an SVG donut of the per-channel

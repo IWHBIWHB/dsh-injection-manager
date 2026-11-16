@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { applyPolicyForAgent, releaseAll, savePolicy } from './lib/apply.js'
 import { createRoutes, ROUTES } from './lib/routes.js'
 import { buildSnapshot, planBudget, policyFromPlan } from './lib/snapshot.js'
+import { watchCompaction } from './lib/compaction.js'
 import { presetPolicy } from './lib/presets.js'
 import { readPolicy } from './lib/policy.js'
 import { setSettings } from './lib/settings.js'
@@ -213,6 +214,13 @@ export function apply(ctx, config) {
   ctx.on('agent/created', async (payload) => {
     await applyPolicyForAgent(ctx, payload?.agent, payload?.source)
   })
+
+  // Compaction receipts: "it threw away 78k tokens for you" is a durable log
+  // fact, not an inference from a shrinking total.
+  ctx.effect(() => {
+    const dispose = watchCompaction(ctx)
+    return typeof dispose === 'function' ? dispose : () => {}
+  }, 'injection-manager compaction receipts')
 
   ctx.effect(() => () => releaseAll(), 'injection-manager cleanup')
 }

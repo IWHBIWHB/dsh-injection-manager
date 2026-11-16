@@ -31,6 +31,18 @@
     instructions: '#94a3b8',
   }
 
+  // The window bar answers a different question than the injection bar, so it
+  // gets one blue ramp instead of the channel hues: three parts of one request,
+  // not five independent channels. The ramp is themed so the deepest step still
+  // separates from the track in dark mode.
+  const WINDOW_COLOR = {
+    system: 'var(--ci-win1)',
+    tools: 'var(--ci-win2)',
+    messages: 'var(--ci-win3)',
+    used: 'var(--ci-win2)',
+    free: 'transparent',
+  }
+
   // Minimal Chinese fallback so controls still read when /locale fails.
   const FALLBACK = {
     panelLabel: '注入',
@@ -100,6 +112,25 @@
     shareOf: '占首轮注入',
     applied: '已写入',
     actionFailed: '操作失败',
+    window: '上下文窗口',
+    windowHint: '占用率来自宿主自己的测量：下一次请求的预计占用 ÷ 模型窗口。',
+    noWindow: '窗口未知',
+    noWindowHint: '本会话还没有测量数据；发一条消息后就会出现。',
+    windowUsedOf: '{used} / {window}',
+    remain: '剩余',
+    windowBarLabel: '上下文窗口已用 {pct}%',
+    systemPart: '系统',
+    toolsPart: '工具',
+    messagesPart: '消息',
+    windowBreakdownHint: '构成是估算值，含对话历史，不只是首轮注入。',
+    compactionLine: '已压缩 {count} 次 · 释放 {saved}',
+    compactionHint: '压缩回执只统计本插件装载之后的事件，之前的压缩不在内。',
+    compactionFailed: '失败 {count} 次',
+    trendLabel: '首轮注入趋势，{min} ~ {max} token',
+    requestComposition: '本次请求构成',
+    injectionComposition: '首轮注入构成',
+    noTrim: '策略未裁剪',
+    mixedOff: '部分关闭',
   }
 
   const NAMES_ZH = {
@@ -175,14 +206,15 @@
 .ci-dock b{color:var(--ci-fg2,#5f6470);font-weight:600;font-variant-numeric:tabular-nums}
 .ci-dock i{width:5px;height:5px;border-radius:50%;background:var(--ci-accent,#4d6bfe);opacity:.75;display:block}
 .ci-dock em{font-style:normal;color:var(--ci-fg3,#8a8f99);font-size:10.5px}
+.ci-dock.warn i{background:var(--ci-danger,#b91c1c);opacity:.9}
 .ci-dock-x{width:15px;height:15px;border:0;background:transparent;color:var(--ci-fg3,#8a8f99);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0;transition:opacity .12s}
 .ci-dock-wrap:hover .ci-dock-x,.ci-dock-x:focus-visible{opacity:.55}
 .ci-dock-x:hover{opacity:1}
 `
 
   const STYLE = `
-.ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);color:var(--ci-fg);font-size:13px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
-body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8b95;--ci-line:rgba(255,255,255,.12);--ci-line2:rgba(255,255,255,.07);--ci-bg:#161619;--ci-card:#1d1d21;--ci-accent:#7c8dff;--ci-warn:#fbbf24}
+.ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);--ci-danger:var(--dsw-alias-danger-primary,#b91c1c);--ci-win1:#2f4bd8;--ci-win2:#5f7bff;--ci-win3:#a8bcff;color:var(--ci-fg);font-size:12.5px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
+body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8b95;--ci-line:rgba(255,255,255,.12);--ci-line2:rgba(255,255,255,.07);--ci-bg:#161619;--ci-card:#1d1d21;--ci-accent:#7c8dff;--ci-warn:#fbbf24;--ci-danger:#f87171;--ci-win1:#5f7bff;--ci-win2:#8fa6ff;--ci-win3:#c9d6ff}
 .ci-scroll{overflow:auto;min-height:0}
 .ci-scroll::-webkit-scrollbar{width:8px;height:8px}
 .ci-scroll::-webkit-scrollbar-thumb{background:var(--ci-line);border-radius:8px}
@@ -209,19 +241,39 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-bars{display:flex;flex-direction:column;gap:7px;min-width:0}
 .ci-bars-title{font-size:11px;color:var(--ci-fg3);margin-bottom:1px}
 .ci-barrow{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;min-width:0}
-.ci-barrow .ci-bar-track{min-width:90px}
+.ci-barrow .ci-bar-track{min-width:0}
+.ci-barrow.off .n,.ci-barrow.off .t{color:var(--ci-fg3)}
 .ci-barrow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-barrow .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ci-bar-track{height:8px;border-radius:5px;background:var(--ci-line2);overflow:hidden;display:block}
 .ci-bar-fill{display:block;height:100%;border-radius:5px}
-.ci-spark{display:block;margin:3px 0 1px;opacity:.8}
+.ci-spark{display:block;width:100%;height:18px;margin:4px 0 2px;opacity:.9}
 .ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:10px;padding:10px 12px;min-width:0}
-.ci-kpi .k{font-size:11px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-kpi .v{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-top:2px;white-space:nowrap}
-.ci-kpi .s{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:9px 11px;min-width:0}
+.ci-kpi .k{font-size:11.5px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kpi .v{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-top:1px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ci-kpi .s{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ci-kpi.tone-warn .v{color:var(--ci-warn)}
+.ci-kpi.tone-danger .v{color:var(--ci-danger)}
+.ci-window{display:flex;flex-direction:column;gap:9px}
+.ci-window-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.ci-window-head h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2);white-space:nowrap}
+.ci-window-head .muted{font-size:11.5px;color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-window-head .spacer{flex:1}
+.ci-window-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--ci-line2);gap:1px}
+.ci-window-bar span{display:block;height:100%;min-width:0}
+.ci-window-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--ci-fg2)}
+.ci-window-legend .item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ci-window-legend i{width:8px;height:8px;border-radius:3px;display:block}
+.ci-window-legend b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ci-fg)}
+.ci-window-foot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--ci-fg3)}
+.ci-window-foot b{font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
+.ci-window-foot .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-window.tone-warn{border-color:var(--ci-warn)}
+.ci-window.tone-danger{border-color:var(--ci-danger)}
 .ci-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--ci-line2)}
+.ci-composition{display:flex;flex-direction:column;gap:6px}
 .ci-bar span{display:block;height:100%;min-width:2px}
 .ci-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
 .ci-legend button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11px;cursor:pointer;padding:2px 0}
@@ -235,7 +287,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-input:focus{border-color:var(--ci-accent)}
 .ci-chip{border:1px solid var(--ci-line);background:transparent;color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
 .ci-chip.on{background:var(--ci-fg);color:var(--ci-bg);border-color:transparent}
-.ci-table{border:1px solid var(--ci-line2);border-radius:10px;overflow:auto;background:var(--ci-bg);min-height:0}
+.ci-table{border:1px solid var(--ci-line2);border-radius:8px;overflow:auto;background:var(--ci-bg);min-height:0}
 .ci-thead,.ci-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px 58px 52px;gap:8px;align-items:center;padding:7px 12px}
 .ci-thead{font-size:11px;color:var(--ci-fg3);background:var(--ci-card);border-bottom:1px solid var(--ci-line2);position:sticky;top:0;z-index:1}
 .ci-sort{width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-align:inherit}
@@ -256,6 +308,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-tag{font-size:10px;line-height:1.6;padding:0 5px;border-radius:999px;border:1px solid var(--ci-line);color:var(--ci-fg3);margin-left:6px;white-space:nowrap}
 .ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg2);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .ci-row.locked .n{color:var(--ci-fg2)}
+.ci-row-off .n,.ci-row-off .num{color:var(--ci-fg3)}
 .ci-switch{position:relative;width:34px;height:20px;border-radius:999px;border:0;background:var(--ci-line);cursor:pointer;padding:0;justify-self:end;transition:background .15s}
 .ci-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
 .ci-switch.on{background:var(--ci-accent)}
@@ -270,7 +323,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-row-nested .n{font-weight:400}
 .ci-note{color:var(--ci-fg2);font-size:12px}
 .ci-note.warn{color:var(--ci-warn)}
-.ci-card{border:1px solid var(--ci-line2);border-radius:10px;padding:12px 14px;background:var(--ci-card);display:flex;flex-direction:column;gap:8px}
+.ci-card{border:1px solid var(--ci-line2);border-radius:8px;padding:12px 14px;background:var(--ci-card);display:flex;flex-direction:column;gap:8px}
 .ci-card h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2)}
 .ci-rowline{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ci-rowline .lbl{font-size:12.5px}
@@ -571,7 +624,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return h('i', { style: { background: COLOR[channel] || '#94a3b8' }, 'aria-hidden': 'true' })
       }
 
-      function Sparkline({ values, width, height }) {
+      // A trend line is decoration unless it says what it ranges over: the
+      // title carries min/max and the SVG carries an accessible label.
+      function Sparkline({ values, width, height, label }) {
         if (!Array.isArray(values) || values.length < 2) return null
         const max = Math.max(...values)
         const min = Math.min(...values)
@@ -582,8 +637,22 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           .join(' ')
         return h(
           'svg',
-          { className: 'ci-spark', viewBox: `0 0 ${width} ${height}`, 'aria-hidden': 'true' },
-          h('polyline', { points, fill: 'none', stroke: 'var(--ci-accent)', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+          {
+            className: 'ci-spark',
+            viewBox: `0 0 ${width} ${height}`,
+            preserveAspectRatio: 'none',
+            role: 'img',
+            'aria-label': label || '',
+          },
+          h('polyline', {
+            points,
+            fill: 'none',
+            stroke: 'var(--ci-accent)',
+            strokeWidth: 1.5,
+            strokeLinejoin: 'round',
+            strokeLinecap: 'round',
+            vectorEffect: 'non-scaling-stroke',
+          }),
         )
       }
 
@@ -617,8 +686,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           { className: 'ci-donut-svg', viewBox: '0 0 132 132', width: size || 120, height: size || 120, role: 'img', 'aria-label': `${t('total')} ${token(total)}` },
           h('circle', { cx: 66, cy: 66, r: radius, fill: 'none', stroke: 'var(--ci-line2)', strokeWidth: 13 }),
           segments,
-          h('text', { x: 66, y: 64, 'text-anchor': 'middle', className: 'ci-donut-v' }, token(total)),
-          h('text', { x: 66, y: 81, 'text-anchor': 'middle', className: 'ci-donut-k' }, t('total')),
+          h('text', { x: 66, y: 64, textAnchor: 'middle', className: 'ci-donut-v' }, token(total)),
+          h('text', { x: 66, y: 81, textAnchor: 'middle', className: 'ci-donut-k' }, t('total')),
         )
       }
 
@@ -626,41 +695,168 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const totals = snapshot.totals
         const policy = snapshot.policy
         const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
+        const context = snapshot.context || null
+        const trendValues = (trend || []).map((point) => point.v)
+        const windowKnown = context !== null && context.window !== null && context.used !== null
         const rows = [
-          { key: 'total', value: token(view.tokens), sub: `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}` },
-          { key: 'savable', value: token(view.savableTokens), sub: `${view.savablePercent}% · ${t('shareOf')}` },
-          { key: 'baseline', value: token(totals.tokens), sub: policy.preview.savedPercent > 0 ? `−${policy.preview.savedPercent}% · ${presetLabel(t, policy.preset)}` : presetLabel(t, policy.preset) },
           {
-            key: 'anchor',
-            value: totals.anchor === null ? '—' : token(totals.anchor.tokens),
+            key: 'total',
+            value: token(view.tokens),
+            sub: `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}`,
+            spark: true,
+          },
+          {
+            key: 'window',
+            value: windowKnown ? `${context.occupancy}%` : '—',
+            sub: windowKnown
+              ? `${token(context.used)} / ${token(context.window)}`
+              : t('noWindow'),
+            tone: windowKnown && context.tone !== undefined ? context.tone : 'unknown',
+            title: windowKnown ? t('windowHint') : t('noWindowHint'),
+          },
+          {
+            key: 'savable',
+            value: token(view.savableTokens),
+            sub: `${view.savablePercent}% · ${t('shareOf')}`,
+          },
+          {
+            key: 'baseline',
+            value: token(totals.tokens),
             sub:
-              totals.anchor === null
-                ? t('anchorHint')
-                : t('ofSession', { pct: pct(totals.tokens, totals.anchor.tokens) }),
+              policy.preview.savedPercent > 0
+                ? `−${policy.preview.savedPercent}% · ${presetLabel(t, policy.preset)}`
+                : t('noTrim'),
           },
         ]
+        const sparkLabel = trendValues.length > 1 ? t('trendLabel', { min: token(Math.min(...trendValues)), max: token(Math.max(...trendValues)) }) : ''
         return h(
           'div',
           { className: 'ci-kpis' },
           rows.map((row) =>
             h(
               'div',
-              { className: 'ci-kpi', key: row.key },
+              { className: 'ci-kpi' + (row.tone && row.tone !== 'ok' && row.tone !== 'unknown' ? ` tone-${row.tone}` : ''), key: row.key, title: row.title || null },
               h('div', { className: 'k' }, t(row.key)),
               h('div', { className: 'v' }, row.value),
-              row.key === 'total' ? h(Sparkline, { values: (trend || []).map((point) => point.v), width: 96, height: 20 }) : null,
+              row.spark ? h(Sparkline, { values: trendValues, width: 200, height: 18, label: sparkLabel }) : null,
               h('div', { className: 's', title: row.sub }, row.sub),
             ),
           ),
         )
       }
 
+      // Where the money actually goes: the next request measured against the
+      // model's window, split the way the host splits it. The first-turn
+      // injection below is a different number on purpose — one is "what this
+      // plugin manages", the other is "what the model will receive".
+      function WindowCard({ snapshot, t }) {
+        const context = snapshot.context
+        if (context === undefined || context === null) return null
+        const windowKnown = context.window !== null && context.used !== null
+        const breakdown = context.breakdown
+        const compaction = context.compaction || null
+        const hasCompaction = compaction !== null && (compaction.count > 0 || compaction.prunes > 0)
+        if (!windowKnown && breakdown === null && !hasCompaction) return null
+
+        const window = windowKnown ? context.window : 0
+        const segments = []
+        if (windowKnown && breakdown !== null) {
+          const parts = [
+            ['system', breakdown.system],
+            ['tools', breakdown.tools],
+            ['messages', breakdown.messages],
+          ]
+          let usedByParts = 0
+          for (const [key, value] of parts) {
+            usedByParts += value
+            segments.push({ key, value: Math.min(value, window) })
+          }
+          // The breakdown is a heuristic and can exceed or fall short of the
+          // provider figure; the leftover stays visible as unaccounted space.
+          const leftover = Math.max(0, window - Math.min(window, usedByParts))
+          if (leftover > 0) segments.push({ key: 'free', value: leftover })
+        } else if (windowKnown) {
+          segments.push({ key: 'used', value: context.used })
+          segments.push({ key: 'free', value: Math.max(0, window - context.used) })
+        } else if (breakdown !== null) {
+          // No capacity yet, but the composition is still measured: scale the
+          // bar to the request itself instead of drawing an empty window.
+          segments.push({ key: 'system', value: breakdown.system })
+          segments.push({ key: 'tools', value: breakdown.tools })
+          segments.push({ key: 'messages', value: breakdown.messages })
+        }
+        const sum = segments.reduce((total, segment) => total + segment.value, 0) || 1
+
+        return h(
+          'div',
+          { className: 'ci-card ci-window' + (context.tone && context.tone !== 'ok' && context.tone !== 'unknown' ? ` tone-${context.tone}` : '') },
+          h(
+            'div',
+            { className: 'ci-window-head' },
+            h('h2', null, t('requestComposition')),
+            h('span', { className: 'spacer' }),
+            windowKnown ? h('span', { className: 'muted' }, `${t('remain')} ${token(context.remaining)} (${context.occupancy}%)`) : h('span', { className: 'muted' }, t('noWindow')),
+          ),
+          segments.length > 1
+            ? h(
+                'div',
+                { className: 'ci-window-bar', role: 'img', 'aria-label': windowKnown ? t('windowBarLabel', { pct: context.occupancy }) : t('requestComposition') },
+                segments.map((segment) =>
+                  h('span', {
+                    key: segment.key,
+                    style: { width: `${Math.max(1, (segment.value / sum) * 100)}%`, background: WINDOW_COLOR[segment.key] || 'var(--ci-line2)' },
+                  }),
+                ),
+              )
+            : null,
+          breakdown !== null
+            ? h(
+                'div',
+                { className: 'ci-window-legend' },
+                [
+                  ['system', t('systemPart'), breakdown.system],
+                  ['tools', t('toolsPart'), breakdown.tools],
+                  ['messages', t('messagesPart'), breakdown.messages],
+                ].map(([key, label, value]) =>
+                  h(
+                    'span',
+                    { className: 'item', key, title: `${label} · ${digits(value)} token` },
+                    h('i', { 'aria-hidden': 'true', style: { background: WINDOW_COLOR[key] } }),
+                    label,
+                    ' ',
+                    h('b', null, token(value)),
+                  ),
+                ),
+              )
+            : null,
+          h(
+            'div',
+            { className: 'ci-window-foot' },
+            h('span', { className: 'hint', title: t('windowBreakdownHint') }, t('windowBreakdownHint')),
+            hasCompaction
+              ? h(
+                  'span',
+                  { title: t('compactionHint') },
+                  t('compactionLine', {
+                    count: compaction.count + compaction.prunes,
+                    saved: token(compaction.saved),
+                  }),
+                )
+              : null,
+            compaction !== null && compaction.failures > 0 ? h('span', null, t('compactionFailed', { count: compaction.failures })) : null,
+          ),
+        )
+      }
+
+      // First-turn injection by channel. Labelled, because the window card
+      // above it is also a bar and two unlabelled bars read as one control.
       function Composition({ snapshot, t, filter, onFilter }) {
         const channels = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
         const total = (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1
         return h(
           'div',
-          null,
+          { className: 'ci-composition' },
+          h('div', { className: 'ci-window-head' }, h('h2', null, t('injectionComposition'))),
           h(
             'div',
             { className: 'ci-bar' },
@@ -807,26 +1003,36 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return [value.slice(0, at), h('mark', { className: 'ci-hit', key: 'hit' }, value.slice(at, at + needle.length)), value.slice(at + needle.length)]
       }
 
+      // Shares are always of the injection that will actually happen: the
+      // effective total, not the all-on one. Under an old policy the two differ
+      // by 5×, and a percentage of the wrong denominator is how "REA 79.6%"
+      // ended up sitting next to a 17k total.
+      function effectiveTotalOf(snapshot) {
+        return Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
+      }
+
       function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, planned }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
         const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
+        const on = isOn(item)
         return h(
           'div',
-          { className: 'ci-row' + (locked ? ' locked' : '') + (nested === true ? ' ci-row-nested' : ''), key: itemKey(item) },
+          { className: 'ci-row' + (locked ? ' locked' : '') + (nested === true ? ' ci-row-nested' : '') + (on ? '' : ' ci-row-off'), key: itemKey(item) },
           h(
             'div',
             { className: 'n', title: `${item.name} · ${item.tokens} token` },
             h(HitMark, { text: label, needle }),
             planned ? h('span', { className: 'ci-tag', title: t('outsideBudgetHint') }, t('outsideBudget')) : null,
+            !on && !locked ? h('span', { className: 'ci-tag' }, t('turnedOff')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
           h('div', { className: 'num' }, digits(item.tokens)),
-          h('div', { className: 'num' }, `${pct(item.tokens, snapshot.totals.tokens)}%`),
+          h('div', { className: 'num' }, on ? `${pct(item.tokens, effectiveTotalOf(snapshot))}%` : '—'),
           locked
             ? h('span', { className: 'ci-lock', title: t('lockedHint') }, t('locked'))
-            : h(Switch, { on: isOn(item), disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
+            : h(Switch, { on, disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
         )
       }
 
@@ -960,7 +1166,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         }
 
         const effective = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
-        const topSuites = groups.slice(0, 6)
+        const effectiveTotal = Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
+        // The bars keep the all-on width so a closed suite still looks like the
+        // giant it is, and fill only the part the policy left on. Reading the
+        // two layers is the point: "REA is 79% of everything, and it is off".
+        const topSuites = groups.slice(0, 6).map((group) => ({
+          ...group,
+          effectiveTokens: group.items.reduce((sum, item) => sum + (isOn(item) ? item.tokens : 0), 0),
+        }))
         const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
 
         return h(
@@ -985,7 +1198,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                       h(Dot, { channel: channel.id }),
                       h('span', { className: 'n' }, t(channel.id)),
                       h('b', null, token(channel.tokens)),
-                      h('span', { className: 'p' }, `${pct(channel.tokens, Math.max(1, effective.reduce((sum, row) => sum + row.tokens, 0)))}%`),
+                      h('span', { className: 'p' }, `${pct(channel.tokens, effectiveTotal)}%`),
                     ),
                   ),
               ),
@@ -997,10 +1210,30 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               topSuites.map((group) =>
                 h(
                   'div',
-                  { className: 'ci-barrow', key: group.id, title: `${groupLabelOf(t, group)} · ${group.tokens}` },
+                  {
+                    className: 'ci-barrow' + (group.effectiveTokens === 0 ? ' off' : ''),
+                    key: group.id,
+                    title: `${groupLabelOf(t, group)} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effectiveTokens)}`,
+                  },
                   h('span', { className: 'n' }, groupLabelOf(t, group)),
-                  h('span', { className: 'ci-bar-track' }, h('span', { className: 'ci-bar-fill', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%`, background: COLOR[group.channel] } })),
-                  h('span', { className: 't' }, `${digits(group.tokens)} · ${pct(group.tokens, Math.max(1, effective.reduce((sum, row) => sum + row.tokens, 0)))}%`),
+                  h(
+                    'span',
+                    { className: 'ci-bar-track', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%` } },
+                    h('span', {
+                      className: 'ci-bar-fill',
+                      style: {
+                        width: `${group.tokens === 0 ? 0 : Math.max(0, Math.min(100, (group.effectiveTokens / group.tokens) * 100))}%`,
+                        background: COLOR[group.channel],
+                      },
+                    }),
+                  ),
+                  h(
+                    'span',
+                    { className: 't' },
+                    group.effectiveTokens === 0
+                      ? t('turnedOff')
+                      : `${digits(group.effectiveTokens)} · ${pct(group.effectiveTokens, effectiveTotal)}%`,
+                  ),
                 ),
               ),
             ),
@@ -1134,6 +1367,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                                 `${group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length} ${t('outsideBudget')}`,
                               )
                             : null,
+                          state.on ? null : h('span', { className: 'ci-tag' }, state.mixed ? t('mixedOff') : t('turnedOff')),
                         ),
                         h(
                           'div',
@@ -1142,7 +1376,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                           (group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel),
                         ),
                         h('div', { className: 'num' }, digits(group.tokens)),
-                        h('div', { className: 'num' }, `${pct(group.tokens, snapshot.totals.tokens)}%`),
+                        h('div', { className: 'num' }, state.on ? `${pct(group.tokens, effectiveTotal)}%` : '—'),
                         h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
                       ),
                       open
@@ -1837,6 +2071,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                 : null,
               h(Kpis, { snapshot, t, trend }),
+              h(WindowCard, { snapshot, t }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                 ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
@@ -1881,7 +2116,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
               : null,
             h(Kpis, { snapshot, t, trend }),
-            h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+            h(WindowCard, { snapshot, t }),
             snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
               ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
               : null,
@@ -1946,6 +2181,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         if (hidden) return null
 
         const tokens = data ? data.totals.tokens : null
+        const context = data ? data.context : null
+        const windowKnown = context !== null && context !== undefined && context.window !== null && context.used !== null
         const open = () => {
           try {
             const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
@@ -1958,6 +2195,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           setHidden(true)
           window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: true } }))
         }
+        // The ambient number is the one that decides when a session gets
+        // compacted: how much of the window the next request will take. The
+        // injected total stays first because it is what this plugin controls.
+        const hint = windowKnown
+          ? `${t('dockHint')} · ${t('windowUsedOf', { used: token(context.used), window: token(context.window) })}`
+          : t('dockHint')
 
         return h(
           'span',
@@ -1965,10 +2208,10 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           h('style', null, DOCK_STYLE),
           h(
             'button',
-            { type: 'button', className: 'ci-dock', onClick: open, title: t('dockHint') },
+            { type: 'button', className: 'ci-dock' + (windowKnown && context.tone === 'danger' ? ' warn' : ''), onClick: open, title: hint },
             h('i', null),
             h('b', null, tokens === null ? '…' : token(tokens)),
-            data && data.totals.savableTokens > 0 ? h('em', null, `${data.totals.savablePercent}%`) : null,
+            windowKnown ? h('em', null, `${context.occupancy}%`) : data && data.totals.savableTokens > 0 ? h('em', null, `${data.totals.savablePercent}%`) : null,
           ),
           h(
             'button',
@@ -1980,14 +2223,16 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       function PanelIcon() {
         // The sidebar panellist renders one icon per panel, so this is the
-        // entry point: three stacked source bands narrowing into one line.
+        // entry point. Same funnel as icon.svg, drawn in currentColor so it
+        // follows the host's selected/unselected state; only the terminus dot
+        // keeps the brand blue.
         return h(
           'svg',
           { viewBox: '0 0 20 20', width: 18, height: 18, fill: 'none', 'aria-hidden': 'true' },
-          h('rect', { x: 2.5, y: 3, width: 15, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.85 }),
-          h('rect', { x: 2.5, y: 8.2, width: 11, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.6 }),
-          h('rect', { x: 2.5, y: 13.4, width: 7, height: 2.6, rx: 1.3, fill: 'currentColor', opacity: 0.35 }),
-          h('circle', { cx: 16.4, cy: 14.7, r: 2.1, fill: '#4d6bfe' }),
+          h('rect', { x: 2, y: 3.2, width: 16, height: 3.1, rx: 1.55, fill: 'currentColor', opacity: 0.9 }),
+          h('rect', { x: 2, y: 8.4, width: 11.5, height: 3.1, rx: 1.55, fill: 'currentColor', opacity: 0.62 }),
+          h('rect', { x: 2, y: 13.6, width: 7, height: 3.1, rx: 1.55, fill: 'currentColor', opacity: 0.34 }),
+          h('circle', { cx: 15.6, cy: 15.1, r: 2.2, fill: '#4d6bfe' }),
         )
       }
 
