@@ -3,3 +3,4 @@ _research/
 *.tgz
 *.log
 .DS_Store
+.npmrc
