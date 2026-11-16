@@ -166,6 +166,7 @@
     "sessionNotApplied": "Esta sesión es anterior a la política y no se ve afectada; «tras la política» es la estimación para la próxima sesión.",
     "baseline": "Sin política",
     "mixed": "Varios",
-    "sortHint": "Clic para ordenar"
+    "sortHint": "Clic para ordenar",
+    "topSuites": "Suites más grandes"
   }
 }

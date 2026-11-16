@@ -166,6 +166,7 @@
     "sessionNotApplied": "Diese Sitzung stammt von vor der Richtlinie und ist nicht betroffen; „nach Richtlinie“ schätzt die nächste neue Sitzung.",
     "baseline": "Ohne Richtlinie",
     "mixed": "Gemischt",
-    "sortHint": "Klicken zum Sortieren"
+    "sortHint": "Klicken zum Sortieren",
+    "topSuites": "Größte Suites"
   }
 }

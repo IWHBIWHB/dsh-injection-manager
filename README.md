@@ -107,6 +107,7 @@ The model-facing tool is read-only: the model cannot loosen or tighten the polic
 | Capability | Where |
 | --- | --- |
 | Items and switches | Items: four channels in one list, clustered into suites (one MCP server = one switch) |
+| Visual overview | Top of the Items tab: channel donut, largest-suite bars, first-turn sparkline |
 | Presets and budget | Policy / Budget: everything, minimal, custom; greedy trim against a token budget, undoable |
 | Undo and history | Footer "undo"; Policy tab lists the last 20 steps and can restore any of them (asks once) |
 | Export / import / copy | Policy tab: Markdown and JSON export, undoable policy import, copy report |

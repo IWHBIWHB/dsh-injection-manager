@@ -196,6 +196,25 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-btn.ci-primary{background:var(--ci-accent);border-color:transparent;color:#fff}
 .ci-body{padding:16px 20px 24px;display:flex;flex-direction:column;gap:16px;flex:0 0 auto}
 .ci-body.grow{flex:1 1 auto;min-height:0;overflow:auto;padding-top:12px}
+.ci-card.ci-overview{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+.ci-donut{display:flex;align-items:center;gap:14px;min-width:0}
+.ci-donut-svg{flex:0 0 auto}
+.ci-donut-v{font-size:19px;font-weight:600;fill:var(--ci-fg)}
+.ci-donut-k{font-size:10px;fill:var(--ci-fg3)}
+.ci-donut-legend{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ci-donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 44px;gap:6px;align-items:center;font-size:11.5px}
+.ci-donut-row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ci-fg2)}
+.ci-donut-row b{font-weight:600;font-variant-numeric:tabular-nums}
+.ci-donut-row .p{color:var(--ci-fg3);text-align:right;font-variant-numeric:tabular-nums}
+.ci-bars{display:flex;flex-direction:column;gap:7px;min-width:0}
+.ci-bars-title{font-size:11px;color:var(--ci-fg3);margin-bottom:1px}
+.ci-barrow{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;min-width:0}
+.ci-barrow .ci-bar-track{min-width:90px}
+.ci-barrow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-barrow .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ci-bar-track{height:8px;border-radius:5px;background:var(--ci-line2);overflow:hidden;display:block}
+.ci-bar-fill{display:block;height:100%;border-radius:5px}
+.ci-spark{display:block;margin:3px 0 1px;opacity:.8}
 .ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:10px;padding:10px 12px;min-width:0}
@@ -344,6 +363,33 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           }
         }, [key, value])
         return [value, setValue]
+      }
+
+      function useTrend(value) {
+        const [trend, setTrend] = useState(() => {
+          try {
+            const raw = localStorage.getItem(STORAGE_PREFIX + 'trend')
+            const parsed = raw === null ? [] : JSON.parse(raw)
+            return Array.isArray(parsed) ? parsed : []
+          } catch {
+            return []
+          }
+        })
+        useEffect(() => {
+          if (!Number.isFinite(value) || value <= 0) return
+          setTrend((previous) => {
+            const last = previous[previous.length - 1]
+            if (last !== undefined && Math.abs(last.v - value) < 1 && Date.now() - last.t < 60000) return previous
+            const next = previous.concat({ t: Date.now(), v: value }).slice(-40)
+            try {
+              localStorage.setItem(STORAGE_PREFIX + 'trend', JSON.stringify(next))
+            } catch {
+              /* private mode */
+            }
+            return next
+          })
+        }, [value])
+        return trend
       }
 
       function useSnapshot(sessionId, pollMs = 5000) {
@@ -525,7 +571,58 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return h('i', { style: { background: COLOR[channel] || '#94a3b8' }, 'aria-hidden': 'true' })
       }
 
-      function Kpis({ snapshot, t }) {
+      function Sparkline({ values, width, height }) {
+        if (!Array.isArray(values) || values.length < 2) return null
+        const max = Math.max(...values)
+        const min = Math.min(...values)
+        const span = max - min || 1
+        const step = width / (values.length - 1)
+        const points = values
+          .map((value, index) => `${(index * step).toFixed(1)},${(height - ((value - min) / span) * (height - 4) - 2).toFixed(1)}`)
+          .join(' ')
+        return h(
+          'svg',
+          { className: 'ci-spark', viewBox: `0 0 ${width} ${height}`, 'aria-hidden': 'true' },
+          h('polyline', { points, fill: 'none', stroke: 'var(--ci-accent)', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+        )
+      }
+
+      function Donut({ rows, t, size }) {
+        const total = rows.reduce((sum, row) => sum + row.tokens, 0)
+        const safe = total || 1
+        const radius = 52
+        const circumference = 2 * Math.PI * radius
+        let offset = 0
+        const segments = rows
+          .filter((row) => row.tokens > 0)
+          .map((row) => {
+            const length = (row.tokens / safe) * circumference
+            const segment = h('circle', {
+              key: row.id,
+              cx: 66,
+              cy: 66,
+              r: radius,
+              fill: 'none',
+              stroke: COLOR[row.id],
+              strokeWidth: 13,
+              strokeDasharray: `${Math.max(0, length - 1.5)} ${circumference - Math.max(0, length - 1.5)}`,
+              strokeDashoffset: -offset,
+              transform: 'rotate(-90 66 66)',
+            })
+            offset += length
+            return segment
+          })
+        return h(
+          'svg',
+          { className: 'ci-donut-svg', viewBox: '0 0 132 132', width: size || 120, height: size || 120, role: 'img', 'aria-label': `${t('total')} ${token(total)}` },
+          h('circle', { cx: 66, cy: 66, r: radius, fill: 'none', stroke: 'var(--ci-line2)', strokeWidth: 13 }),
+          segments,
+          h('text', { x: 66, y: 64, 'text-anchor': 'middle', className: 'ci-donut-v' }, token(total)),
+          h('text', { x: 66, y: 81, 'text-anchor': 'middle', className: 'ci-donut-k' }, t('total')),
+        )
+      }
+
+      function Kpis({ snapshot, t, trend }) {
         const totals = snapshot.totals
         const policy = snapshot.policy
         const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
@@ -551,6 +648,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               { className: 'ci-kpi', key: row.key },
               h('div', { className: 'k' }, t(row.key)),
               h('div', { className: 'v' }, row.value),
+              row.key === 'total' ? h(Sparkline, { values: (trend || []).map((point) => point.v), width: 96, height: 20 }) : null,
               h('div', { className: 's', title: row.sub }, row.sub),
             ),
           ),
@@ -861,9 +959,52 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
           )
         }
 
+        const effective = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
+        const topSuites = groups.slice(0, 6)
+        const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
+
         return h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
+          h(
+            'div',
+            { className: 'ci-card ci-overview' },
+            h(
+              'div',
+              { className: 'ci-donut' },
+              h(Donut, { rows: effective, t }),
+              h(
+                'div',
+                { className: 'ci-donut-legend' },
+                effective
+                  .filter((channel) => channel.tokens > 0)
+                  .map((channel) =>
+                    h(
+                      'div',
+                      { className: 'ci-donut-row', key: channel.id },
+                      h(Dot, { channel: channel.id }),
+                      h('span', { className: 'n' }, t(channel.id)),
+                      h('b', null, token(channel.tokens)),
+                      h('span', { className: 'p' }, `${pct(channel.tokens, Math.max(1, effective.reduce((sum, row) => sum + row.tokens, 0)))}%`),
+                    ),
+                  ),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'ci-bars' },
+              h('div', { className: 'ci-bars-title' }, t('topSuites')),
+              topSuites.map((group) =>
+                h(
+                  'div',
+                  { className: 'ci-barrow', key: group.id, title: `${groupLabelOf(t, group)} · ${group.tokens}` },
+                  h('span', { className: 'n' }, groupLabelOf(t, group)),
+                  h('span', { className: 'ci-bar-track' }, h('span', { className: 'ci-bar-fill', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%`, background: COLOR[group.channel] } })),
+                  h('span', { className: 't' }, `${digits(group.tokens)} · ${pct(group.tokens, Math.max(1, effective.reduce((sum, row) => sum + row.tokens, 0)))}%`),
+                ),
+              ),
+            ),
+          ),
           h(
             'div',
             { className: 'ci-toolbar' },
@@ -1563,6 +1704,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [filter, setFilter] = useState('all')
         const [busy, setBusy] = useState(false)
         const [notice, setNotice] = useState(null)
+        const trend = useTrend(data ? (data.effective && data.effective.totals ? data.effective.totals.tokens : data.totals.tokens) : 0)
         const noticeTimer = useRef(null)
 
         const showNotice = useCallback((next, ttl) => {
@@ -1694,7 +1836,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               snapshot.host && snapshot.host.supported === false
                 ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                 : null,
-              h(Kpis, { snapshot, t }),
+              h(Kpis, { snapshot, t, trend }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                 ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
@@ -1738,7 +1880,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             snapshot.host && snapshot.host.supported === false
               ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
               : null,
-            h(Kpis, { snapshot, t }),
+            h(Kpis, { snapshot, t, trend }),
             h(Composition, { snapshot, t, filter, onFilter: setFilter }),
             snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
               ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))

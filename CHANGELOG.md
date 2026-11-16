@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.9 — 2026-11-16
+
+- The Items tab opens with a visual overview: an SVG donut of the per-channel
+  composition (center = effective total), the largest suites as proportion bars,
+  and a first-turn sparkline in the total KPI. Hand-rolled SVG/CSS, no chart
+  dependency — the same technique dsh-context uses for its dashboard.
+- Eight locales gained `topSuites`; screenshots regenerated.
+
 ## 1.10.8 — 2026-11-16
 
 - Sorting moved into the table headers, like a normal data grid: 条目 / 通道 /
