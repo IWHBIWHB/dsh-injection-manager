@@ -2,6 +2,7 @@
 
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
 [![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
 
 管住 DeepSeek Harness 新会话「第一轮请求」塞给模型的一切：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则。逐条给出字符数与估算 token，按套件聚合，一套一个开关，再给一个 token 预算和两套预设。

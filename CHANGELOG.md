@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.5 — 2026-11-16
+
+- First registry release: `npm i dsh-injection-manager` installs 1.10.4 (54 files,
+  894,925 bytes). The npm badge is on both READMEs.
+- Release workflow now publishes through npm **trusted publishing (OIDC)**:
+  `id-token: write`, npm upgraded in the job, no `NPM_TOKEN` secret. Configure the
+  trusted publisher in the package settings once (repo `IWHBIWHB/dsh-injection-manager`,
+  workflow `release.yml`), then a `v*` tag releases with provenance.
+
 ## 1.10.4 — 2026-11-16
 
 - When the current session was created before the saved policy, the panel now

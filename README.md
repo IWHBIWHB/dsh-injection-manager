@@ -2,6 +2,7 @@
 
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
 [![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
 
 Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Items are clustered into suites, so a whole MCP server is one switch, and the result can be held to a token budget.
