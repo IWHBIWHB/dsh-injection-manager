@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.4 — 2026-11-16
+
+- When the current session was created before the saved policy, the panel now
+  says so under the KPI strip: "本会话在策略保存前创建，不受新策略影响；「策略后」是
+  下一个新会话的预估。" Previously only the Notes tab mentioned it, so a switch
+  that changed "策略后" but not "首轮注入" looked like a refresh bug.
+- Eight locales gained `sessionNotApplied`.
+
 ## 1.10.3 — 2026-11-16
 
 - Fixed "I switched it off but the panel still shows the old numbers": the panel's

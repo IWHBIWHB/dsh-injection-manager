@@ -162,6 +162,7 @@
     "sortByName": "Nach Namen",
     "closedTitle": "Deaktiviert",
     "closedHint": "Diese Einträge sind gerade nicht im Prompt, ihre Größe ist aber gemerkt. Wiederherstellen aktiviert sie namentlich.",
-    "restoreGroup": "Suite wiederherstellen"
+    "restoreGroup": "Suite wiederherstellen",
+    "sessionNotApplied": "Diese Sitzung stammt von vor der Richtlinie und ist nicht betroffen; „nach Richtlinie“ schätzt die nächste neue Sitzung."
   }
 }

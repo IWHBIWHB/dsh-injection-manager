@@ -1643,6 +1643,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 : null,
               h(Kpis, { snapshot, t }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+              snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
+                ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
+                : null,
               h('div', { className: 'ci-card', style: { padding: '8px 10px' } }, h(ChannelSwitches, { snapshot, t, act })),
               h(
                 'div',
@@ -1684,6 +1687,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               : null,
             h(Kpis, { snapshot, t }),
             h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+            snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
+              ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
+              : null,
           ),
           h(
             'div',

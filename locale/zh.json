@@ -162,6 +162,7 @@
     "sortByName": "按名称",
     "closedTitle": "已关闭",
     "closedHint": "这些条目现在不在注入里，但仍记得它们的体积；点「恢复整套」按名字重新打开。",
-    "restoreGroup": "恢复整套"
+    "restoreGroup": "恢复整套",
+    "sessionNotApplied": "本会话在策略保存前创建，不受新策略影响；「策略后」是下一个新会话的预估。"
   }
 }
