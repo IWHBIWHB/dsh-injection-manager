@@ -1,8 +1,8 @@
 {
   "name": "dsh-injection-manager",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "type": "module",
-  "description": "Manage and switch everything a new DSH session injects before its first request ??prompt sections, runtime contexts, skill catalog, tool schemas and workspace rules ??clustered into suites, with presets and a token budget.",
+  "description": "Manage and switch everything a new DSH session injects before its first request — prompt sections, runtime contexts, skill catalog, tool schemas and workspace rules — clustered into suites, with presets and a token budget.",
   "keywords": [
     "dsh",
     "dsh-plugin",

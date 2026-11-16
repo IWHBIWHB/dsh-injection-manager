@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.2 — 2026-11-16
+
+- Fixed the plugin metadata error `ENOENT ... D:\DSH\dsh-context-injection\locale\de.json`:
+  the profile kept a junction `node_modules/dsh-context-injection` pointing at the
+  directory's pre-rename location. The junction is gone; the only link now points
+  at `D:\DSH\dsh-injection-manager`.
+- Repaired the mojibake in `package.json`'s description (two `??` where the em
+  dashes were) that came from an early PowerShell edit.
+
 ## 1.10.1 — 2026-11-16
 
 - Fixed the "switched-off suite becomes unfindable" bug: items that leave the
