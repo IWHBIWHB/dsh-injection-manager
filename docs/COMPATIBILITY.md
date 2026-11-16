@@ -4,13 +4,14 @@
 
 ## 已验证
 
-| dsh 版本 | 结果 | 验证方式 |
-| --- | --- | --- |
-| `0.2.2-rc.3`（Desktop） | 通过 | 真实会话：`/verify` 重新装配、`/diag` 过滤器计数、子智能体实测工具集 |
-| `0.2.2-rc.2` | 未验证 | — |
-| `0.2.1` / `0.2.0` | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测 |
+| dsh 版本 | 环境 | 结果 | 验证方式 |
+| --- | --- | --- | --- |
+| `0.2.2-rc.1` | **CLI**：临时 profile `v2qa` 起的独立 `dsh web` 实例（49801），不碰 Desktop 实例 | 通过 | Playwright 全流程（管理/洞察/设置三 tab、内容抽屉、趋势、设置页）+ 四条新路由探针（135 项断言 PASS）；宿主版本由 `hostinfo` 在真实宿主里读出 |
+| `0.2.2-rc.3` | **Desktop**：用户真实 profile（49711） | 通过 | 真实会话：`/verify` 重新装配、`/diag` 过滤器计数、子智能体实测工具集 |
+| `0.2.2-rc.2` | — | 未验证 | — |
+| `0.2.1` / `0.2.0` | — | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测 |
 
-运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。`/diag` 的 `host` 字段给出实际读到的版本与来源。
+运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。版本读取在桌面 rc.3 与 CLI rc.1 两个真实宿主里都验证过（`hostinfo`），`/diag` 的 `host` 字段给出实际读到的版本与来源。
 
 ## 依赖的接口（缺一个会降级或失效）
 
@@ -29,6 +30,21 @@
 | `ctx.llm.resolveModelInfo(provider, model)` | 首次请求前拿窗口容量（按路由缓存） | 首个请求之后才有分母 |
 | `session/event` 上的 `compaction/summary` / `compaction/prune` / `compaction/end` | 压缩回执与释放的 token | 不显示压缩行；数值来自宿主 `shadowedTokenCount`，缺失时不猜 |
 
+## v2 HTTP 契约（2.0.0 起）
+
+面板与宿主之间多了一层版本协商：`GET /summary` 返回 `apiVersion: 2`。新版面板读到 v1 时显示可关掉的 gate 卡（新版洞察/内容透视/健康检查需要 v2 宿主），管理、设置与开关不受影响；v1 面板连 v2 宿主则照常工作（新增字段都是追加的）。
+
+v2 新增的四条只读路由与它们的宿主侧依赖：
+
+| 路由 | 依赖 | 缺失时 |
+| --- | --- | --- |
+| `/content?channel=&id=[&session=]` | 快照登记的技能路径、规则文件路径；`node:fs` 读取 | 抽屉显示读取失败，列表与开关不受影响 |
+| `/trend?range=&limit=` | `stats.json` + `sessionQuery.listSessions()`（可选） | 无 `sessionQuery` 时只读历史文件，覆盖率 `known: null` |
+| `/events?session=&limit=` | `$DSH_HOME/injection-manager/events.json` | 文件不存在时返回空窗口，不报错 |
+| `/health?session=` | 与面板同一份 `buildSnapshot()` | 快照失败时返回错误，面板显示「健康检查读取失败」 |
+
+宿主版本无关：这些路由全部由插件自己实现，只用到 `0.2.2` 已有的公开服务（`agents`、`webServer`、`sessionQuery`）。
+
 ## 明确不可管（不是兼容性问题）
 
 - 工作区规则（`AGENTS.md` / `CLAUDE.md`）：`dsh-agent-instructions` 在 `agent/pre-step` 直接注入 user 消息，0.2.2 没有公开抑制入口；本插件只读展示。
@@ -40,4 +56,5 @@
 1. `GET /plugins/<id>/ping` 是否 200（路由注册）。
 2. `GET /plugins/<id>/diag` 的 `clientModule` 是否有值（客户端进了 boot 表）、`rewrite.count` 是否随新会话增长（过滤器被调用）。
 3. `GET /plugins/<id>/verify?session=<id>` 对比 `sections` 数量与面板预期。
-4. 仍不对时，先确认该版本是否仍导出上表中的方法（版本 release notes 与包内 README）。
+4. 新版表面单独排查：`/health` 是否 200（健康条）、`/trend` 是否返回点（洞察）、`/content?channel=tools&id=tool:<name>` 是否 200（抽屉）；`/summary` 的 `apiVersion` 不是 2 时面板会显示 gate 卡，说明宿主加载的是旧版服务端半包。
+5. 仍不对时，先确认该版本是否仍导出上表中的方法（版本 release notes 与包内 README）。

@@ -13,6 +13,7 @@ process.env.DSH_AGENTS_HOME = join(home, 'agents')
 
 const { applyPolicyForAgent } = await import('../lib/apply.js')
 const { appliedAgents } = await import('../lib/snapshot.js')
+const { flushStats } = await import('../lib/stats.js')
 
 await mkdir(join(home, 'injection-manager'), { recursive: true })
 await writeFile(
@@ -149,5 +150,6 @@ test('resume and compact sessions are left alone', async () => {
 })
 
 test('cleanup', async () => {
+  await flushStats()
   await rm(home, { recursive: true, force: true })
 })

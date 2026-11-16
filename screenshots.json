@@ -1,8 +1,11 @@
 [
-  "docs/images/panel-suites.png",
-  "docs/images/panel-stats.png",
+  "docs/images/panel-manage.png",
+  "docs/images/panel-manage-expanded.png",
+  "docs/images/panel-drawer.png",
+  "docs/images/panel-insights.png",
   "docs/images/panel-settings.png",
   "docs/images/panel-sidebar.png",
   "docs/images/panel-dark.png",
-  "docs/images/panel-about.png"
+  "docs/images/dock.png",
+  "docs/images/demo.gif"
 ]

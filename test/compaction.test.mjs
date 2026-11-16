@@ -1,7 +1,15 @@
 // Compaction receipts come from the durable log's own numbers, so the tests pin
 // the two event shapes the harness documents and the arithmetic of a receipt.
+// DSH_HOME is redirected before any test runs because receipts also append to
+// the injection event feed; the real profile must stay untouched.
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+process.env.DSH_HOME = await mkdtemp(join(tmpdir(), 'injection-compaction-'))
+process.env.DSH_AGENTS_HOME = join(process.env.DSH_HOME, 'agents')
 
 import { compactionOf, recordEvent, resetCompaction, watchCompaction } from '../lib/compaction.js'
 

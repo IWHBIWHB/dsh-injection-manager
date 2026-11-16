@@ -18,11 +18,14 @@ import { applyPolicyForAgent, releaseAll, savePolicy } from './lib/apply.js'
 import { createRoutes, ROUTES } from './lib/routes.js'
 import { buildSnapshot, planBudget, policyFromPlan } from './lib/snapshot.js'
 import { watchCompaction } from './lib/compaction.js'
+import { CONTENT_CHANNELS, TOOL_CONTENT_LIMIT, collectContent } from './lib/content.js'
+import { appendEvent } from './lib/events.js'
+import { buildHealth } from './lib/health.js'
 import { presetPolicy } from './lib/presets.js'
 import { readPolicy } from './lib/policy.js'
 import { setSettings } from './lib/settings.js'
 import { pushUndo, undoLastPolicy } from './lib/actions.js'
-import { renderCard, renderText } from './lib/text.js'
+import { renderCard, renderHealthLine, renderHealthText, renderText } from './lib/text.js'
 
 export const name = 'injection-manager'
 
@@ -78,7 +81,9 @@ export const inject = ['tools', 'systemPrompt', 'skills', 'workingDirectory', 'a
 const TOOL_NAME = 'context_injection'
 
 const TOOL_DESCRIPTION =
-  '查看本轮请求将注入给模型的上下文构成：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则，各占多少字符与估算 token，以及哪些条目可以关闭。只读：本工具不改策略、不改任何文件；开关在侧栏「上下文注入」面板里。'
+  '查看本轮请求将注入给模型的上下文构成：系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则，各占多少字符与估算 token，以及哪些条目可以关闭。只读：本工具不改策略、不改任何文件；开关在侧栏「上下文注入」面板里。可选参数 {channel, name}：只返回该条目的原文（单条 ≤32KB），不带参数才返回完整清单。'
+
+const SINGLE_CONTENT_HINT = 'channel 和 name 必须同时提供（如 {channel:"tools", name:"read"}）；不带参数调用才返回完整清单。'
 
 function resolveAgent(ctx, exec) {
   if (exec?.agent !== undefined) return { agent: exec.agent, source: 'exec.agent' }
@@ -91,20 +96,68 @@ function resolveAgent(ctx, exec) {
   return { agent: undefined, source: 'none' }
 }
 
-function createTool(ctx) {
+export function createTool(ctx) {
   return {
     name: TOOL_NAME,
     description: TOOL_DESCRIPTION,
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
+    parameters: {
+      type: 'object',
+      properties: {
+        channel: {
+          type: 'string',
+          enum: [...CONTENT_CHANNELS],
+          description: '可选：只读查看单条内容所属的通道；必须同时提供 name。',
+        },
+        name: {
+          type: 'string',
+          description: '可选：条目名，与 /summary items[].name 一致（段落名 / 上下文名 / 技能名 / 工具名 / 规则文件路径）；必须同时提供 channel。',
+        },
+      },
+      additionalProperties: false,
+    },
     timeoutMs: 30000,
     output: {
       schema: {},
-      render: (_args, value) => [{ type: 'text', text: String(value?.card ?? value?.text ?? '') }],
+      render: (_args, value) => [{ type: 'text', text: String(value?.card ?? value?.text ?? value?.content ?? '') }],
     },
-    async execute(_args, exec) {
+    async execute(args, exec) {
       const { agent, source } = resolveAgent(ctx, exec)
+      const channel = typeof args?.channel === 'string' && args.channel.length > 0 ? args.channel : undefined
+      const name = typeof args?.name === 'string' && args.name.trim().length > 0 ? args.name.trim() : undefined
+      if (channel !== undefined || name !== undefined) {
+        // Single-item mode: the caller asked to read one row, not the whole
+        // snapshot. Hard-capped at 32KB so a page of prompt text cannot flood a
+        // model turn; the full snapshot stays behind the no-argument call.
+        if (channel === undefined || name === undefined) {
+          return { ok: false, error: 'invalid-arguments', message: SINGLE_CONTENT_HINT }
+        }
+        const result = await collectContent(ctx, agent, channel, name, exec?.signal, { limit: TOOL_CONTENT_LIMIT })
+        if (result.ok !== true) {
+          return JSON.parse(
+            JSON.stringify({ ok: false, error: result.error ?? 'content-failed', message: result.message ?? '', channel, name }),
+          )
+        }
+        const payload = {
+          ok: true,
+          item: result.item,
+          contentType: result.contentType,
+          content: result.content,
+          bytes: result.bytes,
+          truncated: result.truncated,
+          limit: result.limit,
+          ...(result.sourcePath === undefined ? {} : { sourcePath: result.sourcePath }),
+          ...(result.note === undefined ? {} : { note: result.note }),
+        }
+        return JSON.parse(JSON.stringify(payload))
+      }
       const snapshot = await buildSnapshot(ctx, agent, source, exec?.signal)
-      const payload = { ...snapshot, text: renderText(snapshot), card: renderCard(snapshot) }
+      const payload = {
+        ok: true,
+        apiVersion: 2,
+        ...snapshot,
+        text: renderText(snapshot),
+        card: renderCard(snapshot),
+      }
       // The tool result must be lossless JSON.
       return JSON.parse(JSON.stringify(payload))
     },
@@ -114,14 +167,23 @@ function createTool(ctx) {
 export function createCommand(ctx) {
   return {
     name: 'inject',
-    description: '查看首轮上下文注入清单；`/inject minimal|all` 切换预设，`/inject budget 20000` 设定预算。',
+    description: '查看首轮上下文注入清单；`/inject health` 看健康检查，`/inject minimal|all` 切换预设，`/inject budget 20000` 设定预算。',
     async handler(invocation) {
       const agent = invocation?.agent
+      const sessionId = typeof agent?.id === 'string' && agent.id.length > 0 ? agent.id : undefined
       const raw = typeof invocation?.rawInput === 'string' ? invocation.rawInput.trim() : ''
       const snapshot = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
       try {
         const [command, value] = raw.split(/\s+/).filter((part) => part.length > 0)
-        if (command === undefined) return { kind: 'success', text: renderText(snapshot) }
+        if (command === undefined) {
+          // The full report plus a single health line: the line is the "should I
+          // care?" answer, and `/inject health` is the detail behind it.
+          return { kind: 'success', text: `${renderText(snapshot)}\n\n${renderHealthLine(buildHealth(snapshot))}` }
+        }
+
+        if (command === 'health') {
+          return { kind: 'success', text: renderHealthText(buildHealth(snapshot)) }
+        }
 
         if (command === 'all' || command === 'minimal') {
           const names = {
@@ -135,7 +197,7 @@ export function createCommand(ctx) {
           const next = presetPolicy(command, names)
           next.prompt = state.policy.prompt
           next.budget = state.policy.budget
-          await savePolicy(next)
+          await savePolicy(next, { sessionId, kind: 'preset', params: { name: command, via: 'command' } })
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           return {
             kind: 'success',
@@ -150,7 +212,10 @@ export function createCommand(ctx) {
           }
           const state = await readPolicy()
           pushUndo(state.policy)
-          await savePolicy({ ...state.policy, budget: { tokens: Math.round(tokens) } })
+          await savePolicy(
+            { ...state.policy, budget: { tokens: Math.round(tokens) } },
+            { sessionId, kind: 'budget', params: { tokens: Math.round(tokens), via: 'command' } },
+          )
           return { kind: 'success', text: `首轮注入预算已设为 ${Math.round(tokens)} token（新会话生效）。` }
         }
 
@@ -168,7 +233,12 @@ export function createCommand(ctx) {
           const next = policyFromPlan(state.policy, plan)
           next.prompt = state.policy.prompt
           next.budget = { tokens: plan.target }
-          await savePolicy(next)
+          await savePolicy(next, {
+            sessionId,
+            kind: 'budget',
+            params: { tokens: plan.target, dropped: plan.drop.length, saved: plan.savedTokens, via: 'plan' },
+            tokensDelta: -plan.savedTokens,
+          })
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           const suites = (plan.dropGroups ?? []).map((group) => `  ${group.label} · ${group.count} 项 · ${group.tokens} token`).join('\n')
           return {
@@ -178,7 +248,7 @@ export function createCommand(ctx) {
         }
 
         if (command === 'undo') {
-          await undoLastPolicy()
+          await undoLastPolicy({ sessionId, params: { via: 'command' } })
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           return {
             kind: 'success',
@@ -188,7 +258,7 @@ export function createCommand(ctx) {
 
         return {
           kind: 'error',
-          text: '可用：/inject · /inject all · /inject minimal · /inject budget <token 数> · /inject apply [token 数] · /inject undo',
+          text: '可用：/inject · /inject health · /inject all · /inject minimal · /inject budget <token 数> · /inject apply [token 数] · /inject undo',
         }
       } catch (error) {
         return { kind: 'error', text: `注入策略操作失败：${error?.message ?? error}` }
@@ -212,6 +282,14 @@ export function apply(ctx, config) {
 
   // The only moment a policy can still influence the first assemble().
   ctx.on('agent/created', async (payload) => {
+    const sessionId = typeof payload?.agent?.id === 'string' ? payload.agent.id : undefined
+    // Fire-and-forget: session creation is serial and blocks the first request,
+    // so the feed write must not sit in its critical path.
+    void appendEvent({
+      sessionId,
+      kind: 'session-created',
+      params: { source: typeof payload?.source === 'string' ? payload.source : 'unknown' },
+    })
     await applyPolicyForAgent(ctx, payload?.agent, payload?.source)
   })
 

@@ -12,6 +12,7 @@ process.env.DSH_HOME = home
 process.env.DSH_AGENTS_HOME = join(home, 'agents')
 
 const { createRoutes } = await import('../lib/routes.js')
+const { flushStats } = await import('../lib/stats.js')
 
 function makeCtx() {
   return {
@@ -258,5 +259,6 @@ test('restore jumps back to an earlier step and clears the rest of the history',
 })
 
 test('cleanup', async () => {
+  await flushStats()
   await rm(home, { recursive: true, force: true })
 })

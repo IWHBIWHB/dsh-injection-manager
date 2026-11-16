@@ -12,6 +12,7 @@ process.env.DSH_AGENTS_HOME = join(home, 'agents')
 await mkdir(join(home, 'injection-manager'), { recursive: true })
 
 const { buildSnapshot } = await import('../lib/snapshot.js')
+const { flushStats } = await import('../lib/stats.js')
 
 let filtered = false
 const toolA = { name: 'mcp__demo__alpha', description: 'alpha tool', parameters: { type: 'object' } }
@@ -52,6 +53,32 @@ test('a tool that vanishes from the assembly is reported as closed', async () =>
   assert.deepEqual(group.items.map((item) => item.name), ['mcp__demo__alpha'])
 })
 
+test('items carry the policy on-flag the panel renders', async () => {
+  filtered = false
+  await writeFile(
+    join(home, 'injection-manager', 'policy.json'),
+    JSON.stringify({
+      version: 2,
+      preset: 'custom',
+      tools: { mode: 'except', names: ['mcp__demo__beta'] },
+      // Locked items stay on even when a policy names them: they cannot be
+      // switched off, so reporting false would contradict the lock reason.
+      contexts: { mode: 'except', names: ['working-directory:current'] },
+    }),
+  )
+  const snapshot = await buildSnapshot(ctx, undefined, 'test')
+  const byKey = new Map(snapshot.items.map((item) => [`${item.channel}:${item.name}`, item]))
+  assert.equal(byKey.get('tools:mcp__demo__alpha').on, true)
+  assert.equal(byKey.get('tools:mcp__demo__beta').on, false)
+  assert.equal(byKey.get('contexts:working-directory:current').on, true, 'locked contexts are always on')
+  assert.equal(byKey.get('contexts:working-directory:current').locked, true)
+  for (const item of snapshot.items) assert.equal(typeof item.on, 'boolean')
+  // The projection and the per-item flags must agree: effective excludes beta.
+  const betaTokens = byKey.get('tools:mcp__demo__beta').tokens
+  assert.equal(snapshot.effective.totals.tokens, snapshot.totals.tokens - betaTokens)
+})
+
 test('cleanup', async () => {
+  await flushStats()
   await rm(home, { recursive: true, force: true })
 })

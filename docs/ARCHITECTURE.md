@@ -1,6 +1,6 @@
 # 架构
 
-这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样。
+这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样；v2 新增的只读表面（内容透视、趋势、事件、健康检查）分别从哪来、写到哪去。
 
 ## 四条注入通道
 
@@ -17,7 +17,7 @@
 
 ## 快照流水线
 
-面板、模型工具、导出文件、应用策略，全部来自同一次 `buildSnapshot()`：
+面板、模型工具、导出文件、应用策略、健康检查、内容抽屉，全部来自同一次 `buildSnapshot()`：
 
 ```
 policy.json ──┐
@@ -33,14 +33,14 @@ Config ───────┤
          previewPolicy() → 关掉后剩多少 / 省多少
          planBudget()    → 目标预算下的关闭建议
               ▼
-   { items, groups, channels, totals, context, policy, undo }
-              ▼
-   panel · context_injection 工具 · /export · applyPolicyForAgent
+   { items(+preview), groups, channels, totals, context, policy, undo }
+              ├─▶ 面板 / context_injection / /export / applyPolicyForAgent
+              └─▶ buildHealth(snapshot) → 健康检查（纯函数，见下）
 ```
 
 `context` 那一路是唯一不由本插件估算的部分：`window` / `pressure` / `projected` 来自宿主的 `contextPressure` 投影，`breakdown` 来自 `contextBreakdown`，（缺分母时才）用 `ctx.llm.resolveModelInfo()` 的 `contextWindow` 兜底；压缩回执由 `session/event` 监听器从 `compaction/*` 累积。因此面板里的占用百分比与宿主自己的「上下文已用 x%」是同一个数，不会各说各话。
 
-关键不变量：**只有一份实现**。浏览器不重算 token、不重算预览；它拿到什么就画什么。这也让「预览数字」和「实际生效」不会打架。
+关键不变量：**只有一份实现**。浏览器不重算 token、不重算预览；它拿到什么就画什么。这也让「预览数字」和「实际生效」不会打架。v2 只加了两个派生：每个条目的 `preview`（快照阶段切好的前 180 字符纯文本）和 `buildHealth()` 的检查结果——两者都从同一份快照算，不额外读盘。
 
 ## 生效时序
 
@@ -63,33 +63,106 @@ agent/created (source=startup|clear)
 
 `resume` / `compact` 不处理：它们带着已有历史，中途改写不是「默认策略」该做的事。
 
-## 数据
+## HTTP 面
 
-| 位置 | 内容 | 谁写 |
-| --- | --- | --- |
-| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记、预算 | 面板动作（原子写） |
-| `$DSH_HOME/injection-manager/` 的旧目录 | `context-injection/`、`context-preflight/` | 只在首次读取时迁移 |
-| 插件行 `config` | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration |
-| 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告、压缩回执（按会话）、路由窗口容量缓存 | 进程内，重启清空 |
+全部挂在 `/plugins/dsh-injection-manager` 下，共 15 条路由：**12 条只读 GET + 3 条 POST-only**（`/action` 改策略；`/boot`、`/registrations` 是客户端自报诊断，二者收到 GET 会返回 405）：
+
+| 路由 | 方法 | 作用 | 响应要点 |
+| --- | --- | --- | --- |
+| `/ping` | GET | 注册自检 | 路由清单、策略文件路径 |
+| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`settings`、`locale` |
+| `/content` | GET | 单条原文 | `?channel=&id=[&session=]`；`contentType`、`content`、`bytes`、`truncated`、`sourcePath`、`note`；256KB 上限、2 秒预算、404/400 分支 |
+| `/trend` | GET | 跨会话趋势 | `?range=all｜30d｜7d&limit=120`（上限 500）；`points[]`、`aggregate`、`coverage {recorded, known}`、`backfilling` |
+| `/events` | GET | 事件流 | `?session=&limit=60`（上限 300）；`events[]`、`coverage {from, count, limit}` |
+| `/health` | GET | 健康检查 | `?session=`；`summary {high,warn,info,checkedAt}`、`checks[]`（`code`、`severity`、`params`、可选 `action`） |
+| `/stats` | GET | 历史与覆盖 | `stats.json` 内容 + `sessions` 头信息（≤60）+ 最近一轮 `backfill` + `backfilling` + `coverage` |
+| `/policy` | GET | 策略文件状态 | 策略、路径、是否迁移、最近一次应用 |
+| `/verify` | GET | 生效核对 | `?session=`；重新装配后的段落/上下文/工具名 |
+| `/diag` | GET | 诊断 | 客户端 boot、最近应用、过滤器调用计数、宿主版本 |
+| `/export` | GET | 导出 | Markdown / JSON |
+| `/locale` | GET | 八语言字典 | 客户端词条 |
+| `/registrations`、`/boot` | **POST** | 客户端自报诊断（仅内存） | 启动表与注册诊断，不落盘；GET 返回 405 |
+| `/action` | **POST** | 改策略入口 | 同源 JSON；开关/预设/预算/导入/撤销 |
+
+约定的响应边界：JSON 单次响应有上限，`/summary` 的条目文本靠 `preview` 控制体积；`/content` 的 256KB 上限和 UTF-8 安全截断在 `lib/content.js` 里实现；`/trend` 的 `limit` 与被回填的会话数都封顶；`/events` 读的是已经封顶 300 条的 `events.json`。
+
+## 数据文件
+
+| 位置 | 内容 | 谁写 | 生命周期 |
+| --- | --- | --- | --- |
+| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记、预算 | 面板动作（原子写） | 持久，卸载后保留 |
+| `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量：`allOn` / `effective` / `saved` / `peak` / `samples` / `firstAt` / `scope` / `policy` / `compactions` / 新快照才有的 `channels` | 每次取快照（面板/工具/命令） | 上限 400 行，原子写，可被日志回填补齐 |
+| `$DSH_HOME/injection-manager/events.json` | `{version:1, events:[…]}`，最多 300 条；每条 `id` / `at` / `kind` / `params`（拍平的原始值，字符串 ≤200 字符，≤24 项）/ `tokensDelta` / 可选 `sessionId` / `dedupeKey` | 策略保存、预设、预算、导入、撤销、压缩 | 追加式；tmp+rename；去重键防重放 |
+| `$DSH_HOME/injection-manager/` 的旧目录 | `context-injection/`、`context-preflight/` | 只在首次读取时迁移 | 只读兼容 |
+| 插件行 `config` | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration | 持久 |
+| 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的 gate 卡 | 面板 | 只在这个浏览器 |
+| 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告、压缩回执（按会话）、路由窗口容量缓存 | 进程内 | 重启清空 |
 
 不上传、不联网、不写 workspace 文件。
+
+## 事件埋点
+
+`lib/events.js` 是唯一的写入口，`appendEvent()` 永不抛错（事件流是锦上添花，写失败不能把一次策略保存变成错误）。当前会产生事件的来源：
+
+| 位置 | kind | 说明 |
+| --- | --- | --- |
+| `index.js` 的 `agent/created` | `session-created` | 新会话建立（`source: startup｜clear`），fire-and-forget，不进首轮关键路径 |
+| `lib/apply.js` 的 `savePolicy()` | `policy-saved` / `preset` / `budget` / `switch` / `import` / `undo` | 由调用方通过 `meta` 指定，缺省 `policy-saved` |
+| `lib/compaction.js` 的摘要/剪枝回执 | `compaction` / `prune` | 宿主的 `compaction/summary`、`compaction/prune` 事件 |
+| `lib/compaction.js` 的失败回执 | `diagnostic` | 宿主报告 `compaction/*` 带 `error` 时写一条：`params {phase:'compaction', error, compactionId}`，用于解释"这次压缩失败了" |
+
+`model-switch` / `mode-toggle` 目前在枚举里预留、本版本不会主动产生（还没有对应的宿主事件入口）；`/inject health` 这类只读命令也不写事件。也就是说：**写策略、压缩/剪枝、压缩失败、新会话**会留下事件，其余读取不会。
+
+去重键 = `时间戳｜kind｜params 的稳定哈希`（压缩事件可由调用方给显式 `dedupeKey`，如 `seq/compactionId`），因此同一条宿主事件被观察两次不会变成两行。`params` 只收原始值：嵌套对象直接丢弃，数组最多 20 项，字符串截到 200 字符——会话正文没有路径能进这个文件。
+
+## 健康检查
+
+`lib/health.js` 的 `buildHealth(snapshot)` 是纯函数：输入一份快照，输出 `{summary, checks}`；唯一的时钟值是 `snapshot.generatedAt`，所以同一份快照两次调用逐字节一致。面板、`/health` 路由、`/inject health` 都调它。
+
+- 固定 9 个 code 的枚举，当前实现实际会产生 7 个：`heavy-suite`（单套 ≥25% 或 ≥30k）、`budget-gap`（预测值超预算）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。
+- `duplicate-skill` 与 `tool-name-collision` **刻意不产生**：这版宿主的技能注册表与工具注册表在插件可见之前就解析掉了重名，报出来就是编造。枚举保留完整，未来宿主能观察到时再加，UI 契约不变。
+- `action.kind` 只有四种：`switch-group` / `set-budget` / `open-content` / `open-tab`；`payload` 直接是 `POST /action` 能吃下的形状（`{channel, group, enabled, op}` 等），面板不再做二次映射。
+- 排序：严重度 → 涉及 token 数 → code；`summary` 按严重度计数，`checkedAt` 来自快照。
+
+## 内容透视
+
+`lib/content.js` 回答「这一行到底是什么」。两条硬规则：
+
+1. **路径白名单**：只打开快照自己收集时登记过的路径（技能的注册路径、工作区规则探测到的文件）。接口不接受调用方给的路径，因此不可能变成任意文件读取。
+2. **截断安全**：上限按字节卡（HTTP 256KB、模型工具 32KB），在码点边界切，绝不切坏多字节字符；响应里的 `bytes` 描述的是实际返回的前缀。
+
+`sourcePath` 只有在真的来自磁盘时才有；`note` 说明来源：`catalog`（技能没有定位到 SKILL.md，给的是目录行）、`file`（磁盘文件）、`assemble`（系统提示词装配结果，无单文件）、`snapshot`（会话快照）。工具内容做 JSON 格式化后返回（`contentType: json`），面板在抽屉里拆成「描述 / 参数表 / 原始 JSON」三视图。路由层给这次收集套 2 秒预算，超时返回 `timeout` 而不是半个结果。
+
+## 洞察数据
+
+`lib/trend.js` 只合并两种诚实来源：本插件写下的 `stats.json` 行（`measured`）和有界的 durable-log 回填（`log`）。回填在**后台**跑，读取从不 await 它：一个进程内单飞的任务，冷却 60 秒、每轮最多 8 个会话、单轮预算 6 秒；`/trend` 立即返回已有行并带 `backfilling: true`，后续轮询会看到后台补进来的行。这样 671 个会话的语料不会让每次打开洞察页都等 7 秒。
+
+- 老行与日志行没有通道分解：`channels` 报 `null`，不补 0；UI 画斜纹。
+- 排序按 `firstAt`（时间轴左→右），`limit` 取最近的 N 个点；`aggregate` 在切 `limit` **之前**算，所以汇总代表整个范围而不是「最近 120 个」。
+- 契约修订（2026-11-16）：`scope` 是自由字符串（常见 `startup｜clear｜route.session｜backfill`，未知值原样透传、截到 64 字符），`policy` 允许 `all｜minimal｜custom｜unknown`——不为迎合枚举而改写历史数据。
+- `coverage {recorded, known}`：`known` 来自 `sessionQuery.listSessions()` 的头信息数量（可失败为 `null`），`recorded` 是范围内的行数。UI 的覆盖率脚注就是这两个数。
 
 ## 包结构
 
 ```
-index.js            插件入口：Config、工具、/inject、路由、agent/created
-lib/snapshot.js     快照与策略预览/预算
-lib/apply.js        四通道生效 + 撤销之外的注册
+index.js            插件入口：Config、工具（含单条内容模式）、/inject、路由、agent/created
+lib/snapshot.js     快照、套件聚类、行内预览、策略预览/预算
+lib/apply.js        四通道生效 + 策略保存（含事件埋点）
 lib/group.js        套件聚类
 lib/policy.js       策略 schema、原子读写、旧目录迁移
-lib/routes.js       HTTP 面（面板、导出、诊断、校验）
+lib/routes.js       HTTP 面（15 条路由、同源写校验、安全头）
+lib/content.js      内容透视：白名单读取、UTF-8 安全截断
+lib/events.js       事件流：校验、去重、封顶、原子写
+lib/trend.js        跨会话趋势：stats + 有界日志回填合并
+lib/health.js       健康检查：纯函数、固定 code 集
+lib/stats.js        历史记录、通道分解、日志定价回填
 lib/history.js      撤销栈
 lib/settings.js     Config 归一化
-lib/text.js         模型卡片与文本报告
+lib/text.js         模型卡片、文本报告、健康摘要
 lib/instructions.js 工作区规则只读探测
 lib/pressure.js     窗口占用（tokenMeter / contextBreakdown / llm 容量）
 lib/compaction.js   压缩回执（session/event 上的 compaction/*）
-client.js           浏览器半包：侧栏图标、主页面、输入框徽标
+client.js           浏览器半包：面板三页、侧栏、输入框徽标、内容抽屉
 locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 ```
 
@@ -97,9 +170,10 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 
 - 写操作（`POST /action`）要求 `content-type: application/json`，且 `sec-fetch-site` 不是跨站；带 `Origin` 时还要求 host 与页面一致。
 - 所有 JSON 响应带 `x-content-type-options: nosniff`、`x-frame-options: DENY`、`cache-control: no-store`。
-- 没有任何 GET 路由会写文件：`/summary`、`/verify`、`/export` 只读策略与当前会话。
-- 策略写入是同目录临时文件 + rename，崩溃时保留旧策略。
-- 插件不发起网络请求，不上传策略或会话内容。
+- 没有任何 GET 路由会写文件：`/summary`、`/content`、`/trend`、`/events`、`/health`、`/stats`、`/verify`、`/export` 都只读策略、快照、统计与事件文件。
+- `/content` 是唯一读磁盘内容的接口，但路径来自快照登记，不接受外部路径；有 2 秒预算与 256KB 上限。
+- 策略与统计、事件写入都是同目录临时文件 + rename，崩溃时保留旧文件。
+- 插件不发起网络请求，不上传策略或会话内容；`events.json` 只收策略与被截断的原始值。
 
 ## 测试
 
@@ -108,8 +182,14 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 | `test/policy.test.mjs` | 模式语义、必填锁定、预算贪心、计划回写 |
 | `test/group.test.mjs` | MCP/前缀/provider 聚类、汇总 |
 | `test/settings.test.mjs` | 配置归一化与默认值 |
-| `test/text.test.mjs` | 工具卡片与文本报告的数字/告警 |
+| `test/text.test.mjs` | 工具卡片、文本报告与健康摘要的数字/告警 |
 | `test/apply.test.mjs` | 假 ctx 下四条通道端到端、幂等、resume 跳过 |
-| `test/routes.test.mjs` | 动作/撤销/导出/同源校验（假 req/res） |
+| `test/routes.test.mjs` | 动作/撤销/导出/同源校验、新路由的分支 |
 | `test/pressure.test.mjs` | 占用分子/分母、容量兜底与缓存、缺数据不瞎猜、阈值档位 |
 | `test/compaction.test.mjs` | 摘要/剪枝/失败回执、未知会话、事件转发 |
+| `test/content.test.mjs` | 白名单、UTF-8 截断、四种 `note`、404/400、超时 |
+| `test/events.test.mjs` | 去重、封顶、参数拍平、原子写、读窗 |
+| `test/trend.test.mjs` | 范围切分、`channels: null`、聚合先于 limit、覆盖率 |
+| `test/health.test.mjs` | 每个 code 的触发条件、排序、summary、不产生的 code |
+| `test/tool-content.test.mjs` | 模型工具单条模式：参数校验、32KB 上限、错误 JSON |
+| `test/command.test.mjs` | `/inject` 子命令（含 health）与错误分支 |

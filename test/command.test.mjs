@@ -11,6 +11,7 @@ process.env.DSH_HOME = home
 process.env.DSH_AGENTS_HOME = join(home, 'agents')
 
 const { createCommand } = await import('../index.js')
+const { flushStats } = await import('../lib/stats.js')
 
 const ctx = {
   workingDirectory: { ensure: async () => home, defaultDirectory: home },
@@ -83,5 +84,8 @@ test('unknown subcommands list the available ones', async () => {
 })
 
 test('cleanup', async () => {
+  // Snapshot reads record stats with an atomic write that lands just after the
+  // response; waiting for it keeps the temp directory removable.
+  await flushStats()
   await rm(home, { recursive: true, force: true })
 })

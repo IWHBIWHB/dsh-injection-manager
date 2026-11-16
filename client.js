@@ -20,7 +20,18 @@
     boot: BASE + '/boot',
     registrations: BASE + '/registrations',
     stats: BASE + '/stats',
+    // v2 read-only surfaces. All GET + JSON, same origin; the host owns every
+    // number and every byte these return.
+    content: BASE + '/content',
+    trend: BASE + '/trend',
+    events: BASE + '/events',
+    health: BASE + '/health',
   }
+
+  // v2 API version the browser half expects. /summary reports it; a v1 host
+  // keeps working with the old surfaces and never sees these requests.
+  const API_V2 = 2
+  const RESOURCE_TTL = 30000
 
   const CHANNELS = ['sections', 'contexts', 'skills', 'tools', 'instructions']
   const MANAGED = ['sections', 'contexts', 'skills', 'tools']
@@ -170,6 +181,23 @@
     statsBackfilled: '刚补齐 {count} 个历史会话',
     statsCurrent: '当前会话',
     statsHistory: '历史记录',
+    // v2 chrome. The full v2 dictionary ships in locale/*.json and arrives with
+    // /summary; these few keep degraded states readable when it does not.
+    'v2.tabInsights': '洞察',
+    'v2.tabsLabel': '面板分区',
+    'v2.apiOld': '宿主接口还是 v1：洞察、内容透视、健康检查需要 v2 宿主插件；升级后自动出现。',
+    'v2.openContent': '查看内容',
+    'v2.health': '健康检查',
+    'v2.retry': '重试',
+    'content.close': '关闭',
+    'content.retry': '重试',
+    'content.copy': '复制全文',
+    'content.search': '在内容里搜索',
+    'trend.title': '首轮注入趋势',
+    'trend.empty': '还没有可画的记录。打开一次面板或新建会话后就会留下数据。',
+    'trend.retry': '重试',
+    'v2.eventsTitle': '本会话事件时间线',
+    'v2.sessions': '会话',
   }
 
   const NAMES_ZH = {
@@ -228,6 +256,51 @@
     return parsed
   }
 
+  // v2 reads: abortable, and a failure carries the host's error code when it
+  // sent one. The cached copy below is only ever a *display* convenience; the
+  // host stays the single source of truth when the next read lands.
+  async function getJsonSignal(url, signal) {
+    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal })
+    let payload = null
+    try {
+      payload = await response.json()
+    } catch {
+      payload = null
+    }
+    if (!response.ok) {
+      const error = new Error((payload && (payload.message || payload.error)) || `HTTP ${response.status}`)
+      error.status = response.status
+      error.code = payload && typeof payload.error === 'string' ? payload.error : undefined
+      throw error
+    }
+    if (payload !== null && typeof payload === 'object' && payload.ok === false) {
+      const error = new Error(payload.message || payload.error || 'request-failed')
+      error.code = typeof payload.error === 'string' ? payload.error : undefined
+      throw error
+    }
+    return payload
+  }
+
+  // 30s cache shared by every instance of the panel. A tab switch re-renders
+  // but does not re-hit the host; an explicit refresh/reload bypasses it.
+  const RESOURCE_CACHE = new Map()
+  function cachePeek(url) {
+    const row = RESOURCE_CACHE.get(url)
+    return row === undefined ? undefined : row.data
+  }
+  function cacheFresh(url, ttl) {
+    const row = RESOURCE_CACHE.get(url)
+    if (row === undefined) return undefined
+    return Date.now() - row.at < ttl ? row.data : undefined
+  }
+  function cacheSet(url, data) {
+    RESOURCE_CACHE.set(url, { at: Date.now(), data })
+    if (RESOURCE_CACHE.size > 48) {
+      const oldest = RESOURCE_CACHE.keys().next()
+      if (oldest.done !== true) RESOURCE_CACHE.delete(oldest.value)
+    }
+  }
+
   const token = (value) => {
     const number = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
     if (number < 1000) return String(number)
@@ -235,7 +308,11 @@
     return `${Math.round((number / 1000000) * 10) / 10}M`
   }
   const digits = (value) => String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  // pct() stays numeric: three call sites do arithmetic with it (budget bar
+  // width, drawer share data). Display-only interpolation uses pctText so one
+  // column never mixes "3%" with "3.6%".
   const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0)
+  const pctText = (part, whole) => (whole > 0 ? (Math.round((part / whole) * 1000) / 10).toFixed(1) + '%' : '0.0%')
 
   const DOCK_STYLE = `
 .ci-dock-wrap{display:inline-flex;align-items:center;gap:0}
@@ -244,7 +321,7 @@
 .ci-dock:focus-visible{outline:2px solid var(--ci-accent,#4d6bfe);outline-offset:2px}
 .ci-dock b{color:var(--ci-fg2,#5f6470);font-weight:600;font-variant-numeric:tabular-nums}
 .ci-dock i{width:5px;height:5px;border-radius:50%;background:var(--ci-accent,#4d6bfe);opacity:.75;display:block}
-.ci-dock em{font-style:normal;color:var(--ci-fg3,#8a8f99);font-size:10.5px}
+.ci-dock em{font-style:normal;color:var(--ci-fg3,#8a8f99);font-size:10px}
 .ci-dock.warn i{background:var(--ci-danger,#b91c1c);opacity:.9}
 .ci-dock-x{width:15px;height:15px;border:0;background:transparent;color:var(--ci-fg3,#8a8f99);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0;transition:opacity .12s}
 .ci-dock-wrap:hover .ci-dock-x,.ci-dock-x:focus-visible{opacity:.55}
@@ -252,13 +329,13 @@
 `
 
   const STYLE = `
-.ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);--ci-danger:var(--dsw-alias-danger-primary,#b91c1c);--ci-win1:#2f4bd8;--ci-win2:#5f7bff;--ci-win3:#a8bcff;color:var(--ci-fg);font-size:12.5px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
+.ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);--ci-danger:var(--dsw-alias-danger-primary,#b91c1c);--ci-win1:#2f4bd8;--ci-win2:#5f7bff;--ci-win3:#a8bcff;color:var(--ci-fg);font-size:12px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
 body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8b95;--ci-line:rgba(255,255,255,.12);--ci-line2:rgba(255,255,255,.07);--ci-bg:#161619;--ci-card:#1d1d21;--ci-accent:#7c8dff;--ci-warn:#fbbf24;--ci-danger:#f87171;--ci-win1:#5f7bff;--ci-win2:#8fa6ff;--ci-win3:#c9d6ff}
 .ci-scroll{overflow:auto;min-height:0}
 .ci-scroll::-webkit-scrollbar{width:8px;height:8px}
 .ci-scroll::-webkit-scrollbar-thumb{background:var(--ci-line);border-radius:8px}
 .ci-head{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
-.ci-head h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.01em}
+.ci-head h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .ci-head p{margin:2px 0 0;color:var(--ci-fg2);font-size:12px}
 .ci-head .ci-spacer{flex:1}
 .ci-btn{border:1px solid var(--ci-line);background:var(--ci-bg);color:var(--ci-fg);border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;line-height:1.5;white-space:nowrap}
@@ -269,12 +346,12 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-body.grow{flex:1 1 auto;min-height:0;overflow:auto;padding-top:12px}
 .ci-manage{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1 1 auto}
 .ci-history{display:flex;flex-direction:column;gap:5px}
-.ci-history-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;color:var(--ci-fg3)}
+.ci-history-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11px;color:var(--ci-fg3)}
 .ci-history-row .d{font-variant-numeric:tabular-nums}
 .ci-history-row .t{font-variant-numeric:tabular-nums;white-space:nowrap}
 .ci-current{display:flex;flex-direction:column;gap:10px}
 .ci-section-title{font-size:12px;font-weight:600;color:var(--ci-fg2);padding:2px 0}
-.ci-stathead,.ci-statrow{display:grid;grid-template-columns:minmax(0,90px) 130px 88px 96px 72px minmax(0,1fr);gap:8px;align-items:center;font-size:11.5px}
+.ci-stathead,.ci-statrow{display:grid;grid-template-columns:minmax(0,90px) 130px 88px 96px 72px minmax(0,1fr);gap:8px;align-items:center;font-size:11px}
 .ci-stathead{color:var(--ci-fg3);padding-bottom:4px;border-bottom:1px solid var(--ci-line2)}
 .ci-statrow{padding:4px 0;border-bottom:1px solid var(--ci-line2);color:var(--ci-fg2)}
 .ci-statrow:last-child{border-bottom:0}
@@ -290,29 +367,31 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-card.ci-overview{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
 .ci-donut{display:flex;align-items:center;gap:14px;min-width:0}
 .ci-donut-svg{flex:0 0 auto}
-.ci-donut-v{font-size:19px;font-weight:600;fill:var(--ci-fg)}
+.ci-donut-v{font-size:18px;font-weight:600;fill:var(--ci-fg)}
 .ci-donut-k{font-size:10px;fill:var(--ci-fg3)}
-.ci-donut-legend{display:flex;flex-direction:column;gap:5px;min-width:0}
-.ci-donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 44px;gap:6px;align-items:center;font-size:11.5px}
+.ci-donut-legend{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 auto}
+.ci-donut-row{display:grid;grid-template-columns:10px minmax(0,1fr) minmax(52px,auto) 44px;gap:6px;align-items:center;font-size:11px}
+.ci-donut-row b{text-align:right}
 .ci-donut-row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ci-fg2)}
 .ci-donut-row b{font-weight:600;font-variant-numeric:tabular-nums}
 .ci-donut-row .p{color:var(--ci-fg3);text-align:right;font-variant-numeric:tabular-nums}
 .ci-bars{display:flex;flex-direction:column;gap:7px;min-width:0}
 .ci-bars-title{font-size:11px;color:var(--ci-fg3);margin-bottom:1px}
-.ci-barrow{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;min-width:0}
+.ci-barrow{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11px;min-width:0}
 .ci-barrow .ci-bar-track{min-width:0}
 .ci-barrow.off .n,.ci-barrow.off .t{color:var(--ci-fg3)}
 .ci-barrow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-barrow .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
-.ci-bar-track{height:8px;border-radius:5px;background:var(--ci-line2);overflow:hidden;display:block}
+.ci-bar-track{height:8px;border-radius:5px;background:var(--ci-line2);overflow:hidden;display:flex;min-width:3px}
 .ci-bar-fill{display:block;height:100%;border-radius:5px}
+.ci-bar-closed{display:block;height:100%;border-radius:5px;opacity:.28;min-width:3px}
 .ci-spark{display:block;width:100%;height:18px;margin:4px 0 2px;opacity:.9}
 .ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:8px 10px;min-width:0}
-.ci-kpi .k{font-size:11.5px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-kpi .v{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.35}
-.ci-kpi .s{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ci-kpi .k{font-size:11px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kpi .v{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.35}
+.ci-kpi .s{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ci-kpi.tone-warn .v{color:var(--ci-warn)}
 .ci-kpi.tone-danger .v{color:var(--ci-danger)}
 .ci-window-head{display:flex;align-items:baseline;gap:8px;min-width:0}
@@ -322,13 +401,13 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-skills{display:flex;flex-direction:column;gap:8px}
 .ci-skills-head{display:flex;align-items:center;gap:12px;min-width:0}
 .ci-skills-num{display:flex;align-items:baseline;gap:3px;flex:0 0 auto}
-.ci-skills-num b{font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.ci-skills-num span{font-size:11.5px;color:var(--ci-fg3)}
+.ci-skills-num b{font-size:20px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ci-skills-num span{font-size:11px;color:var(--ci-fg3)}
 .ci-skills-text{flex:1 1 auto;min-width:0}
-.ci-skills-text .k{font-size:12.5px;font-weight:600}
-.ci-skills-text .s{font-size:11.5px;color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-skills-text .k{font-size:12px;font-weight:600}
+.ci-skills-text .s{font-size:11px;color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-skills-providers{display:flex;flex-wrap:wrap;gap:4px 14px}
-.ci-skills-provider{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11.5px;cursor:pointer;padding:2px 0;min-width:0}
+.ci-skills-provider{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11px;cursor:pointer;padding:2px 0;min-width:0}
 .ci-skills-provider:hover{color:var(--ci-fg)}
 .ci-skills-provider .n{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-skills-provider .ci-bar-track{width:56px;height:6px;flex:0 0 56px}
@@ -340,16 +419,16 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-skills-provider{flex:0 0 100%}
 .ci-skills-provider .n{max-width:none;flex:1 1 auto}
 }
-.ci-skills-note{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-skills-note{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-kinds{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.ci-kinds .lbl{font-size:11.5px;color:var(--ci-fg3);margin-right:2px}
-.ci-kind{display:inline-flex;align-items:baseline;gap:5px;border:1px solid var(--ci-line2);background:var(--ci-bg);color:var(--ci-fg2);border-radius:999px;padding:2px 9px;font-size:11.5px;cursor:pointer}
+.ci-kinds .lbl{font-size:11px;color:var(--ci-fg3);margin-right:2px}
+.ci-kind{display:inline-flex;align-items:baseline;gap:5px;border:1px solid var(--ci-line2);background:var(--ci-bg);color:var(--ci-fg2);border-radius:999px;padding:2px 9px;font-size:11px;cursor:pointer}
 .ci-kind:hover{border-color:var(--ci-line);color:var(--ci-fg)}
 .ci-kind b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ci-fg)}
 .ci-kind .p{color:var(--ci-fg3);font-variant-numeric:tabular-nums}
 .ci-kind.on{border-color:var(--ci-accent);color:var(--ci-accent)}
 .ci-kind.on b{color:var(--ci-accent)}
-.ci-strip{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);min-width:0}
+.ci-strip{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
 .ci-strip .k{color:var(--ci-fg2);font-weight:600;white-space:nowrap}
 .ci-strip .ci-window-bar{flex:1 1 220px;min-width:110px}
 .ci-strip .lg{display:flex;gap:4px 12px;flex-wrap:wrap;min-width:0}
@@ -374,17 +453,17 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-legend i{width:8px;height:8px;border-radius:3px;display:block}
 .ci-legend b{color:var(--ci-fg);font-weight:600}
 .ci-tabs{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;align-self:flex-start;margin:0 20px 10px;flex:0 0 auto}
-.ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:5px 13px;font-size:12.5px;cursor:pointer;border-radius:6px;line-height:1.6}
+.ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:5px 13px;font-size:12px;cursor:pointer;border-radius:6px;line-height:1.6}
 .ci-tabs button:hover{color:var(--ci-fg)}
 .ci-tabs button.on{background:var(--ci-bg);color:var(--ci-fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.07)}
 body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-shadow:none}
 .ci-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
 .ci-select{border:1px solid var(--ci-line);border-radius:8px;background:var(--ci-bg);color:var(--ci-fg);font:inherit;font-size:12px;padding:4px 8px;cursor:pointer;max-width:150px}
 .ci-select:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
-.ci-viewopts button{font-size:11.5px;padding:4px 9px}
+.ci-viewopts button{font-size:11px;padding:4px 9px}
 @media (max-width:1220px){.ci-select{display:none}}
 @media (max-width:1040px){.ci-viewopts{display:none}}
-.ci-activefilters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);flex:0 0 auto}
+.ci-activefilters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);flex:0 0 auto}
 .ci-activefilters .lbl{white-space:nowrap}
 .ci-input{flex:1;min-width:120px;border:1px solid var(--ci-line);border-radius:8px;padding:5px 10px;font-size:12px;background:var(--ci-bg);color:var(--ci-fg);outline:none}
 .ci-input:focus{border-color:var(--ci-accent)}
@@ -396,8 +475,8 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-sort{width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-align:inherit}
 .ci-sort:hover{color:var(--ci-fg2)}
 .ci-sort.active{color:var(--ci-fg)}
-.ci-arrow{font-size:9px;opacity:.55;line-height:1}
-.ci-row{border-bottom:1px solid var(--ci-line2);font-size:12.5px}
+.ci-arrow{font-size:10px;opacity:.55;line-height:1}
+.ci-row{border-bottom:1px solid var(--ci-line2);font-size:12px}
 .ci-row:last-child{border-bottom:0}
 .ci-row:hover{background:var(--ci-card)}
 .ci-row .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -409,7 +488,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-btn:focus-visible,.ci-chip:focus-visible,.ci-switch:focus-visible,.ci-seg button:focus-visible,.ci-tabs button:focus-visible,.ci-legend button:focus-visible,.ci-grouphead:focus-visible,.ci-input:focus-visible,.ci-dock:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.ci-root *{transition:none!important;animation:none!important}}
 .ci-tag{font-size:10px;line-height:1.6;padding:0 5px;border-radius:999px;border:1px solid var(--ci-line);color:var(--ci-fg3);margin-left:6px;white-space:nowrap}
-.ci-lock{justify-self:end;font-size:10.5px;color:var(--ci-fg2);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.ci-lock{justify-self:end;font-size:10px;color:var(--ci-fg2);border:1px solid var(--ci-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .ci-row.locked .n{color:var(--ci-fg2)}
 .ci-row-off .n,.ci-row-off .num{color:var(--ci-fg3)}
 .ci-switch{position:relative;width:34px;height:20px;border-radius:999px;border:0;background:var(--ci-line);cursor:pointer;padding:0;justify-self:end;transition:background .15s}
@@ -429,14 +508,11 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-card{border:1px solid var(--ci-line2);border-radius:8px;padding:12px 14px;background:var(--ci-card);display:flex;flex-direction:column;gap:8px}
 .ci-card h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2)}
 .ci-rowline{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.ci-rowline .lbl{font-size:12.5px}
+.ci-rowline .lbl{font-size:12px}
 .ci-rowline .hint{font-size:11px;color:var(--ci-fg3)}
 .ci-seg{display:inline-flex;border:1px solid var(--ci-line);border-radius:8px;overflow:hidden}
-.ci-seg.ci-scope{border-color:var(--ci-accent)}
-.ci-seg.ci-scope button{font-weight:600}
-.ci-seg.ci-scope button.on{background:var(--ci-accent);color:#fff}
 .ci-tag-closed{border-color:var(--ci-warn);color:var(--ci-warn)}
-.ci-seg button{border:0;background:transparent;color:var(--ci-fg2);padding:4px 10px;font-size:11.5px;cursor:pointer}
+.ci-seg button{border:0;background:transparent;color:var(--ci-fg2);padding:4px 10px;font-size:11px;cursor:pointer}
 .ci-seg button.on{background:var(--ci-fg);color:var(--ci-bg)}
 .ci-empty{padding:26px 12px;text-align:center;color:var(--ci-fg3);font-size:12px}
 .ci-skel{height:56px;border-radius:10px;background:var(--ci-card);border:1px solid var(--ci-line2)}
@@ -450,7 +526,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-dock:hover{opacity:1;border-color:var(--ci-line);background:var(--ci-bg)}
 .ci-dock b{color:var(--ci-fg2);font-weight:600;font-variant-numeric:tabular-nums}
 .ci-dock i{width:5px;height:5px;border-radius:50%;background:var(--ci-accent);opacity:.75;display:block}
-.ci-dock em{font-style:normal;color:var(--ci-fg3);font-size:10.5px}
+.ci-dock em{font-style:normal;color:var(--ci-fg3);font-size:10px}
 .ci-dock-x{width:15px;height:15px;border:0;background:transparent;color:var(--ci-fg3);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0;transition:opacity .12s}
 .ci-dock-wrap:hover .ci-dock-x,.ci-dock-x:focus-visible{opacity:.55}
 .ci-dock-x:hover{opacity:1}
@@ -459,14 +535,292 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-toast .ci-btn{padding:2px 8px;font-size:11px}
 .ci-side{display:flex;flex-direction:column;min-height:0;height:100%}
 .ci-side .ci-body{padding:12px 12px 16px;gap:10px;flex:1 1 auto;min-height:0;overflow:auto}
+/* ============================================================ v2 surfaces
+   Everything below is new in 2.0: KPI budget tone, health strip, inline
+   previews, the content drawer, the hand-written trend chart, insights grids
+   and the settings preferences. Tokens follow the host contract: 8px spacing
+   grid, 11/12/13/15/20 type, 8/10/12 radii, --dsw-alias-* first. */
+.ci-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:1.7;padding:0 7px;border-radius:999px;border:1px solid var(--ci-line);color:var(--ci-fg3);white-space:nowrap;background:transparent}
+.ci-badge.accent{border-color:var(--ci-accent);color:var(--ci-accent)}
+.ci-badge.warn{border-color:var(--ci-warn);color:var(--ci-warn)}
+.ci-badge.danger{border-color:var(--ci-danger);color:var(--ci-danger)}
+.ci-btn.ci-sm{padding:2px 8px;font-size:11px;border-radius:8px}
+.ci-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.ci-errorbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--ci-warn);background:var(--ci-card);color:var(--ci-warn);border-radius:8px;padding:6px 10px;font-size:12px;min-width:0}
+.ci-errorbar .ci-btn{color:var(--ci-fg)}
+.ci-stale{font-size:11px;color:var(--ci-warn)}
+.ci-inline-meta{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-inline-meta b{font-weight:600;color:var(--ci-fg2);font-variant-numeric:tabular-nums}
+/* ---- manage: health strip ---- */
+.ci-health{display:flex;flex-direction:column;gap:0;border:1px solid var(--ci-line2);border-radius:10px;background:var(--ci-card);padding:7px 12px 8px;font-size:12px;min-width:0}
+.ci-health-head{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-width:0}
+.ci-health-title{font-weight:600;font-size:12px;color:var(--ci-fg2);white-space:nowrap}
+.ci-health-counts{display:flex;gap:10px;color:var(--ci-fg3);font-size:11px;flex-wrap:wrap}
+.ci-health-counts b{font-variant-numeric:tabular-nums;color:var(--ci-fg2);font-weight:600;margin-right:2px}
+.ci-health-counts .high b{color:var(--ci-danger)}
+.ci-health-counts .warn b{color:var(--ci-warn)}
+.ci-health-counts .sep{color:var(--ci-line);padding:0 1px}
+.ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 0 0;margin-top:5px;border-top:1px solid var(--ci-line2)}
+.ci-health-row .sev{width:8px;height:8px;border-radius:50%;display:block;background:var(--ci-fg3)}
+.ci-health-row .sev.high{background:var(--ci-danger)}
+.ci-health-row .sev.warn{background:var(--ci-warn)}
+.ci-health-row .sev.info{background:var(--ci-fg3)}
+.ci-health-text{min-width:0;color:var(--ci-fg2);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.ci-health-allclear{font-size:11px;color:var(--ci-fg3);padding-top:3px}
+.ci-health .ci-btn{align-self:center}
+/* ---- manage: inline preview row ---- */
+.ci-caret-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 16px;padding:0;margin-right:4px;border:0;border-radius:4px;background:transparent;color:var(--ci-fg3);font-size:10px;line-height:1;cursor:pointer;vertical-align:-3px;transition:transform .12s}
+.ci-caret-btn:hover{color:var(--ci-fg);background:var(--ci-line2)}
+.ci-caret-btn[aria-expanded="true"]{transform:rotate(90deg)}
+.ci-row-preview{padding:6px 12px 9px 34px;background:var(--ci-card);border-bottom:1px solid var(--ci-line2);box-shadow:inset 2px 0 0 var(--ci-line2);display:flex;flex-direction:column;gap:6px;min-width:0}
+.ci-row-preview .pv{margin:0;font-size:12px;line-height:1.55;color:var(--ci-fg2);white-space:pre-wrap;word-break:break-word;font-family:inherit}
+.ci-row-preview .meta{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-row-preview .actions{display:flex;gap:6px;flex-wrap:wrap}
+/* ---- content drawer ---- */
+.ci-drawer-backdrop{position:fixed;inset:0;z-index:60;background:rgba(15,15,20,.38)}
+.ci-drawer{position:fixed;top:0;right:0;bottom:0;z-index:61;width:min(520px,92%);max-width:100%;display:flex;flex-direction:column;min-height:0;background:var(--ci-bg);color:var(--ci-fg);border-left:1px solid var(--ci-line);box-shadow:-10px 0 34px rgba(0,0,0,.2);outline:none}
+.ci-drawer-head{display:flex;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto;min-width:0}
+.ci-drawer-title{flex:1 1 auto;min-width:0}
+.ci-drawer-title h2{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-breadcrumb{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);margin-bottom:2px;min-width:0}
+.ci-breadcrumb .sep{opacity:.5}
+.ci-breadcrumb .last{color:var(--ci-fg2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-drawer-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto;font-size:11px;min-width:0}
+.ci-drawer-source{display:flex;align-items:center;gap:6px;padding:6px 16px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto;font-size:11px;color:var(--ci-fg3);min-width:0;flex-wrap:wrap}
+.ci-drawer-path{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:11px;color:var(--ci-fg2);word-break:break-all;min-width:0;flex:1 1 auto}
+.ci-drawer-search{flex:1 1 130px;min-width:110px}
+.ci-drawer-body{flex:1 1 auto;min-height:0;overflow:auto;padding:8px 0 24px}
+.ci-drawer-note{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 16px 0;border:1px solid var(--ci-warn);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--ci-warn)}
+.ci-content-lines{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:12px;line-height:1.6;min-width:0}
+.ci-content-line{display:flex;gap:10px;padding:0 16px;min-width:0}
+.ci-content-line:hover{background:var(--ci-card)}
+.ci-content-line .ln{flex:0 0 44px;text-align:right;color:var(--ci-fg3);user-select:none;font-variant-numeric:tabular-nums;font-size:11px}
+.ci-content-line .tx{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}
+.ci-content-plain{padding:4px 16px;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.6;font-family:inherit}
+.ci-content-hit{background:rgba(77,107,254,.24);border-radius:2px;color:inherit}
+body[data-ds-dark-theme] .ci-content-hit{background:rgba(124,141,255,.34)}
+.ci-drawer-empty{padding:28px 16px;text-align:center;color:var(--ci-fg3);font-size:12px}
+.ci-drawer-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:6px 16px;border-top:1px solid var(--ci-line2);font-size:11px;color:var(--ci-fg3)}
+/* ---- insights ---- */
+.ci-insights{display:flex;flex-direction:column;gap:12px;min-width:0}
+.ci-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:start;min-width:0}
+@container (max-width:900px){.ci-grid2{grid-template-columns:minmax(0,1fr)}}
+.ci-card.ci-pad0{padding:0;overflow:hidden}
+.ci-cardhead{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-width:0}
+.ci-cardhead h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2);white-space:nowrap}
+.ci-cardhead .sp{flex:1 1 auto}
+.ci-cardhead .hint{font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-seg.ci-small button{padding:2px 9px;font-size:11px}
+/* trend chart */
+.ci-trend{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ci-trend-wrap{position:relative;min-width:0}
+.ci-trend-svg{display:block;width:100%;height:auto}
+.ci-trend-axis text{fill:var(--ci-fg3);font-size:10px;font-variant-numeric:tabular-nums}
+.ci-trend-grid line{stroke:var(--ci-line2)}
+.ci-trend-bar{cursor:pointer;outline:none}
+.ci-trend-bar .ci-trend-hit{fill:transparent}
+.ci-trend-bar:hover .ci-trend-hit,.ci-trend-bar:focus .ci-trend-hit{fill:var(--ci-line2);opacity:.6}
+.ci-trend-bar:focus-visible .ci-trend-focus{stroke:var(--ci-accent);stroke-width:2}
+.ci-trend-tip{position:absolute;z-index:4;pointer-events:none;min-width:176px;max-width:var(--ci-tip-w,220px);background:var(--ci-bg);border:1px solid var(--ci-line);border-radius:var(--ci-radius-row,6px);box-shadow:var(--ci-shadow-pop);padding:8px 10px;font-size:var(--ci-fs-body,12px);color:var(--ci-fg2);display:flex;flex-direction:column;gap:4px;animation:ci-tip-in .2s ease}
+.ci-trend-tip .t{font-weight:600;color:var(--ci-fg);font-size:12px}
+.ci-trend-tip .r{display:flex;align-items:center;gap:8px;justify-content:space-between;min-width:0}
+.ci-trend-tip .r .l{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-trend-tip .r b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ci-fg);white-space:nowrap}
+.ci-trend-tip .sw{width:8px;height:8px;border-radius:2px;display:block;flex:0 0 8px}
+.ci-trend-tip .sep{height:1px;background:var(--ci-line2);margin:2px 0}
+.ci-trend-legend{display:flex;flex-wrap:wrap;gap:2px 6px;font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-trend-legend button{display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;padding:1px 6px;border-radius:999px;cursor:pointer;min-width:0}
+.ci-trend-legend button:hover{color:var(--ci-fg2)}
+.ci-trend-legend button[aria-pressed="false"]{opacity:.42;text-decoration:line-through}
+.ci-trend-legend i{width:8px;height:8px;border-radius:2px;display:block;flex:0 0 8px}
+.ci-trend-legend .unknown i{background:repeating-linear-gradient(45deg,var(--ci-fg3) 0 1.5px,transparent 1.5px 4px)}
+.ci-trend-agg{display:flex;align-items:baseline;gap:8px 20px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-trend-agg .cell{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+.ci-trend-agg b{font-size:15px;font-weight:600;color:var(--ci-fg);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.ci-trend-empty{padding:26px 12px;text-align:center;color:var(--ci-fg3);font-size:12px}
+.ci-trend-note{font-size:11px;color:var(--ci-fg3);line-height:1.5}
+.ci-trend-note .hatch{display:inline-block;width:16px;height:8px;border-radius:2px;vertical-align:-1px;margin-right:3px;background:repeating-linear-gradient(45deg,var(--ci-fg3) 0 1.5px,transparent 1.5px 4px);border:1px solid var(--ci-line2)}
+/* sessions */
+.ci-session-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ci-session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:8px;min-width:0}
+.ci-session{border:1px solid var(--ci-line2);border-radius:10px;background:var(--ci-bg);padding:8px 10px 9px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.ci-session.live{border-color:var(--ci-accent)}
+.ci-session .top{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:var(--ci-fg3)}
+.ci-session .top .sid{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ci-fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:0 1 auto}
+.ci-session .top .when{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ci-session .big{font-size:20px;font-weight:600;letter-spacing:-.015em;line-height:1.2;font-variant-numeric:tabular-nums}
+.ci-session .big small{font-size:11px;font-weight:400;color:var(--ci-fg3);margin-left:5px;letter-spacing:0}
+.ci-session .sub{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-session .mini-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--ci-line2);gap:1px}
+.ci-session .mini-bar span{display:block;min-width:1px}
+.ci-session .mini-bar.unknown{background:repeating-linear-gradient(45deg,var(--ci-line2) 0 3px,transparent 3px 6px)}
+.ci-session .badges{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+/* events */
+.ci-events{display:flex;flex-direction:column;min-width:0}
+.ci-events-list{display:flex;flex-direction:column;max-height:300px;overflow:auto;min-width:0;padding-right:2px}
+.ci-event{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:start;padding:6px 0;min-width:0;border-top:1px solid var(--ci-line2)}
+.ci-event:first-child{border-top:0}
+.ci-event .dot{width:8px;height:8px;border-radius:50%;display:block;margin-top:5px;background:var(--ci-line)}
+.ci-event .dot.k-switch,.ci-event .dot.k-policy-saved,.ci-event .dot.k-preset{background:var(--ci-accent)}
+.ci-event .dot.k-budget,.ci-event .dot.k-import{background:var(--ci-warn)}
+.ci-event .dot.k-compaction,.ci-event .dot.k-prune{background:var(--ci-fg3)}
+.ci-event .body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.ci-event .lbl{font-size:12px;color:var(--ci-fg);font-weight:500;line-height:1.45}
+.ci-event .prm{display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
+.ci-event .when{font-size:11px;color:var(--ci-fg3);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.ci-event .delta{color:var(--ci-fg2);font-variant-numeric:tabular-nums}
+.ci-event .delta.neg{color:var(--ci-fg3)}
+/* settings prefs / version */
+.ci-prefs{display:flex;flex-direction:column;gap:8px}
+.ci-prefrow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.ci-prefrow .lbl{font-size:12px;min-width:0}
+.ci-prefrow .hint{font-size:11px;color:var(--ci-fg3);margin-left:8px}
+.ci-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:11px;color:var(--ci-fg3);align-items:baseline}
+.ci-kv b{color:var(--ci-fg2);font-weight:500;font-variant-numeric:tabular-nums;word-break:break-all}
+.ci-kv .k{white-space:nowrap}
+@container (max-width:560px){
+  .ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ci-kpi .v{font-size:18px}
+  .ci-session-grid{grid-template-columns:minmax(0,1fr)}
+  .ci-trend-tip{max-width:212px}
+}
+/* ---- design tokens (self-owned, host variables first) ---------------------
+   The 20-token set from _research/v2-bench.md §7. Values are applied below so
+   every new surface reads from --ci-*; a host variable wins when present. */
+.ci-root{
+  --ci-space-1:2px;--ci-space-2:4px;--ci-space-3:6px;--ci-space-4:8px;--ci-space-5:12px;--ci-space-6:16px;--ci-space-7:24px;
+  --ci-radius-chip:4px;--ci-radius-row:6px;--ci-radius-card:10px;--ci-radius-pill:999px;
+  --ci-fs-micro:10px;--ci-fs-label:11px;--ci-fs-body:12px;--ci-fs-title:13px;--ci-fs-kpi:20px;--ci-fs-stat:18px;
+  --ci-hairline:1px;
+  --ci-shadow-card:0 1px 2px rgba(0,0,0,.05);
+  --ci-shadow-pop:0 8px 24px rgba(0,0,0,.16);
+  --ci-motion:.2s ease;
+  --ci-chart-bar:14px;--ci-chart-gap:2px;--ci-chart-h:150px;--ci-tip-w:220px;
+  --ci-good:var(--dsw-alias-success-primary,#15803d);
+  --ci-track:rgba(0,0,0,.06);
+  font-size:var(--ci-fs-body);
+}
+body[data-ds-dark-theme] .ci-root{
+  --ci-hairline:1px;
+  --ci-shadow-card:none;
+  --ci-shadow-pop:0 8px 24px rgba(0,0,0,.5);
+  --ci-good:var(--dsw-alias-success-primary,#4ade80);
+  --ci-track:rgba(255,255,255,.1);
+}
+.ci-card{border-radius:var(--ci-radius-card);padding:var(--ci-space-4) var(--ci-space-5);box-shadow:var(--ci-shadow-card)}
+.ci-card h2{font-size:var(--ci-fs-title);font-weight:600}
+.ci-btn{border-radius:var(--ci-radius-row)}
+.ci-badge{border-radius:var(--ci-radius-chip)}
+.ci-kpi{border-radius:var(--ci-radius-card);padding:var(--ci-space-4)}
+.ci-kpi .v{font-size:var(--ci-fs-kpi)}
+.ci-kpis{gap:var(--ci-space-4)}
+.ci-block-gap{gap:var(--ci-space-5)}
+/* range pills — a third control tier next to Segmented and FilterChip */
+.ci-pills{display:inline-flex;align-items:center;gap:var(--ci-space-2);flex-wrap:wrap}
+.ci-pills button{border:1px solid var(--ci-line);background:transparent;color:var(--ci-fg2);border-radius:var(--ci-radius-pill);padding:3px 11px;font-size:var(--ci-fs-label);line-height:1.6;cursor:pointer;transition:background var(--ci-motion),border-color var(--ci-motion)}
+.ci-pills button:hover{border-color:var(--ci-fg3);color:var(--ci-fg)}
+.ci-pills button.on{background:var(--ci-fg);border-color:transparent;color:var(--ci-bg);font-weight:600}
+.ci-pills button:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
+/* persistent filter bar */
+.ci-filterbar{display:flex;align-items:center;gap:var(--ci-space-2);flex-wrap:wrap;font-size:var(--ci-fs-label);color:var(--ci-fg3);min-height:24px;flex:0 0 auto}
+.ci-filterbar .lbl{white-space:nowrap;color:var(--ci-fg2)}
+.ci-filterchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--ci-line);background:var(--ci-card);color:var(--ci-fg2);border-radius:var(--ci-radius-chip);padding:1px 4px 1px 8px;font-size:var(--ci-fs-label);line-height:1.7;max-width:220px}
+.ci-filterchip .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ci-filterchip button{border:0;background:transparent;color:var(--ci-fg3);cursor:pointer;font-size:12px;line-height:1;padding:2px 4px;border-radius:3px}
+.ci-filterchip button:hover{color:var(--ci-fg);background:var(--ci-line2)}
+.ci-filterchip:focus-within{border-color:var(--ci-accent)}
+.ci-filterclear{border:0;background:transparent;color:var(--ci-accent);font-size:var(--ci-fs-label);cursor:pointer;padding:1px 4px}
+.ci-filterclear:hover{text-decoration:underline}
+/* signed delta badge: relative to an all-on policy */
+.ci-delta{display:inline-flex;align-items:center;font-size:var(--ci-fs-micro);line-height:1.6;padding:0 5px;border-radius:var(--ci-radius-chip);border:1px solid var(--ci-line);color:var(--ci-good);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:6px}
+.ci-delta.zero{color:var(--ci-fg3)}
+/* gate card for apiVersion < 2 */
+.ci-gate{display:flex;flex-direction:column;gap:var(--ci-space-3);border:1px solid var(--ci-warn);border-left-width:3px;border-radius:var(--ci-radius-card);background:var(--ci-card);padding:var(--ci-space-4) var(--ci-space-5)}
+.ci-gate h2{font-size:var(--ci-fs-title);font-weight:600;margin:0;color:var(--ci-fg)}
+.ci-gate p{margin:0;font-size:var(--ci-fs-body);color:var(--ci-fg2);line-height:1.55}
+.ci-gate .kv{display:flex;gap:var(--ci-space-5);flex-wrap:wrap;font-size:var(--ci-fs-label);color:var(--ci-fg3)}
+.ci-gate .kv b{color:var(--ci-fg2);font-weight:600;font-variant-numeric:tabular-nums;margin-left:4px}
+.ci-gate .actions{display:flex;gap:var(--ci-space-3);flex-wrap:wrap}
+/* layout-shaped skeletons: same boxes as the real surfaces, aria-hidden */
+.ci-skel-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ci-space-4)}
+.ci-skel-kpis .ci-skel{height:78px;border-radius:var(--ci-radius-card)}
+.ci-skel-strip{height:28px;border-radius:var(--ci-radius-row)}
+.ci-skel-table{display:flex;flex-direction:column;gap:1px;border:1px solid var(--ci-line2);border-radius:var(--ci-radius-card);overflow:hidden;background:var(--ci-bg)}
+.ci-skel-table .head{height:30px;background:var(--ci-card)}
+.ci-skel-table .row{height:34px;border-top:1px solid var(--ci-line2)}
+.ci-skel-chart{height:var(--ci-chart-h);border-radius:var(--ci-radius-row);background:linear-gradient(180deg,var(--ci-card),transparent);border:1px solid var(--ci-line2);display:flex;align-items:flex-end;gap:6px;padding:8px 10px}
+.ci-skel-chart span{flex:1;border-radius:3px 3px 0 0;background:var(--ci-line2);min-height:8px}
+.ci-skel-lines{display:flex;flex-direction:column;gap:8px;padding:4px 0}
+.ci-skel-lines .line{height:12px;border-radius:3px;background:var(--ci-card);border:1px solid var(--ci-line2)}
+.ci-skel-lines .line:nth-child(2n){width:72%}
+.ci-skel-lines .line:nth-child(3n){width:88%}
+@container (max-width:560px){.ci-skel-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* tools content: description / parameter table / raw JSON */
+.ci-drawer-desc{margin:0;font-size:var(--ci-fs-body);line-height:1.6;color:var(--ci-fg2);white-space:pre-wrap;word-break:break-word}
+.ci-drawer-sect{padding:0 16px;display:flex;flex-direction:column;gap:var(--ci-space-3)}
+.ci-drawer-sect h3{font-size:var(--ci-fs-title);font-weight:600;margin:var(--ci-space-4) 0 var(--ci-space-2);color:var(--ci-fg)}
+.ci-param-table{width:calc(100% - 32px);margin:0 16px;border-collapse:collapse;font-size:var(--ci-fs-body)}
+.ci-param-table th{font-size:var(--ci-fs-label);font-weight:600;color:var(--ci-fg3);text-align:left;padding:6px 8px 4px;border-bottom:1px solid var(--ci-line2);background:transparent}
+.ci-param-table td{padding:6px 8px;border-bottom:1px solid var(--ci-line2);vertical-align:top;color:var(--ci-fg2)}
+.ci-param-table td.name{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ci-fg);white-space:nowrap}
+.ci-param-table td.type{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:var(--ci-fs-label);color:var(--ci-fg3);white-space:nowrap}
+.ci-param-table td.req{text-align:center;color:var(--ci-good)}
+.ci-param-table td.desc{line-height:1.5}
+.ci-empty-next{display:flex;flex-direction:column;gap:var(--ci-space-3);align-items:flex-start;padding:20px 12px;color:var(--ci-fg3);font-size:var(--ci-fs-body);text-align:left}
+.ci-empty-next .ci-btn{align-self:flex-start}
+.ci-suitename{border:0;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer;padding:0;margin:0;margin-right:4px;text-align:left;border-radius:3px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-suitename:hover{color:var(--ci-accent);text-decoration:underline;text-underline-offset:2px}
+.ci-suitename:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
+.ci-trend-tip-hint{font-size:var(--ci-fs-micro);color:var(--ci-fg3);border-top:1px solid var(--ci-line2);padding-top:3px;margin-top:2px}
+@keyframes ci-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.ci-trend-tip{animation:none}}
+/* manage overview: two peer cards instead of one mixed card */
+.ci-manage-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch}
+@container (max-width:900px){.ci-manage-overview{grid-template-columns:minmax(0,1fr)}}
+.ci-overview-card{padding:10px 12px;gap:6px}
+.ci-overview-card .ci-cardhead .hint{font-variant-numeric:tabular-nums}
+.ci-barrow-btn{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:var(--ci-radius-chip);cursor:pointer;text-align:left;width:100%}
+.ci-barrow-btn:hover{background:var(--ci-card)}
+.ci-barrow-btn:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
+/* insights first screen: trend 2fr + events 1fr */
+.ci-insight-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px;align-items:stretch}
+@container (max-width:1000px){.ci-insight-top{grid-template-columns:minmax(0,1fr)}}
+.ci-events-card{display:flex;flex-direction:column;min-height:0}
+.ci-events-card .ci-events{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-height:0}
+.ci-events-card .ci-events-list{flex:1 1 auto;max-height:none}
+.ci-insight-current{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:var(--ci-fs-label);color:var(--ci-fg3);min-width:0}
+.ci-insight-current b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
+.ci-insight-current .ci-btn{margin-left:auto}
+.ci-events.ci-card{padding:10px 12px}
+/* density pass: KPI 10-12px padding, 20/700 numbers, 10px units */
+.ci-kpi{padding:10px 12px;gap:1px}
+.ci-kpi .v{font-weight:700;line-height:1.3}
+.ci-kpi .s{font-size:var(--ci-fs-micro)}
+.ci-body{gap:12px}
+.ci-manage{gap:8px}
+.ci-insights{gap:10px}
+/* 5 channel colours stay the single source; unknown reads as hatching */
+.ci-donut-row b,.ci-barrow .t{font-variant-numeric:tabular-nums}
+/* KPI value hierarchy: 20px number, 10px denominator/unit (design review #2) */
+.ci-kpi .v{display:flex;align-items:baseline;gap:var(--ci-space-1);min-width:0}
+.ci-kpi .v .u{font-size:var(--ci-fs-micro);font-weight:500;color:var(--ci-fg3);letter-spacing:0}
+.ci-kpi-num{display:inline-flex;align-items:baseline;gap:var(--ci-space-1)}
+/* Items table gains a description column only when the panel is wide (#5) */
+.ci-about{display:none}
+@container (min-width:1100px){
+  .ci-thead,.ci-row{grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 96px 72px 58px 52px}
+  .ci-about{display:block;font-size:12px;color:var(--ci-fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .ci-row:hover .ci-about{color:var(--ci-fg2)}
+}
 `
 
   function createTranslator(dictionary, language) {
     const dict = dictionary || {}
-    const zh = language === 'zh'
     return function t(key, vars) {
       let value = dict[key]
-      if (typeof value !== 'string' || value === key) value = zh ? FALLBACK[key] : undefined
+      // Degraded first paint (no /summary locale yet) still shows readable
+      // Chinese chrome instead of raw keys such as `pageTitle`.
+      if (typeof value !== 'string' || value === key) value = FALLBACK[key]
       if (typeof value !== 'string') return key
       if (vars === undefined) return value
       return value.replace(/\{(\w+)\}/g, (match, name) => (vars[name] === undefined ? match : String(vars[name])))
@@ -484,7 +838,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
     factory(require) {
       const React = require('react')
       const h = React.createElement
-      const { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } = React
+      const { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } = React
 
       const ctxRef = { current: null }
       const reportedStages = new Set()
@@ -525,7 +879,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         return [value, setValue]
       }
 
-      function useTrend(value) {
+      // Sparkline history of the first-turn total, kept in localStorage. This
+      // is a local decoration; the cross-session trend lives in useTrend below.
+      function useSparkTrend(value) {
         const [trend, setTrend] = useState(() => {
           try {
             const raw = localStorage.getItem(STORAGE_PREFIX + 'trend')
@@ -600,6 +956,176 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         }, [sessionId, nonce, pollMs])
         const reload = useCallback(() => setNonce((value) => value + 1), [])
         return { ...state, reload }
+      }
+
+      // --------------------------------------------------------- v2 data hooks
+      //
+      // One abortable, 30s-cached reader shared by all four v2 surfaces. Rules
+      // the panel relies on:
+      //   - a failed read never blanks the panel: the last good payload stays
+      //     rendered and the surface shows a retry bar;
+      //   - an in-flight read is aborted on unmount / URL change, so switching
+      //     the trend range cannot land an older response on top of a newer one;
+      //   - apiVersion < 2 means the hook is disabled and no request is made.
+      function useResource(url, { enabled = true, ttl = RESOURCE_TTL } = {}) {
+        const [state, setState] = useState(() => {
+          const cached = enabled && url ? cachePeek(url) : undefined
+          return {
+            status: cached === undefined ? (enabled && url ? 'loading' : 'idle') : 'ready',
+            data: cached === undefined ? null : cached,
+            error: null,
+          }
+        })
+        const [nonce, setNonce] = useState(0)
+        useEffect(() => {
+          if (enabled !== true || !url) {
+            setState((previous) => ({ ...previous, status: previous.data === null ? 'idle' : previous.status }))
+            return undefined
+          }
+          if (nonce === 0) {
+            const fresh = cacheFresh(url, ttl)
+            if (fresh !== undefined) {
+              setState({ status: 'ready', data: fresh, error: null })
+              return undefined
+            }
+          }
+          const stale = cachePeek(url)
+          const controller = new AbortController()
+          let live = true
+          setState((previous) => ({
+            status: stale === undefined && previous.data === null ? 'loading' : 'refreshing',
+            data: stale === undefined ? previous.data : stale,
+            error: null,
+          }))
+          getJsonSignal(url, controller.signal)
+            .then((data) => {
+              if (!live) return
+              cacheSet(url, data)
+              setState({ status: 'ready', data, error: null })
+            })
+            .catch((error) => {
+              if (!live || (error && error.name === 'AbortError')) return
+              setState((previous) => ({
+                status: 'failed',
+                data: previous.data,
+                error: String((error && error.message) || error),
+                errorCode: error && typeof error.code === 'string' ? error.code : null,
+              }))
+            })
+          return () => {
+            live = false
+            controller.abort()
+          }
+        }, [url, enabled, nonce, ttl])
+        const reload = useCallback(() => setNonce((value) => value + 1), [])
+        return { ...state, reload }
+      }
+
+      function useTrend(range, enabled) {
+        const url = ROUTES.trend + `?range=${encodeURIComponent(range || 'all')}&limit=120`
+        return useResource(url, { enabled })
+      }
+
+      function useEvents(sessionId, enabled) {
+        const url = ROUTES.events + `?limit=60` + (sessionId ? `&session=${encodeURIComponent(sessionId)}` : '')
+        return useResource(url, { enabled })
+      }
+
+      function useHealth(sessionId, enabled) {
+        const url = ROUTES.health + (sessionId ? `?session=${encodeURIComponent(sessionId)}` : '')
+        return useResource(url, { enabled })
+      }
+
+      function useContent(target, sessionId) {
+        const enabled = target !== null && target !== undefined && typeof target.channel === 'string' && typeof target.id === 'string'
+        const url = enabled
+          ? ROUTES.content + `?channel=${encodeURIComponent(target.channel)}&id=${encodeURIComponent(target.id)}` + (sessionId ? `&session=${encodeURIComponent(sessionId)}` : '')
+          : null
+        return useResource(url, { enabled })
+      }
+
+      const isV2 = (snapshot) => snapshot !== null && snapshot !== undefined && Number(snapshot.apiVersion) >= API_V2
+
+      // `scope` is a free string since the contract revision; only the three
+      // known values have labels, everything else falls back to "unknown source"
+      // instead of rendering a raw i18n key.
+      function scopeLabel(t, scope) {
+        const text = typeof scope === 'string' ? scope : ''
+        if (text.length === 0) return '—'
+        return ['startup', 'clear', 'backfill'].indexOf(text) >= 0 ? t('v2.scope.' + text) : t('v2.scopeUnknown')
+      }
+
+      // Error surfaces carry the host's machine code when it sent one, so a
+      // user can quote it in a bug report instead of screenshotting a sentence.
+      function errorText(result) {
+        if (result === null || result === undefined) return ''
+        const code = typeof result.errorCode === 'string' && result.errorCode.length > 0 ? '[' + result.errorCode + '] ' : ''
+        return code + String(result.error || '')
+      }
+
+      function FilterChip({ label, onClear, title }) {
+        return h(
+          'span',
+          { className: 'ci-filterchip', title: title || label },
+          h('span', { className: 't' }, label),
+          h('button', { type: 'button', onClick: onClear, 'aria-label': `${label} ×` }, '×'),
+        )
+      }
+
+      // --------------------------------------------------------- small helpers
+
+      // "3m" / "2h" / "5d" — timestamps in the trend and event feeds are
+      // relative because absolute dates there are noise.
+      function ago(ms) {
+        const value = Number(ms)
+        if (!Number.isFinite(value) || value <= 0) return '—'
+        const diff = Math.max(0, Date.now() - value)
+        const minute = 60000
+        const hour = 3600000
+        const day = 86400000
+        if (diff < minute) return 'now'
+        if (diff < hour) return `${Math.round(diff / minute)}m`
+        if (diff < day) return `${Math.round(diff / hour)}h`
+        if (diff < day * 30) return `${Math.round(diff / day)}d`
+        return new Date(value).toLocaleDateString()
+      }
+
+      function dayLabel(ms) {
+        const value = Number(ms)
+        if (!Number.isFinite(value) || value <= 0) return '—'
+        try {
+          return new Date(value).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })
+        } catch {
+          return new Date(value).toLocaleDateString()
+        }
+      }
+
+      function fullTime(ms) {
+        const value = Number(ms)
+        if (!Number.isFinite(value) || value <= 0) return '—'
+        try {
+          return new Date(value).toLocaleString()
+        } catch {
+          return '—'
+        }
+      }
+
+      function useElementWidth(ref, fallback) {
+        const [width, setWidth] = useState(fallback)
+        useEffect(() => {
+          const node = ref.current
+          if (!node) return undefined
+          const read = () => {
+            const next = node.getBoundingClientRect().width
+            if (Number.isFinite(next) && next > 0) setWidth(Math.round(next))
+          }
+          read()
+          if (typeof ResizeObserver === 'undefined') return undefined
+          const observer = new ResizeObserver(read)
+          observer.observe(node)
+          return () => observer.disconnect()
+        }, [ref, fallback])
+        return width
       }
 
       const SUPPORTED = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']
@@ -708,25 +1234,6 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 
       // ------------------------------------------------------------ atoms
 
-      function Switch({ on, disabled, onChange, title }) {
-        return h(
-          'button',
-          {
-            type: 'button',
-            className: 'ci-switch' + (on ? ' on' : ''),
-            role: 'switch',
-            'aria-checked': on ? 'true' : 'false',
-            'aria-label': title || '',
-            title: title || '',
-            disabled: disabled === true,
-            onClick: () => {
-              if (disabled !== true) onChange(!on)
-            },
-          },
-          h('span', null),
-        )
-      }
-
       function Dot({ channel }) {
         return h('i', { style: { background: COLOR[channel] || '#94a3b8' }, 'aria-hidden': 'true' })
       }
@@ -763,23 +1270,24 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         )
       }
 
-      function Donut({ rows, t, size }) {
-        const total = rows.reduce((sum, row) => sum + row.tokens, 0)
+      function Donut({ rows, t, size, centerLabel, centerSub, ariaLabel }) {
+        const list = Array.isArray(rows) ? rows : []
+        const total = list.reduce((sum, row) => sum + (Number(row.tokens) || 0), 0)
         const safe = total || 1
         const radius = 52
         const circumference = 2 * Math.PI * radius
         let offset = 0
-        const segments = rows
-          .filter((row) => row.tokens > 0)
+        const segments = list
+          .filter((row) => (Number(row.tokens) || 0) > 0)
           .map((row) => {
-            const length = (row.tokens / safe) * circumference
+            const length = ((Number(row.tokens) || 0) / safe) * circumference
             const segment = h('circle', {
               key: row.id,
               cx: 66,
               cy: 66,
               r: radius,
               fill: 'none',
-              stroke: COLOR[row.id],
+              stroke: COLOR[row.id] || 'var(--ci-fg3)',
               strokeWidth: 13,
               strokeDasharray: `${Math.max(0, length - 1.5)} ${circumference - Math.max(0, length - 1.5)}`,
               strokeDashoffset: -offset,
@@ -790,11 +1298,20 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           })
         return h(
           'svg',
-          { className: 'ci-donut-svg', viewBox: '0 0 132 132', width: size || 120, height: size || 120, role: 'img', 'aria-label': `${t('total')} ${token(total)}` },
+          {
+            className: 'ci-donut-svg',
+            viewBox: '0 0 132 132',
+            width: size || 120,
+            height: size || 120,
+            role: 'img',
+            'aria-label': ariaLabel || `${t('total')} ${token(total)}`,
+          },
+          h('title', null, ariaLabel || `${t('total')} ${token(total)}`),
           h('circle', { cx: 66, cy: 66, r: radius, fill: 'none', stroke: 'var(--ci-line2)', strokeWidth: 13 }),
           segments,
-          h('text', { x: 66, y: 64, textAnchor: 'middle', className: 'ci-donut-v' }, token(total)),
-          h('text', { x: 66, y: 81, textAnchor: 'middle', className: 'ci-donut-k' }, t('total')),
+          h('text', { x: 66, y: centerSub === undefined ? 64 : 62, textAnchor: 'middle', className: 'ci-donut-v' }, token(total)),
+          h('text', { x: 66, y: centerSub === undefined ? 81 : 79, textAnchor: 'middle', className: 'ci-donut-k' }, centerLabel || t('total')),
+          centerSub === undefined ? null : h('text', { x: 66, y: 94, textAnchor: 'middle', className: 'ci-donut-k' }, centerSub),
         )
       }
 
@@ -916,6 +1433,8 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         const context = snapshot.context || null
         const trendValues = (trend || []).map((point) => point.v)
         const windowKnown = context !== null && context.window !== null && context.used !== null
+        const budget = Number(policy.budget && policy.budget.tokens) || 0
+        const overBudget = budget > 0 && view.tokens > budget
         const rows = [
           {
             key: 'total',
@@ -925,12 +1444,18 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           },
           {
             key: 'window',
-            value: windowKnown ? `${context.occupancy}%` : '—',
-            sub: windowKnown
-              ? `${token(context.used)} / ${token(context.window)}`
-              : t('noWindow'),
+            value: windowKnown
+              ? h(
+                  'span',
+                  { className: 'ci-kpi-num' },
+                  h('span', null, token(context.used)),
+                  h('span', { className: 'u' }, '/'),
+                  h('span', { className: 'u' }, token(context.window)),
+                )
+              : '—',
+            sub: windowKnown ? `${context.occupancy}% · ${t('remain')} ${token(context.remaining)}` : t('noWindow'),
             tone: windowKnown && context.tone !== undefined ? context.tone : 'unknown',
-            title: windowKnown ? t('windowHint') : t('noWindowHint'),
+            title: windowKnown ? t('v2.windowHint2') : t('noWindowHint'),
           },
           {
             key: 'savable',
@@ -938,12 +1463,16 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             sub: `${view.savablePercent}% · ${t('shareOf')}`,
           },
           {
-            key: 'baseline',
-            value: token(totals.tokens),
+            key: 'budget',
+            value: budget > 0 ? token(budget) : '—',
             sub:
-              policy.preview.savedPercent > 0
-                ? `−${policy.preview.savedPercent}% · ${presetLabel(t, policy.preset)}`
-                : t('noTrim'),
+              budget > 0
+                ? overBudget
+                  ? t('v2.budgetOver', { tokens: token(view.tokens - budget) })
+                  : t('v2.budgetUnder', { tokens: token(budget - view.tokens) })
+                : t('v2.noBudget'),
+            tone: overBudget ? 'danger' : undefined,
+            title: t('budgetHint'),
           },
         ]
         const sparkLabel = trendValues.length > 1 ? t('trendLabel', { min: token(Math.min(...trendValues)), max: token(Math.max(...trendValues)) }) : ''
@@ -1095,7 +1624,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                 t(channel.id),
                 ' ',
                 h('b', null, token(channel.tokens)),
-                ` · ${pct(channel.tokens, total)}%`,
+                ` · ${pctText(channel.tokens, total)}`,
               ),
             ),
           ),
@@ -1220,7 +1749,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         return Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
       }
 
-      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, planned }) {
+      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, planned, previewOpen, onPreview }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
         const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
@@ -1231,18 +1760,60 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           h(
             'div',
             { className: 'n', title: `${item.name} · ${item.tokens} token` },
+            onPreview === undefined
+              ? null
+              : h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'ci-caret-btn',
+                    'aria-expanded': previewOpen === true ? 'true' : 'false',
+                    'aria-label': previewOpen === true ? t('v2.collapsePreview') : t('v2.expandPreview'),
+                    title: previewOpen === true ? t('v2.collapsePreview') : t('v2.expandPreview'),
+                    onClick: (event) => {
+                      if (event && typeof event.stopPropagation === 'function') event.stopPropagation()
+                      onPreview(item)
+                    },
+                  },
+                  '▸',
+                ),
             h(HitMark, { text: label, needle }),
             planned ? h('span', { className: 'ci-tag', title: t('outsideBudgetHint') }, t('outsideBudget')) : null,
             !on && !locked ? h('span', { className: 'ci-tag' }, t('turnedOff')) : null,
             item.offClosed === true ? h('span', { className: 'ci-tag ci-tag-closed', title: t('closedRestoreHint') }, t('closedBadge')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
+          h('div', { className: 'ci-about', title: typeof item.preview === 'string' ? item.preview : '' }, typeof item.preview === 'string' ? item.preview : ''),
           h('div', { className: 'badge' }, h(Dot, { channel: item.channel }), t(item.channel)),
           h('div', { className: 'num' }, digits(item.tokens)),
-          h('div', { className: 'num' }, on ? `${pct(item.tokens, effectiveTotalOf(snapshot))}%` : '—'),
+          h('div', { className: 'num' }, on ? `${pctText(item.tokens, effectiveTotalOf(snapshot))}` : '—'),
           locked
             ? h('span', { className: 'ci-lock', title: t('lockedHint') }, t('locked'))
             : h(Switch, { on, disabled: busy, onChange: (next) => onToggle(item, next), title: item.name }),
+        )
+      }
+
+      // The inline preview answers "what is this row" before the drawer has to
+      // load 200KB over the wire; the drawer is still the only place with the
+      // full text. Pure text, never HTML.
+      function ItemPreview({ item, snapshot, t, onOpenContent }) {
+        const preview = typeof item.preview === 'string' && item.preview.trim().length > 0 ? item.preview : null
+        return h(
+          'div',
+          { className: 'ci-row-preview', role: 'group', 'aria-label': `${t('v2.previewLabel')} · ${item.name}` },
+          h('p', { className: 'pv' }, preview === null ? t('v2.noPreview') : preview),
+          h(
+            'div',
+            { className: 'meta' },
+            h(Dot, { channel: item.channel }),
+            h('span', null, t(item.channel)),
+            h('span', null, `${digits(item.tokens)} ${t('tokens')}`),
+            h('span', null, `${pctText(item.tokens, effectiveTotalOf(snapshot))}`),
+            item.locked === true ? h('span', { className: 'ci-badge' }, t('locked')) : null,
+          ),
+          onOpenContent === undefined
+            ? null
+            : h('div', { className: 'actions' }, h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => onOpenContent(item) }, t('v2.openContent'))),
         )
       }
 
@@ -1263,7 +1834,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 
         const rows = snapshot.items.map((item) => ({
           ...item,
-          on: scope === 'session' ? true : policyOn(item),
+          // The host now stamps items[].on; prefer it when present so the list
+          // and the ranking agree with the effective projection exactly.
+          on: scope === 'session' ? true : typeof item.on === 'boolean' ? item.on : policyOn(item),
           used: true,
         }))
         // A closed item keeps its remembered size so it can be switched back
@@ -1276,7 +1849,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         return rows.filter((item) => filter === 'all' || item.channel === filter)
       }
 
-      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy, act }) {
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy, act, v2, onOpenContent }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
         const [scope, setScope] = useStoredState('scope', 'global')
@@ -1284,8 +1857,20 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         const [sort, setSort] = useStoredState('itemSort', 'tokens:desc')
         const [sortKey, sortDir] = String(sort).split(':')
         const [expanded, setExpanded] = useState({})
+        const [peek, setPeek] = useState({})
+        const [suite, setSuite] = useState(null)
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
+        const clearAllFilters = () => {
+          setQuery('')
+          setFilter('all')
+          setOnlySwitchable(false)
+          setSuite(null)
+        }
+        const togglePeek = (item) => {
+          const key = itemKey(item)
+          setPeek((previous) => ({ ...previous, [key]: previous[key] !== true }))
+        }
 
         // "/" jumps to search unless the user is already typing somewhere.
         useEffect(() => {
@@ -1311,6 +1896,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           const names = t.names || {}
           return buildItems(snapshot, filter, scope)
             .filter((item) => (onlySwitchable ? item.locked !== true : true))
+            .filter((item) => (suite === null ? true : String(item.groupLabel !== undefined && item.groupLabel !== null ? item.groupLabel : item.group) === suite))
             .filter((item) => {
               if (needle.length === 0) return true
               const label = names[item.name] || NAMES_ZH[item.name] || ''
@@ -1326,7 +1912,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                     : left.tokens - right.tokens || left.name.localeCompare(right.name)
               return sortDir === 'asc' ? compare : -compare
             })
-        }, [snapshot, filter, scope, onlySwitchable, deferredQuery, t, sortKey, sortDir])
+        }, [snapshot, filter, scope, onlySwitchable, deferredQuery, t, sortKey, sortDir, suite])
 
         // In the session scope nothing is blocked by the policy: the running
         // session already has it all, so every row reads as on.
@@ -1422,74 +2008,125 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 
         const effective = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
         const effectiveTotal = Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
-        // The bars keep the all-on width so a closed suite still looks like the
-        // giant it is, and fill only the part the policy left on. Reading the
-        // two layers is the point: "REA is 79% of everything, and it is off".
-        const topSuites = groups.slice(0, 6).map((group) => ({
-          ...group,
-          effectiveTokens: group.items.reduce((sum, item) => sum + (isOn(item) ? item.tokens : 0), 0),
-        }))
+        const viewSavablePercent = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.savablePercent : snapshot.totals.savablePercent
+        // The ranking above the list is about the whole snapshot, never about
+        // the current filter: filtering the table must not hide the big suites.
+        const topSuites = (() => {
+          const map = new Map()
+          for (const group of snapshot.groups) {
+            const label = String(group.label !== undefined && group.label !== null ? group.label : group.id)
+            const key = label.toLowerCase()
+            const entry = map.get(key) || { id: key, label, channel: group.channel, tokens: 0, effectiveTokens: 0, items: [] }
+            entry.tokens += Number(group.tokens) || 0
+            map.set(key, entry)
+          }
+          for (const item of snapshot.items) {
+            const key = String(item.groupLabel !== undefined && item.groupLabel !== null ? item.groupLabel : item.group).toLowerCase()
+            const entry = map.get(key)
+            if (entry === undefined) continue
+            // Prefer the host's stamped on; fall back to the policy projection so
+            // the ranking still works on a v1 snapshot without the field.
+            const on = typeof item.on === 'boolean' ? item.on : policyItemOn(snapshot, item)
+            if (on) entry.effectiveTokens += item.tokens
+          }
+          return [...map.values()].sort((left, right) => right.tokens - left.tokens).slice(0, 6)
+        })()
         const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
 
         return h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
+          // Two peer cards, not one mixed card: composition is a "what is in
+          // here" question, the suite ranking is a "what should I switch off"
+          // question. Each gets its own header and its own column.
           h(
             'div',
-            { className: 'ci-card ci-overview' },
+            { className: 'ci-manage-overview' },
             h(
               'div',
-              { className: 'ci-donut' },
-              h(Donut, { rows: effective, t }),
+              { className: 'ci-card ci-overview-card' },
               h(
                 'div',
-                { className: 'ci-donut-legend' },
-                effective
-                  .filter((channel) => channel.tokens > 0)
-                  .map((channel) =>
-                    h(
-                      'div',
-                      { className: 'ci-donut-row', key: channel.id },
-                      h(Dot, { channel: channel.id }),
-                      h('span', { className: 'n' }, t(channel.id)),
-                      h('b', null, token(channel.tokens)),
-                      h('span', { className: 'p' }, `${pct(channel.tokens, effectiveTotal)}%`),
+                { className: 'ci-cardhead' },
+                h('h2', null, t('v2.overviewComposition')),
+                h('span', { className: 'sp' }),
+                h('span', { className: 'hint' }, `${t('total')} ${token(effectiveTotal)}`),
+              ),
+              h(
+                'div',
+                { className: 'ci-donut' },
+                h(Donut, { rows: effective, t, size: 124, centerSub: `${viewSavablePercent}% ${t('savable')}` }),
+                h(
+                  'div',
+                  { className: 'ci-donut-legend' },
+                  effective
+                    .filter((channel) => channel.tokens > 0)
+                    .map((channel) =>
+                      h(
+                        'div',
+                        { className: 'ci-donut-row', key: channel.id },
+                        h(Dot, { channel: channel.id }),
+                        h('span', { className: 'n' }, t(channel.id)),
+                        h('b', null, token(channel.tokens)),
+                        h('span', { className: 'p' }, `${pctText(channel.tokens, effectiveTotal)}`),
+                      ),
                     ),
-                  ),
+                ),
               ),
             ),
             h(
               'div',
-              { className: 'ci-bars' },
-              h('div', { className: 'ci-bars-title' }, t('topSuites')),
-              topSuites.map((group) =>
-                h(
-                  'div',
-                  {
-                    className: 'ci-barrow' + (group.effectiveTokens === 0 ? ' off' : ''),
-                    key: group.id,
-                    title: `${groupLabelOf(t, group)} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effectiveTokens)}`,
-                  },
-                  h('span', { className: 'n' }, groupLabelOf(t, group)),
-                  h(
-                    'span',
-                    { className: 'ci-bar-track', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%` } },
-                    h('span', {
-                      className: 'ci-bar-fill',
-                      style: {
-                        width: `${group.tokens === 0 ? 0 : Math.max(0, Math.min(100, (group.effectiveTokens / group.tokens) * 100))}%`,
-                        background: COLOR[group.channel],
-                      },
-                    }),
-                  ),
-                  h(
-                    'span',
-                    { className: 't' },
-                    group.effectiveTokens === 0
-                      ? t('turnedOff')
-                      : `${digits(group.effectiveTokens)} · ${pct(group.effectiveTokens, effectiveTotal)}%`,
-                  ),
-                ),
+              { className: 'ci-card ci-overview-card' },
+              h(
+                'div',
+                { className: 'ci-cardhead' },
+                h('h2', null, t('v2.heaviestTitle')),
+                h('span', { className: 'sp' }),
+                h('span', { className: 'hint' }, `${t('topSuites')} · ${topSuites.length} · ${t('v2.closedLight')}`),
+              ),
+              h(
+                'div',
+                { className: 'ci-bars' },
+                topSuites.map((group, index) => {
+                  const closedTokens = Math.max(0, group.tokens - group.effectiveTokens)
+                  const onPercent = group.tokens > 0 ? Math.max(0, Math.min(100, (group.effectiveTokens / group.tokens) * 100)) : 0
+                  return h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'ci-barrow ci-barrow-btn' + (group.effectiveTokens === 0 ? ' off' : ''),
+                      key: group.id,
+                      title: `${groupLabelOf(t, group)} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effectiveTokens)} · ${t('v2.closedLight')}`,
+                      onClick: () => setSuite(groupLabelOf(t, group)),
+                    },
+                    h(
+                      'span',
+                      { className: 'n' },
+                      groupLabelOf(t, group),
+                    ),
+                    // The track spans the suite's full (all-on) size; the solid
+                    // part is what stays on and the faded part is what the
+                    // policy switched off, so an all-off suite still reads as a
+                    // long bar instead of an empty rail.
+                    h(
+                      'span',
+                      { className: 'ci-bar-track', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%`, minWidth: 3 } },
+                      onPercent > 0
+                        ? h('span', { className: 'ci-bar-fill', style: { width: `${onPercent}%`, background: COLOR[group.channel] } })
+                        : null,
+                      closedTokens > 0
+                        ? h('span', { className: 'ci-bar-closed', style: { width: `${Math.max(3, 100 - onPercent)}%`, background: COLOR[group.channel] } })
+                        : null,
+                    ),
+                    h(
+                      'span',
+                      { className: 't' },
+                      group.effectiveTokens === 0
+                        ? `${token(group.tokens)} · ${t('turnedOff')}`
+                        : `${token(group.effectiveTokens)} · ${pctText(group.effectiveTokens, effectiveTotal)}`,
+                    ),
+                  )
+                }),
               ),
             ),
           ),
@@ -1506,7 +2143,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               // sending". A policy never rewrites a live session, so both are
               // true at once and the user must be able to see which is which.
               'div',
-              { className: 'ci-seg ci-scope', role: 'tablist', 'aria-label': t('scopeLabel') },
+              { className: 'ci-seg', role: 'tablist', 'aria-label': t('scopeLabel') },
               [
                 ['global', t('scopeGlobal'), t('scopeGlobalHint')],
                 ['session', t('scopeSession'), t('scopeSessionHint')],
@@ -1569,15 +2206,21 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               ),
             ),
           ),
-          filter !== 'all' || onlySwitchable
-            ? h(
-                'div',
-                { className: 'ci-activefilters' },
-                h('span', { className: 'lbl' }, t('activeFilters')),
-                filter === 'all' ? null : h('button', { type: 'button', className: 'ci-chip on', onClick: () => setFilter('all') }, t(filter), ' ×'),
-                onlySwitchable ? h('button', { type: 'button', className: 'ci-chip on', onClick: () => setOnlySwitchable(false) }, t('onlySwitchable'), ' ×') : null,
-              )
-            : null,
+          // The filter bar is always visible: every active exclusion is a chip
+          // with an ×, and one control clears the whole set. Clicking a suite
+          // name adds its chip here, so "why is this list short" is answerable.
+          h(
+            'div',
+            { className: 'ci-filterbar', role: 'group', 'aria-label': t('v2.filters') },
+            h('span', { className: 'lbl' }, t('activeFilters')),
+            filter === 'all' ? null : h(FilterChip, { label: t(filter), onClear: () => setFilter('all') }),
+            suite === null ? null : h(FilterChip, { label: suite, title: t('v2.filterSuite', { label: suite }), onClear: () => setSuite(null) }),
+            onlySwitchable ? h(FilterChip, { label: t('onlySwitchable'), onClear: () => setOnlySwitchable(false) }) : null,
+            query.trim().length > 0 ? h(FilterChip, { label: `「${query.trim()}」`, onClear: () => setQuery('') }) : null,
+            filter === 'all' && suite === null && !onlySwitchable && query.trim().length === 0
+              ? h('span', { className: 'hint' }, t('v2.noFilters'))
+              : h('button', { type: 'button', className: 'ci-filterclear', onClick: clearAllFilters }, t('v2.clearAll')),
+          ),
           h(
             'div',
             { className: 'ci-table', role: 'group', 'aria-label': t('items') + ' · ' + items.length },
@@ -1585,6 +2228,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               'div',
               { className: 'ci-thead' },
               h('div', null, sortHeader('name', t('name'))),
+              h('div', { className: 'ci-about' }, t('about')),
               h('div', null, sortHeader('channel', t('channel'))),
               h('div', { style: { textAlign: 'right' } }, sortHeader('tokens', t('tokens'), true)),
               h('div', { style: { textAlign: 'right' } }, sortHeader('share', t('share'), true)),
@@ -1595,18 +2239,14 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                   'div',
                   { className: 'ci-empty' },
                   h('div', null, query.trim().length > 0 ? t('noMatch') : t('empty')),
-                  query.trim().length > 0 || filter !== 'all' || onlySwitchable
+                  query.trim().length > 0 || filter !== 'all' || onlySwitchable || suite !== null
                     ? h(
                         'button',
                         {
                           type: 'button',
                           className: 'ci-btn',
                           style: { marginTop: 8 },
-                          onClick: () => {
-                            setQuery('')
-                            setFilter('all')
-                            setOnlySwitchable(false)
-                          },
+                          onClick: clearAllFilters,
                         },
                         t('clearFilters'),
                       )
@@ -1616,6 +2256,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                 ? groups.map((group) => {
                     const state = groupState(group)
                     const open = expanded[group.id] === true
+                    const groupEffective = group.items.reduce((sum, item) => (isOn(item) ? sum + item.tokens : sum), 0)
+                    const groupSaved = Math.max(0, group.tokens - groupEffective)
+                    const suiteLabel = groupLabelOf(t, group)
                     return h(
                       'div',
                       { className: 'ci-group', key: group.id },
@@ -1638,8 +2281,21 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                           'div',
                           { className: 'n' },
                           h('span', { className: 'ci-caret' + (open ? ' open' : '') }, open ? '▾' : '▸'),
-                          h(HitMark, { text: groupLabelOf(t, group), needle }),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'ci-suitename',
+                              title: t('v2.filterSuite', { label: suiteLabel }),
+                              onClick: (event) => {
+                                event.stopPropagation()
+                                setSuite((previous) => (previous === suiteLabel ? null : suiteLabel))
+                              },
+                            },
+                            h(HitMark, { text: suiteLabel, needle }),
+                          ),
                           h('span', { className: 'id' }, `${group.items.length} ${t('items')}`),
+                          groupSaved > 0 ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(groupSaved) }) }, '−' + token(groupSaved)) : null,
                           plannedKeys.size > 0 && group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length > 0
                             ? h(
                                 'span',
@@ -1651,20 +2307,66 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                         ),
                         h(
                           'div',
+                          { className: 'ci-about', title: `${group.items.length} ${t('items')} · ${(group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel)}` },
+                          `${group.items.length} ${t('items')} · ${(group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel)}`,
+                        ),
+                        h(
+                          'div',
                           { className: 'badge' },
                           (group.channels || [group.channel]).map((channel) => h(Dot, { key: channel, channel })),
                           (group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel),
                         ),
                         h('div', { className: 'num' }, digits(group.tokens)),
-                        h('div', { className: 'num' }, state.on ? `${pct(group.tokens, effectiveTotal)}%` : '—'),
+                        h('div', { className: 'num' }, state.on ? `${pctText(group.tokens, effectiveTotal)}` : '—'),
                         h(Switch, { on: state.on, mixed: state.mixed, disabled: busy || state.disabled, onChange: () => toggleGroup(group), title: group.label }),
                       ),
                       open
-                        ? group.items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, nested: true, needle, planned: plannedKeys.has(item.channel + ":" + item.name) }))
+                        ? group.items.flatMap((item) => {
+                            const key = itemKey(item)
+                            const openPeek = peek[key] === true
+                            const rows = [
+                              h(ItemRow, {
+                                key,
+                                item,
+                                t,
+                                snapshot,
+                                isOn,
+                                onToggle,
+                                busy,
+                                nested: true,
+                                needle,
+                                planned: plannedKeys.has(item.channel + ':' + item.name),
+                                previewOpen: openPeek,
+                                onPreview: v2 === true ? togglePeek : undefined,
+                              }),
+                            ]
+                            if (v2 === true && openPeek) rows.push(h(ItemPreview, { key: key + ':preview', item, snapshot, t, onOpenContent }))
+                            return rows
+                          })
                         : null,
                     )
                   })
-                : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, needle, planned: plannedKeys.has(item.channel + ":" + item.name) })),
+                : items.flatMap((item) => {
+                    const key = itemKey(item)
+                    const openPeek = peek[key] === true
+                    const rows = [
+                      h(ItemRow, {
+                        key,
+                        item,
+                        t,
+                        snapshot,
+                        isOn,
+                        onToggle,
+                        busy,
+                        needle,
+                        planned: plannedKeys.has(item.channel + ':' + item.name),
+                        previewOpen: openPeek,
+                        onPreview: v2 === true ? togglePeek : undefined,
+                      }),
+                    ]
+                    if (v2 === true && openPeek) rows.push(h(ItemPreview, { key: key + ':preview', item, snapshot, t, onOpenContent }))
+                    return rows
+                  }),
           ),
           snapshot.closedGroups && snapshot.closedGroups.length > 0
             ? h(
@@ -1728,6 +2430,1402 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                   `${t('undo')}${snapshot.undo.last ? ` · ${snapshot.undo.last}` : ''}`,
                 )
               : null,
+          ),
+        )
+      }
+
+      // ------------------------------------------------------------ v2 surfaces
+
+      // Resolve a health check's "switch this suite" action to the exact
+      // (channel, group id) pairs /action expects. A suite can span channels,
+      // so the resolution returns every matching part rather than guessing one.
+      function resolveGroupParts(snapshot, channel, key) {
+        const wanted = String(key === undefined || key === null ? '' : key).toLowerCase()
+        if (wanted.length === 0) return []
+        const parts = []
+        for (const item of snapshot.items) {
+          if (item.channel !== channel) continue
+          const group = String(item.group === undefined || item.group === null ? '' : item.group)
+          if (group.length === 0) continue
+          const lower = group.toLowerCase()
+          const label = String(item.groupLabel === undefined || item.groupLabel === null ? group : item.groupLabel).toLowerCase()
+          const tail = lower.slice(lower.lastIndexOf(':') + 1)
+          if (label === wanted || lower === wanted || tail === wanted || lower.endsWith(':' + wanted)) {
+            if (!parts.some((entry) => entry.group === group)) parts.push({ channel, group })
+          }
+        }
+        return parts
+      }
+
+      function HealthStrip({ health, t, v2, snapshot, act, onOpenContent, onOpenTab }) {
+        if (v2 !== true) return null
+        const data = health && health.data !== null && health.data !== undefined ? health.data : null
+        const checks = data !== null && Array.isArray(data.checks) ? data.checks : []
+        const summary = (data !== null && data.summary) || (snapshot !== null && snapshot.healthSummary) || null
+        const counts = {
+          high: Number(summary && summary.high) || 0,
+          warn: Number(summary && summary.warn) || 0,
+          info: Number(summary && summary.info) || 0,
+        }
+        const failed = health !== null && health.status === 'failed'
+        const loading = (health === null || health.status === 'loading' || health.status === 'refreshing') && data === null
+        const visible = checks.filter((check) => check !== null && typeof check === 'object').slice(0, 6)
+        const rest = checks.length - visible.length
+
+        const runAction = (check) => {
+          const action = check.action
+          if (action === null || action === undefined || typeof action !== 'object') return
+          const payload = action.payload !== null && typeof action.payload === 'object' ? action.payload : {}
+          if (action.kind === 'switch-group') {
+            const channel = String(payload.channel || '')
+            const parts = resolveGroupParts(snapshot, channel, payload.group !== undefined ? payload.group : payload.key !== undefined ? payload.key : payload.name)
+            if (parts.length === 0) return
+            const enabled = payload.op !== 'off' && payload.enabled !== false
+            act({ kind: 'groups', groups: parts, enabled }, `${enabled ? t('turnedOn') : t('turnedOff')} ${payload.key || ''}`)
+            return
+          }
+          if (action.kind === 'set-budget') {
+            onOpenTab('settings')
+            return
+          }
+          if (action.kind === 'open-content') {
+            if (payload.channel !== undefined && (payload.id !== undefined || payload.itemId !== undefined)) {
+              onOpenContent({ channel: String(payload.channel), id: String(payload.id !== undefined ? payload.id : payload.itemId), name: payload.name })
+            }
+            return
+          }
+          if (action.kind === 'open-tab') {
+            const raw = typeof payload.tab === 'string' ? payload.tab : ''
+            const tab = raw === 'settings' ? 'settings' : raw === 'insights' || raw === 'stats' ? 'insights' : 'manage'
+            onOpenTab(tab, payload.channel)
+          }
+        }
+
+        const actionLabel = (action) => {
+          if (action === null || action === undefined) return ''
+          const known = ['switch-group', 'set-budget', 'open-content', 'open-tab'].indexOf(action.kind) >= 0
+          return known ? t('health.action.' + action.kind) : t('v2.openContent')
+        }
+
+        return h(
+          'div',
+          { className: 'ci-health', role: 'group', 'aria-label': t('v2.health') },
+          h(
+            'div',
+            { className: 'ci-health-head' },
+            h('span', { className: 'ci-health-title' }, t('v2.health')),
+            h(
+              'span',
+              { className: 'ci-health-counts' },
+              // Zero levels are noise: only render severities that actually
+              // have checks, joined with a middot (design review optional #9).
+              [
+                ['high', 'high', counts.high],
+                ['warn', 'warn', counts.warn],
+                ['info', 'info', counts.info],
+              ]
+                .filter(([, , value]) => Number(value) > 0)
+                .map(([key, className, value], index) => [
+                  index === 0 ? null : h('span', { key: key + ':sep', className: 'sep' }, '·'),
+                  h('span', { key, className }, h('b', null, String(value)), key === 'high' ? t('v2.sevHigh') : key === 'warn' ? t('v2.sevWarn') : t('v2.sevInfo')),
+                ])
+                .flat(),
+            ),
+            data !== null && Number.isFinite(Number(data.checkedAt))
+              ? h('span', { className: 'ci-inline-meta', style: { marginLeft: 'auto' } }, t('v2.healthChecked', { time: fullTime(data.checkedAt) }))
+              : null,
+          ),
+          failed
+            ? h(
+                'div',
+                { className: 'ci-errorbar', style: { marginTop: 6 } },
+                h('span', null, `${t('health.failed')}：${errorText(health)}`),
+                h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: health.reload }, t('v2.retry')),
+              )
+            : null,
+          loading
+            ? h('div', { className: 'ci-health-allclear' }, t('loading'))
+            : null,
+          !loading && data !== null && checks.length === 0
+            ? h('div', { className: 'ci-health-allclear' }, t('v2.healthAllClear'))
+            : null,
+          visible.map((check, index) => {
+            const severity = check.severity === 'high' ? 'high' : check.severity === 'warn' ? 'warn' : 'info'
+            const params = check.params !== null && typeof check.params === 'object' ? check.params : {}
+            // Different codes carry different params; fill the placeholders the
+            // copy expects so a missing field reads as "—" and never as `{count}`.
+            const text = t('health.' + String(check.code || ''), {
+              label: params.label !== undefined ? params.label : '—',
+              count: params.count !== undefined ? params.count : '—',
+              share: params.share !== undefined ? params.share : '—',
+              tokens: Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0 ? token(params.tokens) : '—',
+            })
+            return h(
+              'div',
+              { className: 'ci-health-row', key: `${check.code || 'check'}:${index}` },
+              h('span', { className: 'sev ' + severity, 'aria-hidden': 'true' }),
+              h(
+                'span',
+                { className: 'ci-health-text', title: text },
+                text,
+                severity !== 'info' && Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0
+                  ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(params.tokens) }) }, '−' + token(params.tokens))
+                  : null,
+              ),
+              check.action !== null && check.action !== undefined && typeof check.action === 'object'
+                ? h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => runAction(check) }, actionLabel(check.action))
+                : null,
+            )
+          }),
+          rest > 0 ? h('div', { className: 'ci-health-allclear' }, t('v2.moreChecks', { count: rest })) : null,
+        )
+      }
+
+      // apiVersion < 2 is not hidden silently: the card says what the host
+      // returns, what the panel needs, and lets the user dismiss it.
+      function V2Gate({ snapshot, t }) {
+        const [dismissed, setDismissed] = useStoredState('v2GateDismissed', false)
+        if (dismissed === true) return null
+        const api = Number(snapshot !== null && snapshot !== undefined ? snapshot.apiVersion : 1) || 1
+        return h(
+          'div',
+          { className: 'ci-gate', role: 'status' },
+          h('h2', null, t('v2.gateTitle')),
+          h('p', null, t('v2.gateBody')),
+          h(
+            'div',
+            { className: 'kv' },
+            h('span', null, t('v2.gateCurrent'), h('b', null, `v${api}`)),
+            h('span', null, t('v2.gateMin'), h('b', null, `v${API_V2}`)),
+          ),
+          h('div', { className: 'actions' }, h('button', { type: 'button', className: 'ci-btn ci-primary', onClick: () => setDismissed(true) }, t('v2.gateDismiss'))),
+        )
+      }
+
+      // The manage page mounts the health strip through this thin shell so the
+      // /health request only happens while that tab is actually visible.
+      function ManageHealth({ snapshot, t, sessionId, v2, act, onOpenContent, onOpenTab }) {
+        const health = useHealth(sessionId, v2 === true)
+        return h(HealthStrip, { health, t, v2, snapshot, act, onOpenContent, onOpenTab })
+      }
+
+      // Third control tier: range pills. Pills = "which slice of time", the seg
+      // control = "which ordering/view", filter chips = "what is excluded".
+      function RangePills({ value, options, onChange, label }) {
+        return h(
+          'div',
+          { className: 'ci-pills', role: 'group', 'aria-label': label },
+          options.map(([key, text]) =>
+            h(
+              'button',
+              {
+                key,
+                type: 'button',
+                className: value === key ? 'on' : '',
+                'aria-pressed': value === key ? 'true' : 'false',
+                title: text,
+                onClick: () => onChange(key),
+              },
+              text,
+            ),
+          ),
+        )
+      }
+
+      // A trend with more than 40 points would compress bars into hairlines, so
+      // range=all folds equal-count buckets into one overview screen instead of
+      // scrolling horizontally. Channels stay null when no bucket row was
+      // measured, so the striped "unknown" state is never faked as zero.
+      function bucketTrend(points, limit) {
+        if (points.length <= limit) return { rows: points, buckets: 0 }
+        const size = Math.ceil(points.length / limit)
+        const rows = []
+        for (let index = 0; index < points.length; index += size) {
+          const slice = points.slice(index, index + size)
+          const total = slice.reduce((sum, point) => sum + (Number(point.total) || 0), 0)
+          const effective = slice.reduce((sum, point) => sum + (Number(point.effective) || 0), 0)
+          const saved = slice.reduce((sum, point) => sum + (Number(point.saved) || 0), 0)
+          const measured = slice.filter((point) => point.channels !== null && point.channels !== undefined && typeof point.channels === 'object')
+          let channels = null
+          if (measured.length > 0) {
+            channels = {}
+            for (const channel of CHANNELS) channels[channel] = measured.reduce((sum, point) => sum + (Number(point.channels[channel]) || 0), 0)
+          }
+          const samples = slice.reduce((sum, point) => sum + (Number(point.samples) || 0), 0)
+          const compactions = slice.reduce(
+            (accumulator, point) => {
+              const source = point.compactions || {}
+              return { count: accumulator.count + (Number(source.count) || 0), freed: accumulator.freed + (Number(source.freed) || 0) }
+            },
+            { count: 0, freed: 0 },
+          )
+          rows.push({
+            sessionId: 'bucket:' + index,
+            at: Number(slice[slice.length - 1].at) || 0,
+            firstAt: Number(slice[0].firstAt || slice[0].at) || 0,
+            cwd: slice[slice.length - 1].cwd,
+            scope: slice[slice.length - 1].scope,
+            total,
+            effective,
+            saved,
+            channels,
+            source: slice.every((point) => point.source === 'log') ? 'log' : 'measured',
+            samples,
+            compactions,
+            policy: slice[slice.length - 1].policy,
+            bucketCount: slice.length,
+          })
+        }
+        return { rows, buckets: rows.length }
+      }
+
+      function TrendChart({ points, t, range }) {
+        const wrapRef = useRef(null)
+        const width = useElementWidth(wrapRef, 720)
+        const hatchId = useId()
+        const source = Array.isArray(points) ? points : []
+        const [hidden, setHidden] = useState([])
+        const [hover, setHover] = useState(-1)
+        const [pinned, setPinned] = useState(-1)
+        const barRefs = useRef([])
+        const bucketed = useMemo(() => bucketTrend(source, 40), [source])
+        const data = bucketed.rows
+        const overview = bucketed.buckets > 0
+        const { useEffect: useEffectLocal } = React
+        useEffectLocal(() => {
+          if (pinned >= 0 && pinned >= data.length) setPinned(-1)
+        }, [data.length, pinned])
+        useEffectLocal(() => {
+          if (pinned < 0) return undefined
+          const onKey = (event) => {
+            if (event.key === 'Escape') setPinned(-1)
+          }
+          window.addEventListener('keydown', onKey, true)
+          return () => window.removeEventListener('keydown', onKey, true)
+        }, [pinned])
+
+        const W = Math.max(320, Math.min(width, 1400))
+        const pad = { l: 40, r: 10, t: 10, b: 24 }
+        const plotH = 150
+        const H = plotH + pad.t + pad.b
+        const plotW = W - pad.l - pad.r
+        const hiddenSet = new Set(hidden)
+        const series = CHANNELS.filter((channel) => !hiddenSet.has(channel))
+        const pointTotal = (point) => Math.max(0, Number(point.total) || 0)
+        const maxTotal = data.reduce((max, point) => Math.max(max, pointTotal(point)), 1)
+        const niceMax = (() => {
+          const exponent = Math.pow(10, Math.floor(Math.log10(Math.max(1, maxTotal))))
+          for (const step of [1, 2, 2.5, 5, 10]) {
+            const candidate = step * exponent
+            if (candidate >= maxTotal) return Math.round(candidate)
+          }
+          return Math.round(10 * exponent)
+        })()
+        const yMax = Math.max(1, niceMax)
+        const slot = plotW / Math.max(1, data.length)
+        const gap = 2
+        const barW = Math.max(2, Math.min(14, slot - gap))
+        const yOf = (value) => pad.t + plotH - (value / yMax) * plotH
+        const xOf = (index) => pad.l + slot * index + slot / 2
+        const segmentsOf = (point) => {
+          const channels = point.channels
+          if (channels === null || channels === undefined || typeof channels !== 'object') return [{ id: 'unknown', value: pointTotal(point) }]
+          const out = []
+          let sum = 0
+          for (const channel of series) {
+            const value = Math.max(0, Number(channels[channel]) || 0)
+            if (value > 0) {
+              out.push({ id: channel, value })
+              sum += value
+            }
+          }
+          const leftover = pointTotal(point) - sum
+          if (leftover > 0) out.push({ id: 'unknown', value: leftover })
+          return out
+        }
+        const unknown = data.some((point) => point.channels === null || point.channels === undefined)
+        const hiddenCount = CHANNELS.length - series.length
+        const gridValues = [0.25, 0.5, 0.75, 1].map((ratio) => yMax * ratio)
+        const step = Math.max(1, Math.ceil(data.length / 6))
+        const xTicks = data
+          .map((point, index) => ({ index, point }))
+          .filter(({ index }, position, list) => {
+            if (index === 0) return true
+            if (index === data.length - 1) {
+              // The last tick owns the right edge; drop a neighbour that would
+              // overlap it when the final bucket sits one step away.
+              const previous = list[position - 1]
+              return previous === undefined || index - previous.index >= Math.max(2, Math.ceil(step / 2))
+            }
+            return index % step === 0
+          })
+        const active = pinned >= 0 && pinned < data.length ? pinned : hover
+        const tooltip = active >= 0 ? data[active] : null
+        const labelOf = (point) => {
+          const at = Number(point.firstAt || point.at) || 0
+          return at > 0 ? fullTime(at) : '—'
+        }
+
+        if (data.length === 0) {
+          return h(
+            'div',
+            { className: 'ci-empty-next' },
+            h('span', null, t('trend.empty')),
+            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => window.location.reload() }, t('refresh')),
+          )
+        }
+
+        const summaryLabel = t('trend.summary', {
+          count: source.length,
+          avg: token(source.reduce((sum, point) => sum + pointTotal(point), 0) / Math.max(1, source.length)),
+          max: token(maxTotal),
+        })
+
+        return h(
+          'div',
+          { className: 'ci-trend' },
+          h(
+            'div',
+            { className: 'ci-trend-wrap', ref: wrapRef, onClick: () => setPinned(-1) },
+            h(
+              'svg',
+              {
+                className: 'ci-trend-svg',
+                viewBox: `0 0 ${W} ${H}`,
+                width: W,
+                height: H,
+                role: 'group',
+                'aria-label': summaryLabel,
+              },
+              h('title', null, t('trend.title')),
+              h(
+                'defs',
+                null,
+                h(
+                  'pattern',
+                  { id: hatchId, patternUnits: 'userSpaceOnUse', width: 6, height: 6, patternTransform: 'rotate(45)' },
+                  h('rect', { width: 6, height: 6, fill: 'var(--ci-line2)' }),
+                  h('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'var(--ci-fg3)', strokeWidth: 1.5, opacity: 0.55 }),
+                ),
+              ),
+              h(
+                'g',
+                { className: 'ci-trend-grid' },
+                gridValues.map((tick) =>
+                  h('line', { key: 'g' + tick, x1: pad.l, y1: yOf(tick), x2: W - pad.r, y2: yOf(tick), strokeDasharray: '2 4', strokeWidth: 0.5 }),
+                ),
+                h('line', { x1: pad.l, y1: yOf(0), x2: W - pad.r, y2: yOf(0), strokeWidth: 1 }),
+              ),
+              h(
+                'g',
+                { className: 'ci-trend-axis' },
+                gridValues.map((tick) =>
+                  h('text', { key: 'y' + tick, x: pad.l - 8, y: yOf(tick) + 3, textAnchor: 'end' }, token(tick)),
+                ),
+                h('text', { x: pad.l - 8, y: yOf(0) + 3, textAnchor: 'end' }, '0'),
+              ),
+              data.map((point, index) => {
+                const segments = segmentsOf(point)
+                let cursor = 0
+                const center = xOf(index)
+                const resolved = point.channels !== null && point.channels !== undefined
+                const label = `${labelOf(point)} · ${digits(pointTotal(point))} token${resolved ? '' : ' · ' + t('trend.unknown')}`
+                const dimmed = (pinned >= 0 || hover >= 0) && active !== index
+                return h(
+                  'g',
+                  {
+                    key: point.sessionId || 'p' + index,
+                    ref: (node) => {
+                      barRefs.current[index] = node
+                    },
+                    className: 'ci-trend-bar',
+                    tabIndex: 0,
+                    role: 'img',
+                    'aria-label': label,
+                    'aria-pressed': pinned === index ? 'true' : 'false',
+                    onMouseEnter: () => setHover(index),
+                    onMouseLeave: () => setHover(-1),
+                    onFocus: () => setHover(index),
+                    onBlur: () => setHover(-1),
+                    onClick: (event) => {
+                      event.stopPropagation()
+                      setPinned((previous) => (previous === index ? -1 : index))
+                    },
+                    onKeyDown: (event) => {
+                      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                        event.preventDefault()
+                        const next = event.key === 'ArrowRight' ? index + 1 : index - 1
+                        const node = barRefs.current[next]
+                        if (node && typeof node.focus === 'function') node.focus()
+                      } else if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setPinned((previous) => (previous === index ? -1 : index))
+                      } else if (event.key === 'Escape') {
+                        setPinned(-1)
+                        if (event.target && typeof event.target.blur === 'function') event.target.blur()
+                      }
+                    },
+                  },
+                  h('rect', { className: 'ci-trend-hit', x: pad.l + slot * index, y: pad.t, width: slot, height: plotH }),
+                  segments.map((segment) => {
+                    const bottom = cursor
+                    cursor += segment.value
+                    const yTop = yOf(bottom + segment.value)
+                    const height = Math.max(segment.value > 0 ? 1 : 0, yOf(bottom) - yTop)
+                    const top = segment === segments[segments.length - 1]
+                    return h('rect', {
+                      key: segment.id,
+                      x: center - barW / 2,
+                      y: yTop,
+                      width: barW,
+                      height,
+                      rx: top ? 2 : 0,
+                      fill: segment.id === 'unknown' ? `url(#${hatchId})` : COLOR[segment.id],
+                      opacity: dimmed ? 0.4 : 1,
+                    })
+                  }),
+                  pinned === index ? h('rect', { x: center - barW / 2 - 2, y: pad.t, width: barW + 4, height: plotH, fill: 'none', stroke: 'var(--ci-accent)', strokeWidth: 2, rx: 3 }) : null,
+                )
+              }),
+              h(
+                'g',
+                { className: 'ci-trend-axis' },
+                xTicks.map(({ index, point }) =>
+                  h(
+                    'text',
+                    {
+                      key: 'x' + index,
+                      x: xOf(index),
+                      y: H - 6,
+                      textAnchor: index === 0 ? 'start' : index === data.length - 1 ? 'end' : 'middle',
+                    },
+                    dayLabel(Number(point.firstAt || point.at)),
+                  ),
+                ),
+              ),
+            ),
+            tooltip === null
+              ? null
+              : h(
+                  'div',
+                  { className: 'ci-trend-tip', style: { left: Math.max(6, Math.min(W - 206, xOf(active) - 100)), top: 6 } },
+                  h('div', { className: 't' }, labelOf(tooltip)),
+                  Number(tooltip.bucketCount) > 1 ? h('div', { className: 'r' }, h('span', { className: 'l' }, t('trend.bucketCount', { count: tooltip.bucketCount })), h('b', null, '')) : null,
+                  h('div', { className: 'r' }, h('span', { className: 'l' }, t('total')), h('b', null, `${digits(pointTotal(tooltip))} token`)),
+                  h('div', { className: 'r' }, h('span', { className: 'l' }, t('trend.effective')), h('b', null, token(Number(tooltip.effective) || 0))),
+                  h('div', { className: 'r' }, h('span', { className: 'l' }, t('savable')), h('b', null, token(Math.max(0, Number(tooltip.saved) || 0)))),
+                  h('div', { className: 'sep' }),
+                  segmentsOf(tooltip).map((segment) =>
+                    h(
+                      'div',
+                      { className: 'r', key: segment.id },
+                      h(
+                        'span',
+                        { className: 'l' },
+                        h('i', {
+                          className: 'sw',
+                          style: segment.id === 'unknown' ? { background: 'repeating-linear-gradient(45deg,var(--ci-fg3) 0 1.5px,transparent 1.5px 4px)' } : { background: COLOR[segment.id] },
+                        }),
+                        segment.id === 'unknown' ? t('trend.unknown') : t(segment.id),
+                      ),
+                      h('b', null, token(segment.value)),
+                    ),
+                  ),
+                  h(
+                    'div',
+                    { className: 'r' },
+                    h('span', { className: 'l' }, tooltip.source === 'log' ? t('v2.badgeLog') : t('v2.badgeMeasured')),
+                    h('b', null, tooltip.scope ? scopeLabel(t, tooltip.scope) : '—'),
+                  ),
+                  Number(tooltip.samples) > 1 ? h('div', { className: 'r' }, h('span', { className: 'l' }, t('v2.samples', { count: tooltip.samples })), h('b', null, '')) : null,
+                  tooltip.compactions !== null && tooltip.compactions !== undefined && Number(tooltip.compactions.count) > 0
+                    ? h('div', { className: 'r' }, h('span', { className: 'l' }, t('v2.compactions', { count: tooltip.compactions.count, saved: token(tooltip.compactions.freed) })), h('b', null, ''))
+                    : null,
+                  h('div', { className: 'ci-trend-tip-hint' }, pinned >= 0 ? t('trend.pinned') : t('trend.pinHint')),
+                ),
+          ),
+          h(
+            'div',
+            { className: 'ci-trend-legend', role: 'group', 'aria-label': t('trend.legendHint') },
+            CHANNELS.map((channel) =>
+              h(
+                'button',
+                {
+                  key: channel,
+                  type: 'button',
+                  'aria-pressed': hiddenSet.has(channel) ? 'false' : 'true',
+                  title: t('trend.legendHint'),
+                  onClick: () => setHidden((previous) => (previous.indexOf(channel) >= 0 ? previous.filter((entry) => entry !== channel) : previous.concat(channel))),
+                },
+                h('i', { style: { background: COLOR[channel] } }),
+                t(channel),
+              ),
+            ),
+            unknown ? h('span', { className: 'unknown', title: t('trend.logHint'), style: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '1px 6px' } }, h('i', null), t('trend.unknown')) : null,
+            hiddenCount > 0 ? h('button', { type: 'button', onClick: () => setHidden([]), title: t('trend.legendHint') }, '×') : null,
+          ),
+          h('div', { className: 'ci-trend-note' }, h('span', { className: 'hatch' }), t('trend.striped'), ' · ', t('trend.keyboardHint')),
+          overview
+            ? h('div', { className: 'ci-trend-note' }, t('trend.overviewNote', { count: source.length, buckets: data.length }))
+            : range === 'all'
+              ? h('div', { className: 'ci-trend-note' }, t('trend.allHint'))
+              : null,
+        )
+      }
+
+      function CrossComposition({ aggregate, t }) {
+        const avg = aggregate !== null && aggregate !== undefined && aggregate.avgChannels !== null && typeof aggregate.avgChannels === 'object' ? aggregate.avgChannels : null
+        const rows = avg === null ? [] : CHANNELS.filter((channel) => Number(avg[channel]) > 0).map((channel) => ({ id: channel, tokens: Number(avg[channel]) }))
+        const total = rows.reduce((sum, row) => sum + row.tokens, 0)
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('div', { className: 'ci-cardhead' }, h('h2', null, t('v2.crossTitle'))),
+          rows.length === 0
+            ? h('div', { className: 'ci-note' }, t('v2.crossEmpty'))
+            : h(
+                'div',
+                { className: 'ci-donut' },
+                h(Donut, { rows, t, size: 116, centerLabel: t('trend.avg'), ariaLabel: t('v2.crossTitle') }),
+                h(
+                  'div',
+                  { className: 'ci-donut-legend' },
+                  rows.map((row) =>
+                    h(
+                      'div',
+                      { className: 'ci-donut-row', key: row.id },
+                      h(Dot, { channel: row.id }),
+                      h('span', { className: 'n' }, t(row.id)),
+                      h('b', null, token(row.tokens)),
+                      h('span', { className: 'p' }, `${pctText(row.tokens, total)}`),
+                    ),
+                  ),
+                ),
+              ),
+          h('div', { className: 'ci-trend-note' }, t('v2.crossNote')),
+        )
+      }
+
+      function HeaviestSuites({ snapshot, t }) {
+        const groups = Array.isArray(snapshot.groups) ? snapshot.groups : []
+        const itemsByGroup = new Map()
+        for (const item of snapshot.items) {
+          const list = itemsByGroup.get(item.group) || []
+          list.push(item)
+          itemsByGroup.set(item.group, list)
+        }
+        // One suite can own rows in several channels (REA's tools plus its
+        // prompt section); the ranking merges by label so it reads as one suite.
+        const merged = new Map()
+        for (const group of groups) {
+          const label = String(group.label !== undefined && group.label !== null ? group.label : group.id)
+          const key = label.toLowerCase()
+          const items = itemsByGroup.get(group.id) || []
+          const effective = items.reduce((sum, item) => (policyItemOn(snapshot, item) ? sum + item.tokens : sum), 0)
+          const entry = merged.get(key) || { id: key, label, channel: group.channel, channels: [], tokens: 0, effective: 0 }
+          if (entry.channels.indexOf(group.channel) < 0) entry.channels.push(group.channel)
+          entry.tokens += Number(group.tokens) || 0
+          entry.effective += effective
+          merged.set(key, entry)
+        }
+        const rows = [...merged.values()]
+          .sort((left, right) => right.tokens - left.tokens)
+          .slice(0, 8)
+        const max = rows.reduce((value, row) => Math.max(value, Number(row.tokens) || 0), 1)
+        const total = Math.max(1, effectiveTotalOf(snapshot))
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('div', { className: 'ci-cardhead' }, h('h2', null, t('v2.heaviestTitle')), h('span', { className: 'sp' }), h('span', { className: 'hint' }, t('v2.heaviestHint'))),
+          rows.length === 0
+            ? h('div', { className: 'ci-note' }, t('v2.heaviestEmpty'))
+            : h(
+                'div',
+                { className: 'ci-bars' },
+                rows.map((group) =>
+                  h(
+                    'div',
+                    {
+                      className: 'ci-barrow' + (group.effective === 0 ? ' off' : ''),
+                      key: group.id,
+                      title: `${group.label} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effective)}`,
+                    },
+                    h('span', { className: 'n' }, groupLabelOf(t, group)),
+                    h(
+                      'span',
+                      { className: 'ci-bar-track', style: { width: `${Math.max(2, ((Number(group.tokens) || 0) / max) * 100)}%` } },
+                      h('span', {
+                        className: 'ci-bar-fill',
+                        style: {
+                          width: `${group.tokens === 0 ? 0 : Math.max(0, Math.min(100, (group.effective / group.tokens) * 100))}%`,
+                          background: COLOR[group.channel],
+                        },
+                      }),
+                    ),
+                    h('span', { className: 't', style: { textAlign: 'right' } }, `${token(group.effective)} · ${pctText(group.effective, total)}`),
+                  ),
+                ),
+              ),
+        )
+      }
+
+      function EventsFeed({ events, t, limit, initial, bare }) {
+        const [showAll, setShowAll] = useState(false)
+        const data = events !== null && events.data !== null && events.data !== undefined ? events.data : null
+        const list = data !== null && Array.isArray(data.events) ? data.events : []
+        const coverage = data !== null && data.coverage !== null && typeof data.coverage === 'object' ? data.coverage : null
+        const max = limit || 60
+        const first = initial || 12
+        const sliced = showAll ? list.slice(0, max) : list.slice(0, first)
+        const failed = events !== null && events.status === 'failed'
+        const loading = events !== null && (events.status === 'loading' || events.status === 'refreshing') && data === null
+
+        const paramsOf = (event) => {
+          const params = event.params !== null && typeof event.params === 'object' ? event.params : {}
+          const chips = []
+          for (const key of ['group', 'name', 'scope', 'mode', 'preset', 'detail']) {
+            const value = params[key]
+            if (typeof value === 'string' && value.length > 0) chips.push(value.length > 60 ? value.slice(0, 60) + '…' : value)
+          }
+          if (typeof params.channel === 'string' && params.channel.length > 0) chips.push(t(params.channel))
+          if (typeof params.op === 'string' && params.op.length > 0) {
+            if (typeof params.channel === 'string') chips.push(params.op === 'off' ? t('turnedOff') : t('turnedOn'))
+            else chips.push(params.op)
+          }
+          if (Number.isFinite(Number(params.count)) && Number(params.count) > 0) chips.push(`${params.count} ${t('items')}`)
+          return chips
+        }
+
+        return h(
+          'div',
+          { className: (bare === true ? '' : 'ci-card ') + 'ci-events' },
+          h(
+            'div',
+            { className: 'ci-cardhead' },
+            h('h2', null, t('v2.eventsTitle')),
+            h('span', { className: 'sp' }),
+            coverage !== null && Number.isFinite(Number(coverage.count))
+              ? h('span', { className: 'hint' }, t('v2.eventsCoverage', { count: coverage.count, limit: coverage.limit || max }))
+              : null,
+            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: events.reload, title: t('refresh') }, t('refresh')),
+          ),
+          failed
+            ? h(
+                'div',
+                { className: 'ci-errorbar' },
+                h('span', null, `${t('v2.eventsFailed')}：${errorText(events)}`),
+                h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: events.reload }, t('v2.retry')),
+              )
+            : null,
+          loading
+            ? h(
+                'div',
+                { className: 'ci-skel-lines', 'aria-hidden': 'true' },
+                [0, 1, 2, 3, 4, 5].map((index) => h('div', { className: 'line', key: index })),
+              )
+            : null,
+          !loading && list.length === 0 && !failed ? h('div', { className: 'ci-note' }, t('v2.eventsEmpty')) : null,
+          sliced.length === 0
+            ? null
+            : h(
+                'div',
+                { className: 'ci-events-list', role: 'list', 'aria-label': t('v2.eventsTitle') },
+                sliced.map((event, index) => {
+                  const kind = typeof event.kind === 'string' ? event.kind : 'unknown'
+                  const known = ['session-created', 'policy-saved', 'preset', 'budget', 'switch', 'undo', 'import', 'compaction', 'prune', 'model-switch', 'mode-toggle', 'diagnostic']
+                  const label = known.indexOf(kind) >= 0 ? t('ev.' + kind) : t('ev.unknown')
+                  const delta = Number(event.tokensDelta)
+                  const chips = paramsOf(event)
+                  return h(
+                    'div',
+                    { className: 'ci-event', key: event.id || 'e' + index, role: 'listitem' },
+                    h('span', { className: 'dot k-' + kind, 'aria-hidden': 'true' }),
+                    h(
+                      'div',
+                      { className: 'body' },
+                      h(
+                        'div',
+                        { className: 'lbl' },
+                        label,
+                        Number.isFinite(delta) && delta !== 0
+                          ? h('span', { className: 'delta' }, ` ${delta < 0 ? '−' : '+'}${token(Math.abs(delta))}`)
+                          : null,
+                      ),
+                      chips.length === 0 ? null : h('div', { className: 'prm' }, chips.map((chip, chipIndex) => h('span', { key: chipIndex }, chip))),
+                    ),
+                    h('time', { className: 'when', dateTime: Number(event.at) > 0 ? new Date(event.at).toISOString() : undefined, title: fullTime(event.at) }, ago(event.at)),
+                  )
+                }),
+              ),
+          !showAll && list.length > first
+            ? h('button', { type: 'button', className: 'ci-btn ci-sm', style: { alignSelf: 'flex-start' }, onClick: () => setShowAll(true) }, t('v2.eventsMore', { count: Math.min(list.length, max) - first }))
+            : null,
+        )
+      }
+
+      function SessionCards({ trend, t, sessionId, onRangeAll }) {
+        const [query, setQuery] = useState('')
+        const [sort, setSort] = useStoredState('insightsSort', 'recent')
+        const [shown, setShown] = useState(24)
+        const deferredQuery = useDeferredValue(query)
+        const points = trend !== null && trend.data !== null && trend.data !== undefined && Array.isArray(trend.data.points) ? trend.data.points : []
+        const needle = deferredQuery.trim().toLowerCase()
+        const filtered = points.filter((point) => {
+          if (needle.length === 0) return true
+          const haystack = `${point.sessionId || ''} ${point.title || ''} ${point.cwd || ''}`.toLowerCase()
+          return haystack.indexOf(needle) >= 0
+        })
+        const sorted = filtered.slice().sort((left, right) => {
+          if (sort === 'heavy') return (Number(right.total) || 0) - (Number(left.total) || 0)
+          if (sort === 'saved') return (Number(right.saved) || 0) - (Number(left.saved) || 0)
+          return (Number(right.firstAt || right.at) || 0) - (Number(left.firstAt || left.at) || 0)
+        })
+        const visible = sorted.slice(0, shown)
+        const miniBar = (point) => {
+          const channels = point.channels
+          if (channels === null || channels === undefined || typeof channels !== 'object') return h('span', { className: 'mini-bar unknown', 'aria-hidden': 'true' })
+          const total = Math.max(1, Number(point.total) || 0)
+          return h(
+            'span',
+            { className: 'mini-bar', 'aria-hidden': 'true', title: t('v2.crossTitle') },
+            CHANNELS.filter((channel) => Number(channels[channel]) > 0).map((channel) =>
+              h('span', { key: channel, style: { width: `${Math.max(1, (Number(channels[channel]) / total) * 100)}%`, background: COLOR[channel] } }),
+            ),
+          )
+        }
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h(
+            'div',
+            { className: 'ci-cardhead' },
+            h('h2', null, t('v2.sessions')),
+            h('span', { className: 'hint' }, t('v2.sessionsCount', { count: sorted.length })),
+          ),
+          h(
+            'div',
+            { className: 'ci-session-toolbar' },
+            h('input', {
+              className: 'ci-input',
+              placeholder: t('v2.sessionSearch'),
+              value: query,
+              onChange: (event) => setQuery(event.target.value),
+              'aria-label': t('v2.sessionSearch'),
+            }),
+            h(
+              'div',
+              { className: 'ci-seg ci-small', role: 'group', 'aria-label': t('v2.sortLabel') },
+              [
+                ['recent', t('v2.sortRecent')],
+                ['heavy', t('v2.sortHeavy')],
+                ['saved', t('v2.sortSaved')],
+              ].map(([key, label]) =>
+                h('button', { key, type: 'button', className: sort === key ? 'on' : '', 'aria-pressed': sort === key ? 'true' : 'false', onClick: () => setSort(key) }, label),
+              ),
+            ),
+          ),
+          sorted.length === 0
+            ? h(
+                'div',
+                { className: 'ci-empty-next' },
+                h('span', null, t('v2.noSessions')),
+                onRangeAll === undefined ? null : h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: onRangeAll }, t('trend.rangeAll')),
+              )
+            : h(
+                'div',
+                { className: 'ci-session-grid' },
+                visible.map((point) => {
+                  const live = sessionId !== undefined && sessionId !== '' && point.sessionId === sessionId
+                  return h(
+                    'div',
+                    { className: 'ci-session' + (live ? ' live' : ''), key: point.sessionId || String(point.at), title: `${point.sessionId || ''}${point.cwd ? ' · ' + point.cwd : ''}` },
+                    h(
+                      'div',
+                      { className: 'top' },
+                      h('span', { className: 'sid' }, shortId(point.sessionId)),
+                      live ? h('span', { className: 'ci-badge accent' }, t('v2.currentSession')) : null,
+                      h('span', { className: 'when' }, dayLabel(Number(point.firstAt || point.at))),
+                    ),
+                    h('div', { className: 'big' }, token(Number(point.total) || 0), h('small', null, t('tokens'))),
+                    h('div', { className: 'sub' }, `${t('trend.effective')} ${token(Number(point.effective) || 0)} · ${t('savable')} ${token(Number(point.saved) || 0)}`),
+                    miniBar(point),
+                    h(
+                      'div',
+                      { className: 'badges' },
+                      point.source === 'log' ? h('span', { className: 'ci-badge' }, t('v2.badgeLog')) : h('span', { className: 'ci-badge' }, t('v2.badgeMeasured')),
+                      Number(point.samples) > 1 ? h('span', { className: 'ci-badge' }, t('v2.samples', { count: point.samples })) : null,
+                      point.compactions !== null && point.compactions !== undefined && Number(point.compactions.count) > 0
+                        ? h('span', { className: 'ci-badge' }, t('v2.compactions', { count: point.compactions.count, saved: token(point.compactions.freed) }))
+                        : null,
+                      point.channels === null || point.channels === undefined ? h('span', { className: 'ci-badge' }, t('v2.channelsUnknown')) : null,
+                    ),
+                  )
+                }),
+              ),
+          sorted.length > visible.length
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'ci-btn ci-sm',
+                  style: { alignSelf: 'flex-start' },
+                  onClick: () => setShown((previous) => previous + 24),
+                },
+                t('v2.showMore', { count: Math.min(24, sorted.length - visible.length) }),
+              )
+            : null,
+        )
+      }
+
+      // Cross-session KPI row: the insights page answers "how big has this been
+      // over time", not "what is on screen". The current session's numbers move
+      // to one compact line so the trend card owns the first screen.
+      function InsightKpis({ aggregate, coverage, t }) {
+        const rows = [
+          {
+            key: 'v2.kpiMeasured',
+            value: aggregate === null ? '—' : `${aggregate.measured ?? '—'}/${aggregate.sessions ?? '—'}`,
+            sub: t('v2.kpiMeasuredSub'),
+            title: coverage === null ? '' : t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' }),
+          },
+          { key: 'trend.avg', value: aggregate === null ? '—' : token(aggregate.avgTotal), sub: t('trend.avgSub'), title: t('trend.avgSub') },
+          { key: 'trend.max', value: aggregate === null ? '—' : token(aggregate.maxTotal), sub: t('trend.maxSub'), title: t('trend.maxSub') },
+          { key: 'trend.saved', value: aggregate === null ? '—' : token(aggregate.totalSaved), sub: t('trend.savedSub'), title: t('trend.savedSub') },
+        ]
+        return h(
+          'div',
+          { className: 'ci-kpis' },
+          rows.map((row) =>
+            h(
+              'div',
+              { className: 'ci-kpi', key: row.key, title: row.title || null },
+              h('div', { className: 'k' }, t(row.key)),
+              h('div', { className: 'v' }, row.value),
+              h('div', { className: 's' }, row.sub),
+            ),
+          ),
+        )
+      }
+
+      function InsightsTab({ snapshot, t, sessionId, onOpenContent, onOpenTab, act }) {
+        const [range, setRange] = useStoredState('trendRange', 'all')
+        const trend = useTrend(range, true)
+        const events = useEvents(sessionId, true)
+        const data = trend.data !== null && trend.data !== undefined ? trend.data : null
+        const aggregate = data !== null && data.aggregate !== null && typeof data.aggregate === 'object' ? data.aggregate : null
+        const coverage = data !== null && data.coverage !== null && typeof data.coverage === 'object' ? data.coverage : null
+        const backfilling = data !== null && data.backfilling === true
+        const points = data !== null && Array.isArray(data.points) ? data.points : []
+        const currentTotals = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
+        const context = snapshot.context !== null && snapshot.context !== undefined ? snapshot.context : null
+        const windowKnown = context !== null && context.window !== null && context.used !== null
+        const aggCells = aggregate === null ? [] : [
+          { key: 'v2.sessionsCount', value: aggregate.sessions, label: t('v2.sessionsCount', { count: aggregate.sessions }) },
+          { key: 'trend.measured', value: aggregate.measured, label: t('trend.measured', { count: aggregate.measured }) },
+          { key: 'trend.avg', value: token(aggregate.avgTotal), label: t('trend.avg') },
+          { key: 'trend.max', value: token(aggregate.maxTotal), label: t('trend.max') },
+          { key: 'trend.saved', value: token(aggregate.totalSaved), label: t('trend.saved') },
+        ]
+        return h(
+          'div',
+          { className: 'ci-insights' },
+          h(
+            'div',
+            { className: 'ci-inline-meta' },
+            h('span', null, t('v2.insightsSub')),
+            h('span', { style: { flex: '1 1 auto' } }),
+            h(RangePills, {
+              value: range,
+              label: t('trend.rangeLabel'),
+              options: [
+                ['7d', t('trend.range7')],
+                ['30d', t('trend.range30')],
+                ['all', t('trend.rangeAll')],
+              ],
+              onChange: setRange,
+            }),
+            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => Promise.all([trend.reload(), events.reload()]).catch(() => {}) }, t('refresh')),
+          ),
+          h(InsightKpis, { aggregate, coverage, t }),
+          h(
+            'div',
+            { className: 'ci-insight-current' },
+            h('span', null, t('v2.currentSession')),
+            h('span', null, `${t('total')} `, h('b', null, token(currentTotals.tokens))),
+            h('span', null, `${t('window')} `, h('b', null, windowKnown ? `${token(context.used)} / ${token(context.window)}` : t('noWindow'))),
+            h('span', null, `${t('savable')} `, h('b', null, token(currentTotals.savableTokens))),
+            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => onOpenTab('manage') }, t('v2.goManage')),
+          ),
+          h(RequestStrip, { snapshot, t }),
+          h(
+            'div',
+            { className: 'ci-insight-top' },
+            h(
+              'div',
+              { className: 'ci-card' },
+              h(
+                'div',
+                { className: 'ci-cardhead' },
+                h('h2', null, t('trend.title')),
+                h('span', { className: 'sp' }),
+                h('span', { className: 'hint' }, t('trend.legendHint')),
+              ),
+              aggCells.length === 0
+                ? null
+                : h(
+                    'div',
+                    { className: 'ci-trend-agg' },
+                    aggCells.map((cell) =>
+                      h('span', { className: 'cell', key: cell.key }, cell.label, h('b', null, cell.value === undefined || cell.value === null ? '—' : String(cell.value))),
+                    ),
+                  ),
+              trend.status === 'failed'
+                ? h(
+                    'div',
+                    { className: 'ci-errorbar' },
+                    h('span', null, `${t('trend.loadFailed')}：${errorText(trend)}`),
+                    h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: trend.reload }, t('trend.retry')),
+                  )
+                : null,
+              trend.status === 'loading' && data === null
+                ? h(
+                    'div',
+                    { className: 'ci-skel-lines', 'aria-hidden': 'true' },
+                    h('div', { className: 'ci-skel-chart' }, [38, 62, 44, 71, 55, 83, 49, 66, 40, 74].map((height, index) => h('span', { key: index, style: { height: height + '%' } }))),
+                    h('div', { className: 'line' }),
+                    h('div', { className: 'line' }),
+                  )
+                : h(TrendChart, { points, t, range }),
+              coverage !== null
+                ? h('div', { className: 'ci-trend-note' }, t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' }), ' · ', t('trend.coverageFootnote'))
+                : null,
+              backfilling ? h('div', { className: 'ci-trend-note' }, t('trend.backfilling')) : null,
+            ),
+            h('div', { className: 'ci-card ci-events-card' }, h(EventsFeed, { events, t, limit: 60, initial: 4, bare: true })),
+          ),
+          h('div', { className: 'ci-grid2' }, h(CrossComposition, { aggregate, t }), h(HeaviestSuites, { snapshot, t })),
+          h(SessionCards, { trend, t, sessionId, onRangeAll: () => setRange('all') }),
+          h('div', { className: 'ci-foot' }, t('v2.aboutHonesty')),
+        )
+      }
+
+      // ------------------------------------------------------- content drawer
+      //
+      // A right-hand overlay that shows one item's raw content. Everything here
+      // is plain React text: no raw-HTML injection anywhere, so a tool
+      // description or an AGENTS.md that contains HTML reads as text.
+      function ContentDrawer({ target, sessionId, t, onClose }) {
+        const open = target !== null && target !== undefined
+        const content = useContent(open ? target : null, sessionId)
+        const [query, setQuery] = useState('')
+        const [linesOn, setLinesOn] = useStoredState('contentLines', true)
+        const [copied, setCopied] = useState('')
+        const [view, setView] = useState('desc')
+        const deferredQuery = useDeferredValue(query)
+        const panelRef = useRef(null)
+        const copyTimer = useRef(null)
+        const restoreRef = useRef(null)
+        const closeRef = useRef(null)
+
+        useEffect(() => {
+          if (open !== true) return undefined
+          restoreRef.current = typeof document !== 'undefined' ? document.activeElement : null
+          const timer = setTimeout(() => {
+            if (closeRef.current && typeof closeRef.current.focus === 'function') closeRef.current.focus()
+          }, 30)
+          return () => {
+            clearTimeout(timer)
+            const previous = restoreRef.current
+            if (previous && typeof previous.focus === 'function') {
+              try {
+                previous.focus()
+              } catch {
+                /* the trigger may be gone after a re-render */
+              }
+            }
+          }
+        }, [open])
+
+        useEffect(() => {
+          if (open !== true) return undefined
+          setQuery('')
+          setCopied('')
+          setView('desc')
+          return undefined
+        }, [open, target === null || target === undefined ? '' : target.id])
+
+        useEffect(() => () => { if (copyTimer.current !== null) clearTimeout(copyTimer.current) }, [])
+
+        // Focus trap + Escape. Capture phase so the host's own Escape handlers
+        // (e.g. closing the side panel) do not fight the drawer.
+        useEffect(() => {
+          if (open !== true) return undefined
+          const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              event.stopPropagation()
+              onClose()
+              return
+            }
+            if (event.key !== 'Tab') return
+            const root = panelRef.current
+            if (!root) return
+            const nodes = root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+            const list = []
+            for (const node of nodes) {
+              if (node.disabled === true) continue
+              if (node.getAttribute('aria-hidden') === 'true') continue
+              if (node.offsetParent === null && node !== document.activeElement) continue
+              list.push(node)
+            }
+            if (list.length === 0) return
+            const first = list[0]
+            const last = list[list.length - 1]
+            if (event.shiftKey === true && document.activeElement === first) {
+              event.preventDefault()
+              last.focus()
+            } else if (event.shiftKey !== true && document.activeElement === last) {
+              event.preventDefault()
+              first.focus()
+            }
+          }
+          window.addEventListener('keydown', onKeyDown, true)
+          return () => window.removeEventListener('keydown', onKeyDown, true)
+        }, [open, onClose])
+
+        if (open !== true) return null
+
+        const data = content.data !== null && content.data !== undefined ? content.data : null
+        const body = data !== null && typeof data.content === 'string' ? data.content : ''
+        const info = data !== null && data.item !== null && typeof data.item === 'object' ? data.item : { name: target.name, channel: target.channel, tokens: target.tokens, chars: target.chars }
+        const name = typeof info.name === 'string' && info.name.length > 0 ? info.name : String(target.name || target.id || '')
+        const channel = typeof info.channel === 'string' ? info.channel : String(target.channel || '')
+        const contentType = data !== null && typeof data.contentType === 'string' ? data.contentType : 'text'
+        const sourcePath = data !== null && typeof data.sourcePath === 'string' ? data.sourcePath : ''
+        const truncated = data !== null && data.truncated === true
+        const limit = data !== null && Number(data.limit) > 0 ? data.limit : 262144
+        const note = data !== null && typeof data.note === 'string' ? data.note : ''
+        const bytes = data !== null && Number.isFinite(Number(data.bytes)) ? Number(data.bytes) : Number(info.chars) || body.length
+        const chars = Number.isFinite(Number(info.chars)) ? Number(info.chars) : body.length
+        const tokens = Number.isFinite(Number(info.tokens)) ? Number(info.tokens) : Math.round(chars / 3.5)
+        const groupLabel = target.group !== undefined && target.group !== null ? String(target.group) : ''
+
+        const allLines = body.length === 0 ? [] : body.split('\n')
+        const maxLines = 4000
+        const shownLines = allLines.length > maxLines ? allLines.slice(0, maxLines) : allLines
+        const needle = deferredQuery.trim()
+        const lowerNeedle = needle.toLowerCase()
+        const matchInfo = (() => {
+          if (needle.length === 0 || body.length === 0) return { count: 0, lines: 0 }
+          const lower = body.toLowerCase()
+          let count = 0
+          let at = 0
+          while (count < 5000) {
+            const found = lower.indexOf(lowerNeedle, at)
+            if (found < 0) break
+            count += 1
+            at = found + lowerNeedle.length
+          }
+          let lines = 0
+          for (const line of shownLines) if (line.toLowerCase().indexOf(lowerNeedle) >= 0) lines += 1
+          return { count, lines }
+        })()
+
+        const markLine = (text, index) => {
+          if (needle.length === 0) return text
+          const lower = text.toLowerCase()
+          if (lower.indexOf(lowerNeedle) < 0) return text
+          const out = []
+          let at = 0
+          let count = 0
+          while (count < 400) {
+            const found = lower.indexOf(lowerNeedle, at)
+            if (found < 0) break
+            if (found > at) out.push(text.slice(at, found))
+            out.push(h('mark', { className: 'ci-content-hit', key: 'm' + index + ':' + count }, text.slice(found, found + needle.length)))
+            at = found + needle.length
+            count += 1
+          }
+          if (at < text.length) out.push(text.slice(at))
+          return out
+        }
+
+        const copyText = async (value, key) => {
+          try {
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') throw new Error('clipboard-unavailable')
+            await navigator.clipboard.writeText(value)
+            setCopied(key)
+          } catch {
+            setCopied('error')
+          }
+          if (copyTimer.current !== null) clearTimeout(copyTimer.current)
+          copyTimer.current = setTimeout(() => setCopied(''), 1800)
+        }
+
+        const knownNotes = ['catalog', 'file', 'assemble', 'snapshot']
+
+        // Tools arrive as pretty-printed JSON. A raw dump is hard to scan, so
+        // the drawer splits it the way a reader needs it: description, a
+        // parameter table, and the untouched JSON as the audit view. Non-JSON
+        // content has no tabs — it is already text.
+        const isJson = contentType === 'json'
+        let parsed = null
+        if (isJson && body.length > 0) {
+          try {
+            parsed = JSON.parse(body)
+          } catch {
+            parsed = null
+          }
+        }
+        const parameters = parsed !== null && parsed.parameters !== null && typeof parsed.parameters === 'object' ? parsed.parameters : null
+        const properties = parameters !== null && parameters.properties !== null && typeof parameters.properties === 'object' ? parameters.properties : null
+        const requiredNames = parameters !== null && Array.isArray(parameters.required) ? parameters.required.map(String) : []
+        const hasStructured = isJson && parsed !== null && typeof parsed === 'object'
+        const mode = hasStructured ? view : 'raw'
+        const sharePct = target !== null && target !== undefined && Number.isFinite(Number(target.share)) ? Number(target.share) : null
+        const savedTokens = target !== null && target !== undefined && Number.isFinite(Number(target.saved)) ? Math.max(0, Number(target.saved)) : 0
+        const propertyRows = properties === null ? [] : Object.keys(properties).map((key) => {
+          const spec = properties[key] !== null && typeof properties[key] === 'object' ? properties[key] : {}
+          const type = typeof spec.type === 'string' ? spec.type : spec.type !== undefined ? String(spec.type) : '—'
+          return {
+            name: key,
+            type,
+            required: requiredNames.indexOf(key) >= 0,
+            desc: typeof spec.description === 'string' && spec.description.length > 0 ? spec.description : '—',
+          }
+        })
+        const copyLabel = isJson ? t('content.copyJson') : t('content.copy')
+        const bodyLines = () =>
+          h(
+            'div',
+            { className: 'ci-content-lines' },
+            shownLines.map((line, index) =>
+              h(
+                'div',
+                { className: 'ci-content-line', key: index },
+                linesOn ? h('span', { className: 'ln', 'aria-hidden': 'true' }, String(index + 1)) : null,
+                h('span', { className: 'tx' }, markLine(line, index)),
+              ),
+            ),
+          )
+
+        return h(
+          React.Fragment,
+          null,
+          h('style', null, STYLE),
+          h('div', {
+            className: 'ci-drawer-backdrop',
+            'aria-hidden': 'true',
+            onClick: onClose,
+          }),
+          h(
+            'section',
+            {
+              className: 'ci-drawer',
+              ref: panelRef,
+              role: 'dialog',
+              'aria-modal': 'true',
+              'aria-labelledby': 'ci-drawer-title',
+              tabIndex: -1,
+            },
+            h(
+              'div',
+              { className: 'ci-drawer-head' },
+              h(
+                'div',
+                { className: 'ci-drawer-title' },
+                h(
+                  'div',
+                  { className: 'ci-breadcrumb' },
+                    h('span', null, t('tabManage')),
+                    h('span', { className: 'sep' }, '/'),
+                    h(Dot, { channel }),
+                    h('span', null, t(channel)),
+                  groupLabel.length > 0 ? h('span', { className: 'sep' }, '/') : null,
+                  groupLabel.length > 0 ? h('span', null, groupLabel) : null,
+                  h('span', { className: 'sep' }, '/'),
+                  h('span', { className: 'last', title: name }, name),
+                ),
+                h('h2', { id: 'ci-drawer-title' }, name),
+                h(
+                  'div',
+                  { className: 'ci-inline-meta', style: { marginTop: 2 } },
+                  h('span', { title: t('content.tokensHint') }, `≈${token(tokens)} token`),
+                  sharePct === null ? null : h('span', null, `${Number(sharePct).toFixed(1)}% ${t('shareOf')}`),
+                  savedTokens > 0 ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(savedTokens) }) }, '−' + token(savedTokens)) : null,
+                ),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'ci-btn',
+                  ref: closeRef,
+                  'data-autofocus': 'true',
+                  onClick: onClose,
+                  'aria-label': t('content.close'),
+                  title: t('content.escHint'),
+                },
+                '×',
+              ),
+            ),
+            h(
+              'div',
+              { className: 'ci-drawer-tools' },
+              h('span', { className: 'ci-badge' }, t('content.type.' + (['json', 'markdown', 'text'].indexOf(contentType) >= 0 ? contentType : 'text'))),
+              h('span', { className: 'ci-badge' }, h(Dot, { channel }), t(channel)),
+              note.length > 0 ? h('span', { className: 'ci-badge' }, knownNotes.indexOf(note) >= 0 ? t('content.note.' + note) : note) : null,
+              h('span', { style: { flex: '1 1 auto' } }),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'ci-btn ci-sm',
+                  disabled: body.length === 0,
+                  onClick: () => copyText(body, 'content'),
+                },
+                copied === 'content' ? t('content.copied') : copied === 'error' ? t('content.copyFailed') : copyLabel,
+              ),
+            ),
+            hasStructured || mode === 'raw'
+              ? h(
+                  'div',
+                  { className: 'ci-drawer-tools' },
+                  h('span', { className: 'ci-inline-meta' }, t('content.meta', { bytes: digits(bytes), chars: digits(chars), tokens: token(tokens) })),
+                  hasStructured
+                    ? h(
+                        'div',
+                        { className: 'ci-seg ci-small', role: 'group', 'aria-label': t('content.viewLabel') },
+                        [
+                          ['desc', t('content.viewDesc')],
+                          ['params', t('content.viewParams')],
+                          ['raw', t('content.viewRaw')],
+                        ].map(([key, label]) =>
+                          h('button', { key, type: 'button', className: mode === key ? 'on' : '', 'aria-pressed': mode === key ? 'true' : 'false', onClick: () => setView(key) }, label),
+                        ),
+                      )
+                    : null,
+                  h('span', { style: { flex: '1 1 auto' } }),
+                  mode === 'raw'
+                    ? h(
+                        React.Fragment,
+                        null,
+                        h('span', { className: 'ci-inline-meta' }, t('content.lines')),
+                        h(Switch, { on: linesOn, onChange: (next) => setLinesOn(next), title: t('content.lines') }),
+                      )
+                    : null,
+                )
+              : null,
+            sourcePath.length > 0
+              ? h(
+                  'div',
+                  { className: 'ci-drawer-source' },
+                  h('span', null, t('content.source')),
+                  h('span', { className: 'ci-drawer-path', title: sourcePath }, sourcePath),
+                  h(
+                    'button',
+                    { type: 'button', className: 'ci-btn ci-sm', onClick: () => copyText(sourcePath, 'path') },
+                    copied === 'path' ? t('content.pathCopied') : t('content.copyPath'),
+                  ),
+                )
+              : null,
+            mode === 'raw' && body.length > 0
+              ? h(
+                  'div',
+                  { className: 'ci-drawer-tools' },
+                  h('input', {
+                    className: 'ci-input ci-drawer-search',
+                    placeholder: t('content.search'),
+                    value: query,
+                    onChange: (event) => setQuery(event.target.value),
+                    'aria-label': t('content.search'),
+                  }),
+                  needle.length > 0 ? h('span', { className: 'ci-inline-meta' }, t('content.matchSummary', { lines: matchInfo.lines, count: matchInfo.count })) : null,
+                  h('span', { className: 'ci-inline-meta' }, t('content.linesMeta', { count: allLines.length })),
+                )
+              : null,
+            truncated
+              ? h('div', { className: 'ci-drawer-note' }, t('content.truncated', { limit: digits(limit) }))
+              : null,
+            h(
+              'div',
+              { className: 'ci-drawer-body' },
+              content.status === 'failed' && data === null
+                ? h(
+                    'div',
+                    { className: 'ci-drawer-empty' },
+                    h('div', { style: { marginBottom: 8 } }, `${t('content.failed')}：${errorText(content)}`),
+                    h('button', { type: 'button', className: 'ci-btn', onClick: content.reload }, t('content.retry')),
+                  )
+                : content.status === 'loading' && data === null
+                  ? h(
+                      'div',
+                      { className: 'ci-skel-lines', 'aria-hidden': 'true', style: { padding: '0 16px' } },
+                      [0, 1, 2, 3, 4, 5, 6, 7].map((index) => h('div', { className: 'line', key: index })),
+                    )
+                  : content.status === 'failed'
+                    ? h(
+                        'div',
+                        { className: 'ci-errorbar', style: { margin: '0 16px 8px' } },
+                        h('span', null, t('content.failed')),
+                        h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: content.reload }, t('content.retry')),
+                      )
+                    : null,
+              content.status === 'failed' && data === null
+                ? null
+                : body.length === 0 && (content.status === 'ready' || content.status === 'failed')
+                  ? content.status === 'ready'
+                    ? h('div', { className: 'ci-drawer-empty' }, t('content.empty'))
+                    : null
+                  : mode === 'desc'
+                    ? h(
+                        'div',
+                        { className: 'ci-drawer-sect' },
+                        h('h3', null, name),
+                        h('p', { className: 'ci-drawer-desc' }, parsed !== null && typeof parsed.description === 'string' && parsed.description.length > 0 ? parsed.description : t('content.noDesc')),
+                      )
+                    : mode === 'params'
+                      ? propertyRows.length === 0
+                        ? h('div', { className: 'ci-drawer-empty' }, t('content.noParams'))
+                        : h(
+                            'table',
+                            { className: 'ci-param-table' },
+                            h(
+                              'thead',
+                              null,
+                              h(
+                                'tr',
+                                null,
+                                h('th', null, t('content.paramName')),
+                                h('th', null, t('content.paramType')),
+                                h('th', { style: { textAlign: 'center' } }, t('content.paramRequired')),
+                                h('th', null, t('content.paramDesc')),
+                              ),
+                            ),
+                            h(
+                              'tbody',
+                              null,
+                              propertyRows.map((row) =>
+                                h(
+                                  'tr',
+                                  { key: row.name },
+                                  h('td', { className: 'name' }, row.name),
+                                  h('td', { className: 'type' }, row.type),
+                                  h('td', { className: 'req' }, row.required ? '✓' : '—'),
+                                  h('td', { className: 'desc' }, row.desc),
+                                ),
+                              ),
+                            ),
+                          )
+                      : bodyLines(),
+              allLines.length > maxLines ? h('div', { className: 'ci-drawer-note' }, t('content.clipped', { count: digits(maxLines) })) : null,
+            ),
+            h(
+              'div',
+              { className: 'ci-drawer-foot' },
+              h('span', null, t('content.escHint')),
+              h('span', null, t('content.readonly')),
+            ),
           ),
         )
       }
@@ -1882,7 +3980,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             h('h2', null, t('promptPrefix')),
             h('textarea', {
               className: 'ci-input',
-              style: { height: 72, resize: 'vertical', fontFamily: 'inherit' },
+              style: { height: 72, resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
               value: prefix,
               onChange: (event) => {
                 setPrefix(event.target.value)
@@ -1894,7 +3992,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             h('h2', { style: { marginTop: 6 } }, t('promptSuffix')),
             h('textarea', {
               className: 'ci-input',
-              style: { height: 56, resize: 'vertical', fontFamily: 'inherit' },
+              style: { height: 56, resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
               value: suffix,
               onChange: (event) => {
                 setSuffix(event.target.value)
@@ -2210,155 +4308,76 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 
       // ------------------------------------------------------------ panel
 
-      // History across every conversation this plugin has measured. The numbers
-      // come from the plugin's own records (a snapshot is folded into
-      // stats.json on every read), so the page states its coverage instead of
-      // implying it replayed every durable log — that would mean reading
-      // megabytes per session on a tab open.
-      // 统计 opens with the conversation on screen, then the corpus history:
-      // both are measurements, so they belong on the same page while 管理 stays
-      // a working list instead of a dashboard.
-      function StatsTab({ t, snapshot, trend, onFilter }) {
-        const [state, setState] = useState({ status: 'loading', data: null, error: null })
-        const load = useCallback(() => {
-          setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
-          fetch(ROUTES.stats, { credentials: 'same-origin', cache: 'no-store' })
-            .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-            .then((data) => setState({ status: 'ready', data, error: null }))
-            .catch((error) => setState({ status: 'failed', data: null, error: String((error && error.message) || error) }))
-        }, [])
-        useEffect(() => { load() }, [load])
-
-        const current =
-          snapshot === undefined || snapshot === null
-            ? null
-            : h(
-                'div',
-                { className: 'ci-current' },
-                h('div', { className: 'ci-section-title' }, t('statsCurrent')),
-                h(Kpis, { snapshot, t, trend }),
-                h(RequestStrip, { snapshot, t }),
-                h(SkillsFocus, { snapshot, t, onFilter }),
-              )
-
-        if (state.status === 'loading') {
-          return h('div', { className: 'ci-list' }, current, h('div', { className: 'ci-note' }, t('loading')))
-        }
-        if (state.status === 'failed') {
-          return h(
-            'div',
-            { className: 'ci-list' },
-            current,
-            h('div', { className: 'ci-note warn' }, `${t('failed')}：${state.error}`),
-            h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('retry')),
-          )
-        }
-        const data = state.data
-        const aggregate = data.aggregate ?? {}
-        const rows = Array.isArray(data.rows) ? data.rows : []
-        const days = Array.isArray(data.days) ? data.days : []
-        const coverage = data.coverage ?? {}
-        if (rows.length === 0 && (data.sessions ?? []).length === 0) {
-          return h(
-            'div',
-            { className: 'ci-list' },
-            current,
-            h(
-              'div',
-              { className: 'ci-card' },
-              h('div', { className: 'ci-note' }, t('statsEmpty')),
-              coverage.known ? h('div', { className: 'ci-foot' }, t('statsCoverage', { known: coverage.known, recorded: coverage.recorded ?? 0 })) : null,
-              h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('refresh')),
-            ),
-          )
-        }
-        // The host lists every conversation (cheap header read); the plugin has
-        // numbers only for the ones it measured. Joining the two is what makes
-        // "历史所有对话" true instead of "the handful this plugin happened to see".
-        const measured = new Map(rows.map((row) => [row.id, row]))
-        const corpus = (data.sessions ?? []).length > 0
-          ? data.sessions.map((session) => ({ ...session, measured: measured.get(session.id) ?? null }))
-          : rows.map((row) => ({ id: row.id, at: row.at, cwd: row.cwd, live: false, measured: row }))
-        const maxDay = days.reduce((max, day) => Math.max(max, day.allOn), 1)
-        const maxRow = rows.reduce((max, row) => Math.max(max, row.peak || 0), 1)
-        return h(
-          'div',
-          { className: 'ci-list' },
-          current,
-          h('div', { className: 'ci-section-title' }, t('statsHistory')),
-          h(
-            'div',
-            { className: 'ci-kpis' },
-            [
-              ['statsSessions', String(aggregate.sessions ?? rows.length), t('statsSessionsSub')],
-              ['statsAvg', token(aggregate.avgAllOn ?? 0), t('statsAvgSub')],
-              ['statsSkills', token(aggregate.avgSkills ?? 0), t('statsSkillsSub')],
-              ['statsPeak', token(aggregate.peakAllOn ?? 0), aggregate.heaviest ? shortId(aggregate.heaviest.id) : '—'],
-            ].map(([key, value, sub]) =>
-              h('div', { className: 'ci-kpi', key }, h('div', { className: 'k' }, t(key)), h('div', { className: 'v' }, value), h('div', { className: 's', title: sub }, sub)),
-            ),
-          ),
-          days.length > 1
-            ? h(
-                'div',
-                { className: 'ci-card' },
-                h('h2', null, t('statsByDay')),
-                h(
-                  'div',
-                  { className: 'ci-history' },
-                  days.map((day) =>
-                    h(
-                      'div',
-                      { className: 'ci-history-row', key: day.day, title: `${day.day} · ${day.sessions} ${t('items')} · ${digits(day.allOn)} token` },
-                      h('span', { className: 'd' }, day.day.slice(5)),
-                      h('span', { className: 'ci-bar-track' }, h('span', { className: 'ci-bar-fill', style: { width: `${Math.max(3, (day.allOn / maxDay) * 100)}%`, background: COLOR.tools } })),
-                      h('span', { className: 't' }, `${day.sessions} · ${token(day.allOn / Math.max(1, day.sessions))}`),
-                    ),
-                  ),
-                ),
-              )
-            : null,
-          h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('statsSessionsTitle')),
-            h(
-              'div',
-              { className: 'ci-stathead' },
-              h('span', null, t('name')),
-              h('span', null, t('statsWhen')),
-              h('span', { className: 'r' }, t('skills')),
-              h('span', { className: 'r' }, t('tools')),
-              h('span', { className: 'r' }, t('statsPeakShort')),
-            ),
-            corpus.slice(0, 60).map((session) => {
-              const row = session.measured
-              return h(
-                'div',
-                { className: 'ci-statrow' + (row === null ? ' unmeasured' : ''), key: session.id, title: `${session.id}${session.cwd ? ` · ${session.cwd}` : ''}${session.live ? ' · live' : ''}` },
-                h('span', { className: 'n' }, shortId(session.id), session.subagent ? h('span', { className: 'ci-tag' }, t('statsSubagent')) : null),
-                h('span', { className: 'w' }, session.at > 0 ? new Date(session.at).toLocaleString() : '—'),
-                h('span', { className: 'r' }, row === null ? t('statsUnmeasured') : row.fromLog === true ? '—' : `${row.skillCount ?? 0} · ${token(row.skills ?? 0)}`),
-                h('span', { className: 'r' }, row === null ? '—' : `${row.tools ?? 0} · ${token(row.toolsTokens ?? 0)}`),
-                h('span', { className: 'r b' }, row === null ? '—' : token(row.peak ?? 0)),
-                h('span', { className: 'ci-bar-track mini' }, h('span', { className: 'ci-bar-fill', style: { width: `${row === null ? 0 : Math.max(2, ((row.peak || 0) / maxRow) * 100)}%`, background: COLOR.tools } })),
-              )
-            }),
-          ),
-          h(
-            'div',
-            { className: 'ci-foot' },
-            t('statsCoverage', { known: coverage.known ?? '—', recorded: coverage.recorded ?? rows.length }),
-            data.backfill !== null && data.backfill !== undefined && data.backfill.added > 0 ? ` · ${t('statsBackfilled', { count: data.backfill.added })}` : null,
-          ),
-          h('div', { className: 'ci-toolbar' }, h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('refresh'))),
-        )
-      }
 
       function shortId(id) {
         const text = String(id ?? '')
         const match = /([0-9a-f]{8})-[0-9a-f]{4}/.exec(text)
         return match === null ? text.slice(0, 12) : match[1]
+      }
+
+      // Browser-local preferences. They never touch policy.json — they only
+      // change how this panel renders for this user.
+      function PreferencesCard({ t }) {
+        const [linesOn, setLinesOn] = useStoredState('contentLines', true)
+        const [range, setRange] = useStoredState('trendRange', 'all')
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('h2', null, t('v2.prefs')),
+          h(
+            'div',
+            { className: 'ci-prefs' },
+            h(
+              'div',
+              { className: 'ci-prefrow' },
+              h('span', { className: 'lbl' }, t('v2.prefLines'), h('span', { className: 'hint' }, t('v2.prefNote'))),
+              h(Switch, { on: linesOn, onChange: (next) => setLinesOn(next), title: t('v2.prefLines') }),
+            ),
+            h(
+              'div',
+              { className: 'ci-prefrow' },
+              h('span', { className: 'lbl' }, t('v2.prefRange')),
+              h(RangePills, {
+                value: range,
+                label: t('v2.prefRange'),
+                options: [
+                  ['7d', t('trend.range7')],
+                  ['30d', t('trend.range30')],
+                  ['all', t('trend.rangeAll')],
+                ],
+                onChange: setRange,
+              }),
+            ),
+          ),
+        )
+      }
+
+      // Everything the panel knows about versions, and the honest limits of the
+      // v2 data set. No plugin version is invented: the host snapshot does not
+      // carry one, so this card says what is actually known.
+      function VersionCard({ snapshot, t }) {
+        const host = snapshot.host !== null && snapshot.host !== undefined ? snapshot.host : {}
+        const api = Number(snapshot.apiVersion) || 1
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('h2', null, t('v2.version')),
+          host.supported === false ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: host.version, tested: host.tested })) : null,
+          h(
+            'div',
+            { className: 'ci-kv' },
+            h('span', { className: 'k' }, t('v2.versionHost')),
+            h('b', null, host.version ? t('v2.versionLine', { version: host.version, tested: host.tested }) : t('v2.versionUnknown')),
+            h('span', { className: 'k' }, t('v2.apiVersionLabel')),
+            h('b', null, `v${api}`),
+            h('span', { className: 'k' }, t('v2.languageLabel')),
+            h('b', null, t.language || '—'),
+          ),
+          h('div', { className: 'ci-note' }, t('v2.aboutV2')),
+          h('div', { className: 'ci-note' }, t('v2.aboutData')),
+          h('div', { className: 'ci-note' }, t('v2.aboutHonesty')),
+          h('div', { className: 'ci-foot' }, t('v2.docsHint')),
+        )
       }
 
       // 设置 is everything about the plugin itself and the policy document, so
@@ -2370,7 +4389,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           { className: 'ci-list' },
           h(SettingsTab, { snapshot, t, act, sessionId, notify }),
           h(BudgetTab, { snapshot, t, act }),
+          h(PreferencesCard, { t }),
           h(AboutTab, { snapshot, t, sessionId }),
+          h(VersionCard, { snapshot, t }),
         )
       }
 
@@ -2381,11 +4402,16 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         // Migrate the old two-word tab ids: a stored 'list'/'budget'/'about'
         // would otherwise land on an empty body after this release.
         const [storedTab, setTab] = useStoredState('tab', 'manage')
-        const tab = storedTab === 'list' ? 'manage' : storedTab === 'budget' || storedTab === 'about' ? 'settings' : storedTab
+        const tab = storedTab === 'list' ? 'manage' : storedTab === 'budget' || storedTab === 'about' ? 'settings' : storedTab === 'stats' ? 'insights' : storedTab
         const [filter, setFilter] = useState('all')
         const [busy, setBusy] = useState(false)
         const [notice, setNotice] = useState(null)
-        const trend = useTrend(data ? (data.effective && data.effective.totals ? data.effective.totals.tokens : data.totals.tokens) : 0)
+        const [drawer, setDrawer] = useState(null)
+        const v2 = isV2(data)
+        // A v1 host hides the new tab; a stored 'insights' falls back instead of
+        // rendering an empty body.
+        const activeTab = tab === 'insights' && v2 !== true ? 'manage' : tab
+        const trend = useSparkTrend(data ? (data.effective && data.effective.totals ? data.effective.totals.tokens : data.totals.tokens) : 0)
         const noticeTimer = useRef(null)
 
         const showNotice = useCallback((next, ttl) => {
@@ -2425,6 +4451,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             setBusy(true)
             try {
               await postJson(ROUTES.action, Object.assign({ session: sessionId, label: message }, action))
+              // A switch changes health/trend computations, so the 30s read
+              // cache must not keep serving the pre-switch health strip.
+              RESOURCE_CACHE.clear()
               reload()
               try {
                 window.dispatchEvent(new CustomEvent('injection-manager:changed'))
@@ -2465,12 +4494,43 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
         )
         const onUndo = useCallback(() => act({ kind: 'undo' }, t('undone')), [act, t])
 
-        // The statistics page owns the summary cards, so its "manage" buttons
-        // have to land the reader on the list with that channel filtered.
-        const openFilter = useCallback((channel) => {
-          setFilter(channel)
-          setTab('manage')
-        }, [setFilter, setTab])
+        // Cross-tab jumps: the insights page and health checks need to land the
+        // reader on a tab (and sometimes a channel filter).
+        const openTab = useCallback(
+          (next, channel) => {
+            if (typeof next === 'string' && next.length > 0) setTab(next === 'stats' ? 'insights' : next)
+            if (typeof channel === 'string' && channel.length > 0) setFilter(channel)
+          },
+          [setFilter, setTab],
+        )
+        const openContent = useCallback(
+          (item) => {
+            if (item === null || item === undefined || typeof item !== 'object') return
+            const source = data !== null && data !== undefined ? data : null
+            const wantedId = typeof item.id === 'string' ? item.id : ''
+            const wantedName = typeof item.name === 'string' ? item.name : ''
+            const found = source !== null && wantedId.length > 0 && Array.isArray(source.items) ? source.items.find((entry) => entry.id === wantedId) : undefined
+            const row = item.tokens === undefined && found !== undefined ? Object.assign({}, found, item) : item
+            const channel = String(row.channel || (found !== undefined && found.channel) || '')
+            const name = typeof row.name === 'string' && row.name.length > 0 ? row.name : wantedName
+            const id = typeof row.id === 'string' && row.id.length > 0 ? row.id : wantedId.length > 0 ? wantedId : `${channel}:${name}`
+            if (id.length === 0) return
+            const tokens = Number(row.tokens) || 0
+            const on = source !== null && typeof policyItemOn === 'function' ? policyItemOn(source, row) : true
+            setDrawer({
+              channel,
+              id,
+              name: name.length > 0 ? name : id,
+              group: row.groupLabel !== undefined && row.groupLabel !== null ? String(row.groupLabel) : row.group !== undefined && row.group !== null ? String(row.group) : '',
+              tokens,
+              chars: Number(row.chars) || 0,
+              share: source !== null ? pct(tokens, effectiveTotalOf(source)) : null,
+              saved: on ? 0 : tokens,
+            })
+          },
+          [data],
+        )
+        const closeDrawer = useCallback(() => setDrawer(null), [])
 
         const close = () => {
           try {
@@ -2487,7 +4547,23 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
             { className: 'ci-root' },
             h('style', null, STYLE),
             h('div', { className: 'ci-head' }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle'))),
-            h('div', { className: 'ci-body' }, h('div', { className: 'ci-skel' }), h('div', { className: 'ci-skel' }), h('div', { className: 'ci-note' }, t('loading'))),
+            h(
+              'div',
+              { className: 'ci-body grow' },
+              h('span', { className: 'ci-sr' }, t('loading')),
+              h(
+                'div',
+                { className: 'ci-skel-kpis', 'aria-hidden': 'true' },
+                [0, 1, 2, 3].map((index) => h('div', { className: 'ci-skel', key: index })),
+              ),
+              h('div', { className: 'ci-skel-strip', 'aria-hidden': 'true' }),
+              h(
+                'div',
+                { className: 'ci-skel-table', 'aria-hidden': 'true' },
+                h('div', { className: 'head' }),
+                [0, 1, 2, 3, 4, 5].map((index) => h('div', { className: 'row', key: index })),
+              ),
+            ),
           )
         }
 
@@ -2586,33 +4662,77 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           head,
           h(
             'div',
-            { className: 'ci-tabs' },
-            [
-              ['manage', t('tabManage')],
-              ['stats', t('tabStats')],
-              ['settings', t('tabSettings')],
-            ].map(([key, label]) => h('button', { key, type: 'button', className: tab === key ? 'on' : '', onClick: () => setTab(key) }, label)),
+            { className: 'ci-tabs', role: 'tablist', 'aria-label': t('v2.tabsLabel') },
+            (v2 === true
+              ? [
+                  ['manage', t('tabManage'), t('v2.tabManageHint')],
+                  ['insights', t('v2.tabInsights'), t('v2.tabInsightsHint')],
+                  ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
+                ]
+              : [
+                  ['manage', t('tabManage'), t('v2.tabManageHint')],
+                  ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
+                ]
+            ).map(([key, label, hint]) =>
+              h(
+                'button',
+                {
+                  key,
+                  type: 'button',
+                  role: 'tab',
+                  id: 'ci-tab-' + key,
+                  'aria-selected': activeTab === key ? 'true' : 'false',
+                  'aria-controls': 'ci-tabpanel-' + key,
+                  tabIndex: activeTab === key ? 0 : -1,
+                  className: activeTab === key ? 'on' : '',
+                  title: hint,
+                  onClick: () => setTab(key),
+                  onKeyDown: (event) => {
+                    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+                    const keys = v2 === true ? ['manage', 'insights', 'settings'] : ['manage', 'settings']
+                    const index = keys.indexOf(activeTab)
+                    const next = keys[(index + (event.key === 'ArrowRight' ? 1 : keys.length - 1)) % keys.length]
+                    event.preventDefault()
+                    setTab(next)
+                    const node = document.getElementById('ci-tab-' + next)
+                    if (node && typeof node.focus === 'function') node.focus()
+                  },
+                },
+                label,
+              ),
+            ),
           ),
           h(
             'div',
-            { className: 'ci-body grow' },
-            tab === 'manage'
+            {
+              className: 'ci-body grow',
+              role: 'tabpanel',
+              id: 'ci-tabpanel-' + activeTab,
+              'aria-labelledby': 'ci-tab-' + activeTab,
+              tabIndex: -1,
+            },
+            activeTab === 'manage'
               ? h(
                   'div',
                   { className: 'ci-manage' },
                   snapshot.host && snapshot.host.supported === false
                     ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                     : null,
+                  v2 !== true ? h(V2Gate, { snapshot, t }) : null,
+                  h(Kpis, { snapshot, t, trend }),
+                  h(RequestStrip, { snapshot, t }),
+                  h(ManageHealth, { snapshot, t, sessionId, v2, act, onOpenContent: openContent, onOpenTab: openTab }),
                   snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                     ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
                     : null,
-                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act }),
+                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act, v2, onOpenContent: openContent }),
                 )
-              : tab === 'stats'
-                ? h(StatsTab, { t, snapshot, trend, onFilter: openFilter })
+              : activeTab === 'insights'
+                ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, act })
                 : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
+          h(ContentDrawer, { target: drawer, sessionId, t, onClose: closeDrawer }),
         )
       }
 

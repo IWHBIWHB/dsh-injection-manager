@@ -1,8 +1,8 @@
 {
   "name": "dsh-injection-manager",
-  "version": "1.14.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "See and control everything a DSH session injects before its first request — prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules — clustered into suites with one switch per MCP server, plus what a collected skill catalog costs, live context-window occupancy, compaction receipts and a token budget.",
+  "description": "See and control everything a DeepSeek Harness session injects before its first request — prompt sections, runtime contexts, skills, tool schemas and workspace rules — with a content browser that opens each item's source, cross-session injection trends, an injection event log, health checks, suite switches, presets and a token budget.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -17,9 +17,19 @@
     "mcp",
     "context-window",
     "compaction",
-    "occupancy"
+    "occupancy",
+    "context-browser",
+    "insights",
+    "observability",
+    "sessions",
+    "usage",
+    "ui"
   ],
   "license": "MIT",
+  "author": "IWHBIWHB",
+  "bugs": {
+    "url": "https://github.com/IWHBIWHB/dsh-injection-manager/issues"
+  },
   "scripts": {
     "test": "node --test",
     "smoke": "node scripts/smoke.mjs"

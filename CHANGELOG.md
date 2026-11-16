@@ -1,5 +1,103 @@
 # Changelog
 
+## 2.0.0 — 2026-11-16
+
+The control-plane release: the panel now shows what the next request carries, what can be
+switched off, **and what each item actually says** — with a cross-session trend and a health
+strip that turn the numbers into decisions. Everything new is read-only; switching stays a
+human click.
+
+### Breaking / contract
+
+- **HTTP contract is v2.** `GET /summary` now returns `apiVersion: 2`, `healthSummary`
+  (`{high, warn, info}`) and an optional `preview` (≤180 chars) on each item. New fields are
+  additive, but the panel feature-detects the version: a v2 panel against a v1 server shows a
+  dismissible gate card ("this surface needs a v2 host") instead of silently hiding tabs. A v1
+  panel against a v2 server keeps working.
+- **Four new read-only GET routes:** `/content`, `/trend`, `/events`, `/health` (same prefix as
+  the existing routes). `/content` is the only route that opens a file, and only paths already
+  registered by the snapshot collection.
+- **New durable file `events.json`** (`$DSH_HOME/injection-manager/`, version 1, cap 300,
+  atomic tmp+rename, dedupe): an append-only feed of policy changes, presets, budget edits,
+  imports, undos, compactions and prunes. `stats.json` rows recorded from 2.0.0 on also carry a
+  per-channel token split (`channels`); old rows keep `channels: null` on purpose.
+- **Model tool grew a single-item mode.** `context_injection` accepts optional
+  `{channel, name}` and then returns just that item's original content (≤32 KB). Calling it
+  without arguments still returns the whole snapshot. `/inject health` was added, and the bare
+  `/inject` report now ends with one health line.
+
+### Added
+
+- **Content drawer.** Press "content" on any row and read the original bytes behind it: prompt
+  section text, runtime-context snapshots, a tool's JSON declaration (description / parameter
+  table / raw JSON), a skill's `SKILL.md` body or its catalog line, an instruction file. The
+  drawer shows the source path, a byte/char/token meta line, line numbers (toggleable), in-content
+  search with match highlighting and a per-line match summary, full-text copy and path copy, a
+  truncation notice when the 256 KB cap hits, Esc-to-close and focus restoration. Everything is
+  rendered as plain text — no `dangerouslySetInnerHTML` anywhere.
+- **Health strip on the manage page.** Deterministic, read-only checks over one snapshot:
+  `heavy-suite`, `budget-gap`, `catalog-truncated`, `locked-items`, `unknown-window`, `no-policy`,
+  `empty-catalog`. Severity rows with the saved-token delta, up to six visible plus a "more"
+  line, and one-click actions that reuse the existing `POST /action` (`switch-group`,
+  `set-budget`, `open-content`, `open-tab`). The strip only fetches while the tab is visible.
+- **Insights tab.** Cross-session first-turn trend as stacked channel bars (7 days / 30 days /
+  all; hover for values, click to pin, Esc to unpin, ←/→ by keyboard; more than 40 points merge
+  into overview buckets; rows whose channel split is unknown are striped), an aggregate band
+  (sessions measured, average, peak, cumulative saved), per-session cards (search, sort by
+  recent / heaviest / most saved), a cross-session composition ring, the heaviest-suite ranking
+  for the current session, the current session's event timeline (12 event kinds, capacity note)
+  and a coverage footnote that states what the trend does and does not contain.
+- **Inline previews.** Rows expand a `preview` paragraph without leaving the list; the drawer is
+  only for the full content.
+- **Preferences** in the settings tab: content-drawer line numbers and the default insights
+  range. They live in this browser and are never written to `policy.json`.
+- **Version card** in the settings tab: plugin version, host version with its tested baseline,
+  HTTP api version and the UI language; links to the full DETAIL page in the current language.
+- **Eight-language coverage** for all new strings: +182 keys per locale (zh/en/ja/es/fr/de/ru/pt),
+  372 client keys per language.
+
+### Changed
+
+- The middle tab is now **洞察 (Insights)** instead of a plain history list. It still reads
+  `stats.json`, but the numbers are aggregated for comparisons and each point states its source
+  (measured vs priced from durable log) and coverage.
+- The manage page leads with health → KPI → request strip; the table keeps suite clustering and
+  per-switch tri-state, and every row can now reveal its content.
+- `stats.json` history is described the same way everywhere: measured rows plus a durable-log
+  backfill that runs in the background (one pass per 60 s, ≤8 sessions), never a replay of every
+  session and never a wait on a read.
+- `screenshots.json` lists the v2 screens. README/README.zh are rewritten around the four
+  surfaces and the control-plane positioning.
+
+### Fixed
+
+- Content reads cannot hang or flood: 2 s per request, 256 KB response cap (32 KB for the model
+  tool), UTF-8-safe truncation that never splits a code point, and a whitelist restricted to
+  paths the snapshot itself registered.
+- The event feed is crash-safe and idempotent: a suppressed write can never turn a saved policy
+  into an error, duplicate keys keep replayed host events from becoming two rows, and params are
+  flattened and truncated so prompt text cannot leak into the file.
+- Health checks are reproducible for one snapshot (the only clock value is
+  `snapshot.generatedAt`); the two codes this host build cannot observe (`duplicate-skill`,
+  `tool-name-collision`) are never emitted rather than invented.
+- **Opening the insights tab no longer waits on the durable-log backfill.** The backfill became a
+  background single-flight pass (one per 60 s, ≤8 sessions, 6 s budget) and the read returns the
+  already-recorded rows immediately with `backfilling: true`; on a 671-session corpus the old
+  synchronous pass made `/trend` take 7.1 s per poll and `/stats` 2.1 s, both now in the
+  millisecond range.
+- `trend.points[].scope` is a free string (commonly `startup｜clear｜route.session｜backfill`,
+  unknown values pass through, capped at 64 chars) and `policy` accepts `unknown` — the contract
+  was revised to fit the honest v1 data instead of rewriting history.
+- An older server now shows a dismissible gate card instead of a tab that silently disappears.
+
+### Migration
+
+- Nothing to do for existing installs: `policy.json` keeps its v1 shape, `stats.json` stays
+  readable (older rows show an unknown channel split), and `events.json` is created on the first
+  event.
+- If you script against `/summary`, accept the new fields — no legacy key was removed. Anything
+  that pinned the old tab labels should use the new `管理 / 洞察 / 设置` set.
+
 ## 1.14.0 — 2026-11-17
 
 - **The panel is three tabs, and the summary moved out of the working list.**

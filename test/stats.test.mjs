@@ -102,3 +102,22 @@ test('a failing log does not abort the batch', async () => {
   const result = await backfillStats(sessionQuery, ['bad', 'good'], { limit: 5, budgetMs: 5000 })
   assert.equal(result.added, 1)
 })
+
+test('backfill never re-prices or overwrites an already-measured row', async () => {
+  resetStatsCache()
+  recordSnapshot(snapshot('measured-1', 1000))
+  let reads = 0
+  const sessionQuery = {
+    async readSession() {
+      reads += 1
+      return { events: [{ type: 'request/header', data: { header: { tools: [] } } }] }
+    },
+  }
+  const result = await backfillStats(sessionQuery, ['measured-1'], { limit: 5, budgetMs: 5000 })
+  assert.equal(result.added, 0)
+  assert.equal(reads, 0, 'a measured row is already the better record')
+  const row = (await readStats()).rows.find((entry) => entry.id === 'measured-1')
+  assert.equal(row.fromLog, undefined)
+  assert.equal(row.samples, 1)
+  assert.equal(row.allOn, 1000)
+})

@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write # OIDC trusted publishing; no NPM_TOKEN secret
+  contents: write # create the GitHub Release after publishing
+  id-token: write # OIDC trusted publishing (preferred); a token is only a fallback
 
 jobs:
   publish:
@@ -22,6 +22,7 @@ jobs:
       - name: Upgrade npm for trusted publishing
         run: npm install -g npm@latest
       - name: Verify tag matches package version
+        if: github.event_name == 'push'
         run: |
           node -e "
             const p = require('./package.json');
@@ -41,4 +42,27 @@ jobs:
       - name: Pack contents
         run: npm pack --dry-run
       - name: Publish with provenance
-        run: npm publish --access public --provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Prefer OIDC trusted publishing: setup-node registers the id-token and
+          # npm exchanges it on publish. A repository NPM_TOKEN is accepted as a
+          # fallback for the first release of a version whose trusted publisher
+          # has not been configured on npmjs.com yet.
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
+            echo "publishing with NPM_TOKEN fallback"
+          else
+            echo "publishing with OIDC trusted publishing"
+          fi
+          npm publish --access public --provenance
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

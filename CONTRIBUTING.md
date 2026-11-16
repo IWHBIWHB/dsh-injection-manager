@@ -38,8 +38,8 @@ npm pack --dry-run   # 确认 locale/docs/icon 都进包
 版本号写在 `package.json`，CHANGELOG 加一节，然后：
 
 ```powershell
-git tag v1.3.2
-git push origin v1.3.2
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 `.github/workflows/release.yml` 会校验 tag 与版本一致、跑测试、`npm pack --dry-run`，最后用仓库 secret `NPM_TOKEN` 发布到 npm。没有该 secret 时发布会失败，其余步骤照常给出信号。
