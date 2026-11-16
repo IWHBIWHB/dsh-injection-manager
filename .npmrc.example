@@ -1,0 +1,3 @@
+# Copy to .npmrc before publishing; .npmrc is gitignored.
+# The token comes from IRIS vault: secrets.py run npm_publish=NPM_TOKEN -- npm publish --provenance
+//registry.npmjs.org/:_authToken=${NPM_TOKEN}
