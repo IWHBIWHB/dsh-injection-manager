@@ -25,17 +25,19 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ## 界面
 
-| 清单 · 按套件 | 预算 · 目标 24k |
+三个标签页，一件事一个地方：**管理**是清单与开关，**统计**是当前会话和全部历史对话的测量，**设置**是策略、预算、导出与插件说明。
+
+| 管理 · 按套件 | 统计 · 当前与会话历史 |
 | --- | --- |
-| ![按套件分组的注入清单](docs/images/panel-suites.png) | ![按预算自动给出关闭建议](docs/images/panel-budget.png) |
+| ![按套件分组的注入清单](docs/images/panel-suites.png) | ![统计页：当前会话与历史](docs/images/panel-stats.png) |
 
 侧栏同一份数据的紧凑视图；输入框旁还有一行「83.8k · 36%」的徽标（首轮注入 · 窗口占用）：
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 
-策略页：预设、四条通道总开关、自定义前言/后记、清单导出与策略导入（可撤销）、最近一次应用记录。深色主题与宿主一致。
+设置页：预设、四条通道总开关、撤销历史、自定义前言/后记、导出与导入、最近一次应用、预算。深色主题与宿主一致。
 
-![策略页](docs/images/panel-policy.png)
+![设置页](docs/images/panel-settings.png)
 
 ![深色主题](docs/images/panel-dark.png)
 

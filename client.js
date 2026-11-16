@@ -19,6 +19,7 @@
     verify: BASE + '/verify',
     boot: BASE + '/boot',
     registrations: BASE + '/registrations',
+    stats: BASE + '/stats',
   }
 
   const CHANNELS = ['sections', 'contexts', 'skills', 'tools', 'instructions']
@@ -147,6 +148,28 @@
     closedRestoreHint: '对新会话已关闭；在这里可以重新打开',
     filterLabel: '按通道筛选',
     activeFilters: '筛选：',
+    tabManage: '管理',
+    tabStats: '统计',
+    tabSettings: '设置',
+    statsEmpty: '还没有历史记录。打开面板任意会话都会留下一条；这里汇总所有被测量过的对话。',
+    statsSessions: '对话数',
+    statsSessionsSub: '本插件测量过',
+    statsAvg: '平均首轮',
+    statsAvgSub: '每个对话的 token',
+    statsSkills: '平均技能',
+    statsSkillsSub: '每个对话的 token',
+    statsPeak: '最大一次',
+    statsSkillsShort: '技能',
+    statsPeakShort: '峰值',
+    statsWhen: '最近测量',
+    statsByDay: '每天的首轮均值',
+    statsSessionsTitle: '每一个测量过的对话',
+    statsCoverage: '本机 {known} 个对话中，已记录 {recorded} 个',
+    statsUnmeasured: '未测量',
+    statsSubagent: '子智能体',
+    statsBackfilled: '刚补齐 {count} 个历史会话',
+    statsCurrent: '当前会话',
+    statsHistory: '历史记录',
   }
 
   const NAMES_ZH = {
@@ -244,6 +267,26 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-btn.ci-primary{background:var(--ci-accent);border-color:transparent;color:#fff}
 .ci-body{padding:14px 20px 14px;display:flex;flex-direction:column;gap:14px;flex:0 0 auto}
 .ci-body.grow{flex:1 1 auto;min-height:0;overflow:auto;padding-top:12px}
+.ci-manage{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1 1 auto}
+.ci-history{display:flex;flex-direction:column;gap:5px}
+.ci-history-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;color:var(--ci-fg3)}
+.ci-history-row .d{font-variant-numeric:tabular-nums}
+.ci-history-row .t{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ci-current{display:flex;flex-direction:column;gap:10px}
+.ci-section-title{font-size:12px;font-weight:600;color:var(--ci-fg2);padding:2px 0}
+.ci-stathead,.ci-statrow{display:grid;grid-template-columns:minmax(0,90px) 130px 88px 96px 72px minmax(0,1fr);gap:8px;align-items:center;font-size:11.5px}
+.ci-stathead{color:var(--ci-fg3);padding-bottom:4px;border-bottom:1px solid var(--ci-line2)}
+.ci-statrow{padding:4px 0;border-bottom:1px solid var(--ci-line2);color:var(--ci-fg2)}
+.ci-statrow:last-child{border-bottom:0}
+.ci-statrow .n{font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-statrow .w{color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-statrow .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ci-statrow .b{color:var(--ci-fg);font-weight:600}
+.ci-statrow.unmeasured{color:var(--ci-fg3)}
+.ci-statrow.unmeasured .b{color:var(--ci-fg3);font-weight:400}
+.ci-stathead .r{text-align:right}
+.ci-bar-track.mini{height:6px;min-width:0}
+@container (max-width:900px){.ci-stathead,.ci-statrow{grid-template-columns:minmax(0,80px) 1fr 74px 76px minmax(0,0.6fr)}.ci-statrow .w,.ci-stathead :nth-child(2){display:none}}
 .ci-card.ci-overview{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
 .ci-donut{display:flex;align-items:center;gap:14px;min-width:0}
 .ci-donut-svg{flex:0 0 auto}
@@ -2167,11 +2210,178 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 
       // ------------------------------------------------------------ panel
 
+      // History across every conversation this plugin has measured. The numbers
+      // come from the plugin's own records (a snapshot is folded into
+      // stats.json on every read), so the page states its coverage instead of
+      // implying it replayed every durable log — that would mean reading
+      // megabytes per session on a tab open.
+      // 统计 opens with the conversation on screen, then the corpus history:
+      // both are measurements, so they belong on the same page while 管理 stays
+      // a working list instead of a dashboard.
+      function StatsTab({ t, snapshot, trend, onFilter }) {
+        const [state, setState] = useState({ status: 'loading', data: null, error: null })
+        const load = useCallback(() => {
+          setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
+          fetch(ROUTES.stats, { credentials: 'same-origin', cache: 'no-store' })
+            .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+            .then((data) => setState({ status: 'ready', data, error: null }))
+            .catch((error) => setState({ status: 'failed', data: null, error: String((error && error.message) || error) }))
+        }, [])
+        useEffect(() => { load() }, [load])
+
+        const current =
+          snapshot === undefined || snapshot === null
+            ? null
+            : h(
+                'div',
+                { className: 'ci-current' },
+                h('div', { className: 'ci-section-title' }, t('statsCurrent')),
+                h(Kpis, { snapshot, t, trend }),
+                h(RequestStrip, { snapshot, t }),
+                h(SkillsFocus, { snapshot, t, onFilter }),
+              )
+
+        if (state.status === 'loading') {
+          return h('div', { className: 'ci-list' }, current, h('div', { className: 'ci-note' }, t('loading')))
+        }
+        if (state.status === 'failed') {
+          return h(
+            'div',
+            { className: 'ci-list' },
+            current,
+            h('div', { className: 'ci-note warn' }, `${t('failed')}：${state.error}`),
+            h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('retry')),
+          )
+        }
+        const data = state.data
+        const aggregate = data.aggregate ?? {}
+        const rows = Array.isArray(data.rows) ? data.rows : []
+        const days = Array.isArray(data.days) ? data.days : []
+        const coverage = data.coverage ?? {}
+        if (rows.length === 0 && (data.sessions ?? []).length === 0) {
+          return h(
+            'div',
+            { className: 'ci-list' },
+            current,
+            h(
+              'div',
+              { className: 'ci-card' },
+              h('div', { className: 'ci-note' }, t('statsEmpty')),
+              coverage.known ? h('div', { className: 'ci-foot' }, t('statsCoverage', { known: coverage.known, recorded: coverage.recorded ?? 0 })) : null,
+              h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('refresh')),
+            ),
+          )
+        }
+        // The host lists every conversation (cheap header read); the plugin has
+        // numbers only for the ones it measured. Joining the two is what makes
+        // "历史所有对话" true instead of "the handful this plugin happened to see".
+        const measured = new Map(rows.map((row) => [row.id, row]))
+        const corpus = (data.sessions ?? []).length > 0
+          ? data.sessions.map((session) => ({ ...session, measured: measured.get(session.id) ?? null }))
+          : rows.map((row) => ({ id: row.id, at: row.at, cwd: row.cwd, live: false, measured: row }))
+        const maxDay = days.reduce((max, day) => Math.max(max, day.allOn), 1)
+        const maxRow = rows.reduce((max, row) => Math.max(max, row.peak || 0), 1)
+        return h(
+          'div',
+          { className: 'ci-list' },
+          current,
+          h('div', { className: 'ci-section-title' }, t('statsHistory')),
+          h(
+            'div',
+            { className: 'ci-kpis' },
+            [
+              ['statsSessions', String(aggregate.sessions ?? rows.length), t('statsSessionsSub')],
+              ['statsAvg', token(aggregate.avgAllOn ?? 0), t('statsAvgSub')],
+              ['statsSkills', token(aggregate.avgSkills ?? 0), t('statsSkillsSub')],
+              ['statsPeak', token(aggregate.peakAllOn ?? 0), aggregate.heaviest ? shortId(aggregate.heaviest.id) : '—'],
+            ].map(([key, value, sub]) =>
+              h('div', { className: 'ci-kpi', key }, h('div', { className: 'k' }, t(key)), h('div', { className: 'v' }, value), h('div', { className: 's', title: sub }, sub)),
+            ),
+          ),
+          days.length > 1
+            ? h(
+                'div',
+                { className: 'ci-card' },
+                h('h2', null, t('statsByDay')),
+                h(
+                  'div',
+                  { className: 'ci-history' },
+                  days.map((day) =>
+                    h(
+                      'div',
+                      { className: 'ci-history-row', key: day.day, title: `${day.day} · ${day.sessions} ${t('items')} · ${digits(day.allOn)} token` },
+                      h('span', { className: 'd' }, day.day.slice(5)),
+                      h('span', { className: 'ci-bar-track' }, h('span', { className: 'ci-bar-fill', style: { width: `${Math.max(3, (day.allOn / maxDay) * 100)}%`, background: COLOR.tools } })),
+                      h('span', { className: 't' }, `${day.sessions} · ${token(day.allOn / Math.max(1, day.sessions))}`),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('statsSessionsTitle')),
+            h(
+              'div',
+              { className: 'ci-stathead' },
+              h('span', null, t('name')),
+              h('span', null, t('statsWhen')),
+              h('span', { className: 'r' }, t('skills')),
+              h('span', { className: 'r' }, t('tools')),
+              h('span', { className: 'r' }, t('statsPeakShort')),
+            ),
+            corpus.slice(0, 60).map((session) => {
+              const row = session.measured
+              return h(
+                'div',
+                { className: 'ci-statrow' + (row === null ? ' unmeasured' : ''), key: session.id, title: `${session.id}${session.cwd ? ` · ${session.cwd}` : ''}${session.live ? ' · live' : ''}` },
+                h('span', { className: 'n' }, shortId(session.id), session.subagent ? h('span', { className: 'ci-tag' }, t('statsSubagent')) : null),
+                h('span', { className: 'w' }, session.at > 0 ? new Date(session.at).toLocaleString() : '—'),
+                h('span', { className: 'r' }, row === null ? t('statsUnmeasured') : row.fromLog === true ? '—' : `${row.skillCount ?? 0} · ${token(row.skills ?? 0)}`),
+                h('span', { className: 'r' }, row === null ? '—' : `${row.tools ?? 0} · ${token(row.toolsTokens ?? 0)}`),
+                h('span', { className: 'r b' }, row === null ? '—' : token(row.peak ?? 0)),
+                h('span', { className: 'ci-bar-track mini' }, h('span', { className: 'ci-bar-fill', style: { width: `${row === null ? 0 : Math.max(2, ((row.peak || 0) / maxRow) * 100)}%`, background: COLOR.tools } })),
+              )
+            }),
+          ),
+          h(
+            'div',
+            { className: 'ci-foot' },
+            t('statsCoverage', { known: coverage.known ?? '—', recorded: coverage.recorded ?? rows.length }),
+            data.backfill !== null && data.backfill !== undefined && data.backfill.added > 0 ? ` · ${t('statsBackfilled', { count: data.backfill.added })}` : null,
+          ),
+          h('div', { className: 'ci-toolbar' }, h('button', { type: 'button', className: 'ci-btn', onClick: load }, t('refresh'))),
+        )
+      }
+
+      function shortId(id) {
+        const text = String(id ?? '')
+        const match = /([0-9a-f]{8})-[0-9a-f]{4}/.exec(text)
+        return match === null ? text.slice(0, 12) : match[1]
+      }
+
+      // 设置 is everything about the plugin itself and the policy document, so
+      // it stacks the three former tabs instead of hiding them behind another
+      // level of tabs.
+      function SettingsPage({ snapshot, t, act, sessionId, notify }) {
+        return h(
+          'div',
+          { className: 'ci-list' },
+          h(SettingsTab, { snapshot, t, act, sessionId, notify }),
+          h(BudgetTab, { snapshot, t, act }),
+          h(AboutTab, { snapshot, t, sessionId }),
+        )
+      }
+
       function Panel({ props, compact }) {
         const sessionId = pickSessionId(props)
         const { status, data, error, reload } = useSnapshot(sessionId)
         const t = useLocale(data)
-        const [tab, setTab] = useStoredState('tab', 'list')
+        // Migrate the old two-word tab ids: a stored 'list'/'budget'/'about'
+        // would otherwise land on an empty body after this release.
+        const [storedTab, setTab] = useStoredState('tab', 'manage')
+        const tab = storedTab === 'list' ? 'manage' : storedTab === 'budget' || storedTab === 'about' ? 'settings' : storedTab
         const [filter, setFilter] = useState('all')
         const [busy, setBusy] = useState(false)
         const [notice, setNotice] = useState(null)
@@ -2254,6 +2464,13 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           [act, t],
         )
         const onUndo = useCallback(() => act({ kind: 'undo' }, t('undone')), [act, t])
+
+        // The statistics page owns the summary cards, so its "manage" buttons
+        // have to land the reader on the list with that channel filtered.
+        const openFilter = useCallback((channel) => {
+          setFilter(channel)
+          setTab('manage')
+        }, [setFilter, setTab])
 
         const close = () => {
           try {
@@ -2369,37 +2586,31 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           head,
           h(
             'div',
-            { className: 'ci-body' },
-            snapshot.host && snapshot.host.supported === false
-              ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
-              : null,
-            h(Kpis, { snapshot, t, trend }),
-            h(RequestStrip, { snapshot, t }),
-            h(SkillsFocus, { snapshot, t, onFilter: setFilter }),
-            snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
-              ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
-              : null,
-          ),
-          h(
-            'div',
             { className: 'ci-tabs' },
             [
-              ['list', t('list')],
-              ['settings', t('settings')],
-              ['budget', t('budget')],
-              ['about', t('about')],
+              ['manage', t('tabManage')],
+              ['stats', t('tabStats')],
+              ['settings', t('tabSettings')],
             ].map(([key, label]) => h('button', { key, type: 'button', className: tab === key ? 'on' : '', onClick: () => setTab(key) }, label)),
           ),
           h(
             'div',
             { className: 'ci-body grow' },
-            tab === 'list'
-              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act })
-              : tab === 'settings'
-                ? h(SettingsTab, { snapshot, t, act, sessionId, notify: showNotice })
-                : tab === 'budget'
-                  ? h(BudgetTab, { snapshot, t, act })
-                  : h(AboutTab, { snapshot, t, sessionId }),
+            tab === 'manage'
+              ? h(
+                  'div',
+                  { className: 'ci-manage' },
+                  snapshot.host && snapshot.host.supported === false
+                    ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
+                    : null,
+                  snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
+                    ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
+                    : null,
+                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act }),
+                )
+              : tab === 'stats'
+                ? h(StatsTab, { t, snapshot, trend, onFilter: openFilter })
+                : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
         )

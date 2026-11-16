@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.14.0 — 2026-11-17
+
+- **The panel is three tabs, and the summary moved out of the working list.**
+  管理 is now only what you act on (suite donut, bars, toolbar, table); the KPI
+  row, the request strip and the skills card live in 统计 under 当前会话, followed
+  by 历史记录. Four tabs (清单/策略/预算/说明) became 管理/统计/设置, with the old
+  ones folded into 设置 and stale stored tab ids mapped, so nothing opens blank.
+- **统计 measures real history.** It lists every conversation the host knows about
+  (`sessionQuery.listSessions()`, a header-only read) and fills numbers in for the
+  ones it can: measured sessions come from this plugin's own snapshots, and older
+  ones are priced from their durable log — `request/header` tool declarations plus
+  the `system/message` prompt — a bounded 8 sessions per open, cached in
+  `$DSH_HOME/injection-manager/stats.json`. The footer states the coverage
+  honestly ("N of 664 conversations measured").
+- Skill tokens are shown as "—" for log-derived rows: the skill catalog arrives as a
+  pre-step user message whose `source` is null in the durable record, so claiming a
+  number there would be a guess.
+- Screenshots and the demo GIF regenerated for the new layout; `screenshots.json`
+  now lists panel-stats instead of the retired budget/policy images.
+- 2 new sections and 20 new keys across 8 locales.
+
 ## 1.13.1 — 2026-11-17
 
 - **The list toolbar got un-crowded.** Nine controls in one row became: scope,

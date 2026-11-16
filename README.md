@@ -37,19 +37,23 @@ Refresh the page; the "Context injection" icon appears in the left panel list.
 
 ## Screens
 
-| Items, clustered by suite | Budget, target 24k |
+Three tabs, one question each: **Manage** is the list and its switches, **History** measures this
+conversation and every past one, **Settings** holds the policy, budget, export and the plugin's own
+options.
+
+| Manage, clustered by suite | History: this conversation and the corpus |
 | --- | --- |
-| ![Injection items grouped into suites](docs/images/panel-suites.png) | ![Budget suggestions](docs/images/panel-budget.png) |
+| ![Injection items grouped into suites](docs/images/panel-suites.png) | ![History tab](docs/images/panel-stats.png) |
 
 The sidebar shows the same snapshot compactly, and the composer carries a one-line chip
 (`83.8k · 36%` — first turn, then window occupancy):
 
 ![Sidebar panel](docs/images/panel-sidebar.png)
 
-Policy tab: presets, four channel masters, custom prefix/suffix, export and undoable policy import, and the
-last application record.
+Settings tab: presets, four channel masters, undo history, custom prefix/suffix, export and undoable
+policy import, the last application record, and the budget.
 
-![Policy tab](docs/images/panel-policy.png)
+![Settings tab](docs/images/panel-settings.png)
 
 Dark theme follows the host:
 
