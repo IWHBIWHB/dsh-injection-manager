@@ -158,6 +158,10 @@
     "showDock": "Mostrar chip sob o compositor",
     "dockHint": "Injeção estimada do primeiro turno desta sessão; clique para abrir o painel",
     "dockCardTitle": "Chip do compositor",
-    "dockCardHint": "O chip sob o compositor mostra apenas os tokens do primeiro turno e a fração desativável. Feche com o × ou com este interruptor; pode reabrir quando quiser."
+    "dockCardHint": "O chip sob o compositor mostra apenas os tokens do primeiro turno e a fração desativável. Feche com o × ou com este interruptor; pode reabrir quando quiser.",
+    "sortByName": "Por nome",
+    "closedTitle": "Desativados",
+    "closedHint": "Eles não estão no prompt agora, mas o tamanho foi lembrado. Restaurar reativa pelos nomes.",
+    "restoreGroup": "Restaurar suíte"
   }
 }

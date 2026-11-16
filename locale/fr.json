@@ -158,6 +158,10 @@
     "showDock": "Afficher la puce sous le compositeur",
     "dockHint": "Injection estimée du premier tour pour cette session ; cliquez pour ouvrir le panneau",
     "dockCardTitle": "Puce du compositeur",
-    "dockCardHint": "La puce sous le compositeur n'affiche que les tokens du premier tour et la part désactivable. Fermez-la avec son × ou cet interrupteur ; vous pouvez la réafficher à tout moment."
+    "dockCardHint": "La puce sous le compositeur n'affiche que les tokens du premier tour et la part désactivable. Fermez-la avec son × ou cet interrupteur ; vous pouvez la réafficher à tout moment.",
+    "sortByName": "Par nom",
+    "closedTitle": "Désactivés",
+    "closedHint": "Ils ne sont pas dans le prompt en ce moment, mais leur taille est mémorisée. Restaurer les réactive par nom.",
+    "restoreGroup": "Restaurer la suite"
   }
 }

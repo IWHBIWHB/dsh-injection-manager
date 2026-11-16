@@ -158,6 +158,10 @@
     "showDock": "Chip unter dem Eingabefeld anzeigen",
     "dockHint": "Geschätzte erste Anfrage dieser Sitzung; klicken öffnet das Panel",
     "dockCardTitle": "Chip am Eingabefeld",
-    "dockCardHint": "Der kleine Chip unter dem Eingabefeld zeigt nur die Token der ersten Anfrage und den abschaltbaren Anteil. Mit × oder diesem Schalter ausblenden, jederzeit wieder einblendbar."
+    "dockCardHint": "Der kleine Chip unter dem Eingabefeld zeigt nur die Token der ersten Anfrage und den abschaltbaren Anteil. Mit × oder diesem Schalter ausblenden, jederzeit wieder einblendbar.",
+    "sortByName": "Nach Namen",
+    "closedTitle": "Deaktiviert",
+    "closedHint": "Diese Einträge sind gerade nicht im Prompt, ihre Größe ist aber gemerkt. Wiederherstellen aktiviert sie namentlich.",
+    "restoreGroup": "Suite wiederherstellen"
   }
 }

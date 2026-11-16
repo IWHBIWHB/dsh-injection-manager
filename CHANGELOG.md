@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.10.1 — 2026-11-16
+
+- Fixed the "switched-off suite becomes unfindable" bug: items that leave the
+  assembled prompt because the policy excludes them are remembered (per agent
+  and by name across agents) and listed again under 「已关闭」 with their size and
+  a 「恢复整套」 button. Restoration goes through a new `names` action, because
+  item/group toggles cannot address names the assembly no longer contains.
+- The item list also gained sorting: 按 token / 按名称, applied to both flat rows
+  and suite order, remembered per browser.
+- The closed-index used the wrong policy shape (`policy.channels` instead of the
+  flat `policy.<channel>`), which is why it always came back empty; two new tests
+  cover a tool disappearing between builds and the cross-agent name memory.
+
 ## 1.10.0 — 2026-11-16
 
 - The composer chip is quieter: muted text with a dot, no border until hover,

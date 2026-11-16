@@ -723,10 +723,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         )
       }
 
-      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy }) {
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy, act }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
         const [onlySwitchable, setOnlySwitchable] = useStoredState('onlySwitchable', false)
+        const [sort, setSort] = useStoredState('itemSort', 'tokens')
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
@@ -762,7 +763,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               return item.name.toLowerCase().indexOf(needle) >= 0 || label.toLowerCase().indexOf(needle) >= 0
             })
             .slice()
-            .sort((left, right) => right.tokens - left.tokens || left.name.localeCompare(right.name))
+            .sort((left, right) =>
+              sort === 'name' ? left.name.localeCompare(right.name) : right.tokens - left.tokens || left.name.localeCompare(right.name),
+            )
         }, [snapshot.items, filter, onlySwitchable, deferredQuery, t])
 
         const isOn = (item) => {
@@ -788,8 +791,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             if (!item.locked) entry.savableTokens += item.tokens
             map.set(item.group, entry)
           }
-          return [...map.values()].sort((left, right) => right.tokens - left.tokens)
-        }, [items])
+          const rows = [...map.values()]
+          return rows.sort((left, right) =>
+            sort === 'name' ? String(left.label).localeCompare(String(right.label)) : right.tokens - left.tokens,
+          )
+        }, [items, sort])
 
         const groupState = (group) => {
           const unlocked = group.items.filter((item) => !item.locked)
@@ -849,6 +855,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 onClick: () => setOnlySwitchable(!onlySwitchable),
               },
               t('onlySwitchable'),
+            ),
+            h(
+              'div',
+              { className: 'ci-seg' },
+              [
+                ['tokens', t('sortTokens')],
+                ['name', t('sortByName')],
+              ].map(([key, label]) => h('button', { key, type: 'button', className: sort === key ? 'on' : '', onClick: () => setSort(key) }, label)),
             ),
             view === 'group'
               ? h(
@@ -951,6 +965,41 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   })
                 : items.map((item) => h(ItemRow, { key: itemKey(item), item, t, snapshot, isOn, onToggle, busy, needle, planned: plannedKeys.has(item.channel + ":" + item.name) })),
           ),
+          snapshot.closedGroups && snapshot.closedGroups.length > 0
+            ? h(
+                'div',
+                { className: 'ci-card' },
+                h('h2', null, `${t('closedTitle')} · ${snapshot.closed.length} ${t('items')}`),
+                h('div', { className: 'hint' }, t('closedHint')),
+                h(
+                  'div',
+                  { className: 'ci-list' },
+                  snapshot.closedGroups.map((group) =>
+                    h(
+                      'div',
+                      { className: 'ci-mini', key: group.id },
+                      h(Dot, { channel: group.channel }),
+                      h('span', { className: 'n', title: group.label }, group.label),
+                      h('span', { className: 't' }, `${group.items.length} ${t('items')}`),
+                      h('span', { className: 't' }, group.tokens > 0 ? digits(group.tokens) : '—'),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'ci-btn',
+                          onClick: () =>
+                            act(
+                              { kind: 'names', channel: group.channel, names: group.items.map((item) => item.name), enabled: true },
+                              `${t('restoreGroup')} ${group.label}`,
+                            ),
+                        },
+                        t('restoreGroup'),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
           h(
             'div',
             { className: 'ci-note', style: { display: 'flex', alignItems: 'center', gap: 10 } },
@@ -1647,7 +1696,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             'div',
             { className: 'ci-body grow' },
             tab === 'list'
-              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy })
+              ? h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act })
               : tab === 'settings'
                 ? h(SettingsTab, { snapshot, t, act, sessionId, notify: showNotice })
                 : tab === 'budget'

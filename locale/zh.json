@@ -158,6 +158,10 @@
     "showDock": "在输入框下方显示摘要",
     "dockHint": "当前会话首轮注入估算；点击打开面板",
     "dockCardTitle": "输入框摘要",
-    "dockCardHint": "输入框下方的小条只显示首轮 token 与可关比例。不需要时点它的 × 或关掉这里的开关，随时可以再打开。"
+    "dockCardHint": "输入框下方的小条只显示首轮 token 与可关比例。不需要时点它的 × 或关掉这里的开关，随时可以再打开。",
+    "sortByName": "按名称",
+    "closedTitle": "已关闭",
+    "closedHint": "这些条目现在不在注入里，但仍记得它们的体积；点「恢复整套」按名字重新打开。",
+    "restoreGroup": "恢复整套"
   }
 }
