@@ -1,13 +1,13 @@
 {
   "meta": {
-    "title": "Kontext-Injektion",
+    "title": "Kontext-Injektionsmanager",
     "description": "Verwaltet alles, was eine neue DSH-Sitzung vor ihrer ersten Anfrage injiziert: Abschnitte des System-Prompts, Laufzeitkontexte, den Skill-Katalog, Tool-Schemas und Workspace-Regeln, gebündelt in Suites (ein MCP server = ein Schalter) mit Details pro Eintrag; Presets, ein eigener Prompt-Präfix/-Suffix und ein Token-Budget gelten für danach erstellte Sitzungen. Das Plugin ändert nie deine AGENTS.md oder SKILL.md: jeder Schalter ist eine sitzungsgebundene Registrierung und umkehrbar. Öffnen über das Symbol „Injektion“ in der Seitenleiste, den Chip im Eingabefeld, das schreibgeschützte Tool context_injection oder den Befehl /inject.",
     "detail": "docs/DETAIL.de.md"
   },
   "client": {
-    "panelLabel": "Injektion",
+    "panelLabel": "Kontext-Injektion",
     "panelTitle": "Kontext-Injektion",
-    "pageTitle": "Kontext-Injektion",
+    "pageTitle": "Kontext-Injektionsmanager",
     "subtitle": "Was die erste Anfrage einer neuen Sitzung mitbringt; Schalter gelten für danach erstellte Sitzungen",
     "refresh": "Aktualisieren",
     "retry": "Wiederholen",

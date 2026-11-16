@@ -45,7 +45,7 @@
 
   // Minimal Chinese fallback so controls still read when /locale fails.
   const FALLBACK = {
-    panelLabel: '注入',
+    panelLabel: '上下文注入',
     panelTitle: '上下文注入',
     pageTitle: '上下文注入管理',
     subtitle: '新会话的第一轮请求会带上这些内容；开关只影响之后新建的会话',
@@ -226,7 +226,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-btn:hover{background:var(--ci-card)}
 .ci-btn[disabled]{opacity:.5;cursor:default}
 .ci-btn.ci-primary{background:var(--ci-accent);border-color:transparent;color:#fff}
-.ci-body{padding:16px 20px 24px;display:flex;flex-direction:column;gap:16px;flex:0 0 auto}
+.ci-body{padding:14px 20px 14px;display:flex;flex-direction:column;gap:14px;flex:0 0 auto}
 .ci-body.grow{flex:1 1 auto;min-height:0;overflow:auto;padding-top:12px}
 .ci-card.ci-overview{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
 .ci-donut{display:flex;align-items:center;gap:14px;min-width:0}
@@ -250,28 +250,33 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-spark{display:block;width:100%;height:18px;margin:4px 0 2px;opacity:.9}
 .ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:9px 11px;min-width:0}
+.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:8px 10px;min-width:0}
 .ci-kpi .k{font-size:11.5px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-kpi .v{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-top:1px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ci-kpi .v{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.35}
 .ci-kpi .s{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ci-kpi.tone-warn .v{color:var(--ci-warn)}
 .ci-kpi.tone-danger .v{color:var(--ci-danger)}
-.ci-window{display:flex;flex-direction:column;gap:9px}
 .ci-window-head{display:flex;align-items:baseline;gap:8px;min-width:0}
 .ci-window-head h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2);white-space:nowrap}
-.ci-window-head .muted{font-size:11.5px;color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-window-head .spacer{flex:1}
-.ci-window-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--ci-line2);gap:1px}
+.ci-window-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--ci-line2);gap:1px}
 .ci-window-bar span{display:block;height:100%;min-width:0}
-.ci-window-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--ci-fg2)}
-.ci-window-legend .item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.ci-window-legend i{width:8px;height:8px;border-radius:3px;display:block}
-.ci-window-legend b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ci-fg)}
-.ci-window-foot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--ci-fg3)}
-.ci-window-foot b{font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
-.ci-window-foot .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-window.tone-warn{border-color:var(--ci-warn)}
-.ci-window.tone-danger{border-color:var(--ci-danger)}
+.ci-strip{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);min-width:0}
+.ci-strip .k{color:var(--ci-fg2);font-weight:600;white-space:nowrap}
+.ci-strip .ci-window-bar{flex:1 1 220px;min-width:110px}
+.ci-strip .lg{display:flex;gap:4px 12px;flex-wrap:wrap;min-width:0}
+.ci-strip .lg .item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ci-strip .lg i{width:8px;height:8px;border-radius:3px;display:block}
+.ci-strip .lg b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
+.ci-strip .rt{white-space:nowrap;font-variant-numeric:tabular-nums}
+.ci-strip .rt.warn{color:var(--ci-warn)}
+.ci-strip.tone-warn .rt{color:var(--ci-warn)}
+.ci-strip.tone-danger .rt{color:var(--ci-danger)}
+@container (max-width:430px){
+.ci-strip .ci-window-bar{order:2;flex:1 1 100%}
+.ci-strip .k{order:1}
+.ci-strip .rt{order:1}
+.ci-strip .lg{order:4}
+}
 .ci-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--ci-line2)}
 .ci-composition{display:flex;flex-direction:column;gap:6px}
 .ci-bar span{display:block;height:100%;min-width:2px}
@@ -279,9 +284,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-legend button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11px;cursor:pointer;padding:2px 0}
 .ci-legend i{width:8px;height:8px;border-radius:3px;display:block}
 .ci-legend b{color:var(--ci-fg);font-weight:600}
-.ci-tabs{display:flex;gap:4px;border-bottom:1px solid var(--ci-line2);padding:0 20px;flex:0 0 auto}
-.ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.ci-tabs button.on{color:var(--ci-fg);border-bottom-color:var(--ci-accent);font-weight:600}
+.ci-tabs{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;align-self:flex-start;margin:0 20px 10px;flex:0 0 auto}
+.ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:5px 13px;font-size:12.5px;cursor:pointer;border-radius:6px;line-height:1.6}
+.ci-tabs button:hover{color:var(--ci-fg)}
+.ci-tabs button.on{background:var(--ci-bg);color:var(--ci-fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.07)}
+body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-shadow:none}
 .ci-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
 .ci-input{flex:1;min-width:120px;border:1px solid var(--ci-line);border-radius:8px;padding:5px 10px;font-size:12px;background:var(--ci-bg);color:var(--ci-fg);outline:none}
 .ci-input:focus{border-color:var(--ci-accent)}
@@ -746,10 +753,10 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       }
 
       // Where the money actually goes: the next request measured against the
-      // model's window, split the way the host splits it. The first-turn
-      // injection below is a different number on purpose — one is "what this
-      // plugin manages", the other is "what the model will receive".
-      function WindowCard({ snapshot, t }) {
+      // model's window, split the way the host splits it. One line, not a card:
+      // the headline percentage already lives in the KPI above it, and a nearly
+      // empty bar inside a tall card read as wasted space.
+      function RequestStrip({ snapshot, t }) {
         const context = snapshot.context
         if (context === undefined || context === null) return null
         const windowKnown = context.window !== null && context.used !== null
@@ -789,17 +796,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
         return h(
           'div',
-          { className: 'ci-card ci-window' + (context.tone && context.tone !== 'ok' && context.tone !== 'unknown' ? ` tone-${context.tone}` : '') },
-          h(
-            'div',
-            { className: 'ci-window-head' },
-            h('h2', null, t('requestComposition')),
-            h('span', { className: 'spacer' }),
-            windowKnown ? h('span', { className: 'muted' }, `${t('remain')} ${token(context.remaining)} (${context.occupancy}%)`) : h('span', { className: 'muted' }, t('noWindow')),
-          ),
+          { className: 'ci-strip' + (context.tone && context.tone !== 'ok' && context.tone !== 'unknown' ? ` tone-${context.tone}` : '') },
+          h('span', { className: 'k' }, t('requestComposition')),
           segments.length > 1
             ? h(
-                'div',
+                'span',
                 { className: 'ci-window-bar', role: 'img', 'aria-label': windowKnown ? t('windowBarLabel', { pct: context.occupancy }) : t('requestComposition') },
                 segments.map((segment) =>
                   h('span', {
@@ -809,10 +810,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ),
               )
             : null,
+          h(
+            'span',
+            { className: 'rt', title: windowKnown ? t('windowHint') : t('noWindowHint') },
+            windowKnown ? `${t('remain')} ${token(context.remaining)} (${context.occupancy}%)` : t('noWindow'),
+          ),
           breakdown !== null
             ? h(
-                'div',
-                { className: 'ci-window-legend' },
+                'span',
+                { className: 'lg' },
                 [
                   ['system', t('systemPart'), breakdown.system],
                   ['tools', t('toolsPart'), breakdown.tools],
@@ -829,22 +835,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ),
               )
             : null,
-          h(
-            'div',
-            { className: 'ci-window-foot' },
-            h('span', { className: 'hint', title: t('windowBreakdownHint') }, t('windowBreakdownHint')),
-            hasCompaction
-              ? h(
-                  'span',
-                  { title: t('compactionHint') },
-                  t('compactionLine', {
-                    count: compaction.count + compaction.prunes,
-                    saved: token(compaction.saved),
-                  }),
-                )
-              : null,
-            compaction !== null && compaction.failures > 0 ? h('span', null, t('compactionFailed', { count: compaction.failures })) : null,
-          ),
+          hasCompaction
+            ? h(
+                'span',
+                { className: 'rt', title: t('compactionHint') },
+                t('compactionLine', { count: compaction.count + compaction.prunes, saved: token(compaction.saved) }),
+              )
+            : null,
+          compaction !== null && compaction.failures > 0 ? h('span', { className: 'rt warn' }, t('compactionFailed', { count: compaction.failures })) : null,
         )
       }
 
@@ -2071,7 +2069,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                 ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                 : null,
               h(Kpis, { snapshot, t, trend }),
-              h(WindowCard, { snapshot, t }),
+              h(RequestStrip, { snapshot, t }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                 ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
@@ -2116,7 +2114,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
               : null,
             h(Kpis, { snapshot, t, trend }),
-            h(WindowCard, { snapshot, t }),
+            h(RequestStrip, { snapshot, t }),
             snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
               ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
               : null,

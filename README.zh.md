@@ -25,7 +25,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 | --- | --- |
 | ![按套件分组的注入清单](docs/images/panel-suites.png) | ![按预算自动给出关闭建议](docs/images/panel-budget.png) |
 
-侧栏同一份数据的紧凑视图，输入框旁还有一行「注入 83.8k · 可关 97%」的徽标：
+侧栏同一份数据的紧凑视图；输入框旁还有一行「83.8k · 36%」的徽标（首轮注入 · 窗口占用）：
 
 ![侧栏面板](docs/images/panel-sidebar.png)
 

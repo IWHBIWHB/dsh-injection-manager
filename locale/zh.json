@@ -5,7 +5,7 @@
     "detail": "docs/DETAIL.zh.md"
   },
   "client": {
-    "panelLabel": "注入",
+    "panelLabel": "上下文注入",
     "panelTitle": "上下文注入",
     "pageTitle": "上下文注入管理",
     "subtitle": "新会话的第一轮请求会带上这些内容；开关只影响之后新建的会话",

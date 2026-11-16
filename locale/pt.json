@@ -1,13 +1,13 @@
 {
   "meta": {
-    "title": "Injeção de contexto",
+    "title": "Gerenciador de injeção de contexto",
     "description": "Gerencia tudo o que uma nova sessão do DSH injeta antes da primeira requisição: seções do prompt do sistema, contextos de execução, catálogo de skills, esquemas de ferramentas e regras do workspace, agrupados em suítes (um MCP server = um interruptor) com o detalhe de cada item; presets, prefixo/sufixo de prompt personalizado e um orçamento de token valem para sessões criadas depois. O plugin nunca edita seu AGENTS.md ou SKILL.md: cada interruptor é um registro no escopo da sessão e é reversível. Abra pelo ícone «Injeção» na barra lateral, pelo chip do compositor, pela ferramenta somente leitura context_injection ou pelo comando /inject.",
     "detail": "docs/DETAIL.pt.md"
   },
   "client": {
-    "panelLabel": "Injeção",
+    "panelLabel": "Injeção de contexto",
     "panelTitle": "Injeção de contexto",
-    "pageTitle": "Injeção de contexto",
+    "pageTitle": "Gerenciador de injeção de contexto",
     "subtitle": "O que a primeira requisição de uma nova sessão carrega; os interruptores valem para sessões criadas depois",
     "refresh": "Atualizar",
     "retry": "Tentar de novo",

@@ -29,6 +29,16 @@
 - New icon: the same three bands narrowing into one dot, drawn as gradients at
   36×36 so it survives a 20px sidebar. `assets/icon-512.png` is regenerated from
   the same geometry.
+- **A name, once.** The sidebar entry is now 上下文注入 (was 注入) so it reads as
+  a sibling of 上下文洞察; the page heading and the marketplace name stay
+  上下文注入管理, and every locale got the same split between the short entry and
+  the full product name.
+- **Less air at the top.** The window card became one strip line — bar, room
+  left, system/tools/messages — under four tighter KPI cards; a tall card holding
+  a 24%-full bar is gone. In the narrow sidebar the strip reflows to
+  label + remaining, a full-width bar, then the legend.
+- The four tabs are a segmented control (a pill track with the active tab
+  raised), matching the 分组/平铺 control instead of floating underlined text.
 - 13 new tests (pressure, compaction, window rendering) — 66 total.
 
 ## 1.10.9 — 2026-11-16

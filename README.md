@@ -25,7 +25,8 @@ Refresh the page; the "Injection" icon appears in the left panel list.
 | --- | --- |
 | ![Injection items grouped into suites](docs/images/panel-suites.png) | ![Budget suggestions](docs/images/panel-budget.png) |
 
-The sidebar shows the same snapshot compactly, and the composer carries a one-line chip:
+The sidebar shows the same snapshot compactly, and the composer carries a one-line chip
+(`83.8k · 36%` — first turn, then window occupancy):
 
 ![Sidebar panel](docs/images/panel-sidebar.png)
 
