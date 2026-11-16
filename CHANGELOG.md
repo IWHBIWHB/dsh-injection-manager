@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.3 — 2026-11-16
+
+- Fixed "I switched it off but the panel still shows the old numbers": the panel's
+  snapshot fetch used a single in-flight flag, so a poll that started before your
+  click could swallow the fresh reload, leaving the old summary until the next
+  poll. Responses now carry a sequence ticket and only the newest one is applied,
+  so a post-write reload always wins.
+
 ## 1.10.2 — 2026-11-16
 
 - Fixed the plugin metadata error `ENOENT ... D:\DSH\dsh-context-injection\locale\de.json`:

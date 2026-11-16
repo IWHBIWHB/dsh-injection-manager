@@ -345,29 +345,32 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
       function useSnapshot(sessionId, pollMs = 5000) {
         const [state, setState] = useState({ status: 'loading', data: null, error: null })
         const [nonce, setNonce] = useState(0)
-        const inFlight = useRef(false)
+        // Latest response wins. A poll that started before a write must never
+        // overwrite the fresh snapshot that the write triggered -- that was the
+        // "I closed it but the panel still shows the old numbers" bug.
+        const sequence = useRef(0)
         useEffect(() => {
           let cancelled = false
           const url = ROUTES.summary + (sessionId ? `?session=${encodeURIComponent(sessionId)}` : '')
+          let local = 0
 
-          // Silent refreshes keep the panel honest after a write that happened
-          // somewhere else (slash command, second window, plugin config reload).
           const load = async (silent) => {
-            if (inFlight.current) return
-            inFlight.current = true
+            local += 1
+            const ticket = local
+            sequence.current += 1
+            const globalTicket = sequence.current
             if (!silent) setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
             try {
               const data = await getJson(url)
-              if (!cancelled) setState({ status: 'ready', data, error: null })
+              if (cancelled || ticket !== local || globalTicket !== sequence.current) return
+              setState({ status: 'ready', data, error: null })
             } catch (error) {
-              if (cancelled) return
+              if (cancelled || ticket !== local) return
               setState((previous) => ({
                 status: previous.data === null ? 'failed' : 'ready',
                 data: previous.data,
                 error: String(error.message || error),
               }))
-            } finally {
-              inFlight.current = false
             }
           }
 
