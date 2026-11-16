@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.12.0 — 2026-11-16
+
+- **The plugin now leads with why people install it: collected skills.** A
+  dedicated card sits under the KPI row — how many skills are in the catalog, their
+  total tokens and share of the first request, the average per skill, the providers
+  they come from and the single heaviest entry. "去管理" filters the list straight
+  to that channel, so the answer to "why is my prompt so big" is one click away.
+- The model-facing card gained the same line first ("技能目录：38 个技能共 3.0k
+  token，占首轮 3.6%…"), because a user who collected a hundred skills is exactly
+  the user whose agent should be able to say that out loud.
+- README now opens with the collection problem before any feature list.
+- New snapshot field `skillsState.{catalogTokens,catalogShare,averageTokens,providers,heaviest,topProviders}`.
+- 7 locale keys × 8 languages; the narrow sidebar stacks the card's header.
+
 ## 1.11.1 — 2026-11-16
 
 - **The model-facing tool now says what to do with the numbers.** `context_injection`

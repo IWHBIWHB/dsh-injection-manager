@@ -131,6 +131,13 @@
     injectionComposition: '首轮注入构成',
     noTrim: '策略未裁剪',
     mixedOff: '部分关闭',
+    skillsCallout: '收藏的技能会出现在每一个请求里',
+    skillsLine: '{tokens} token · 占首轮 {share}% · 平均每个 {avg} · {providers} 个来源',
+    skillsUnit: '个技能',
+    skillsManage: '去管理',
+    skillsJump: '只看技能通道',
+    truncatedHint: '{count} 条描述超过目录长度上限，会被截断',
+    heaviestSkill: '最大：{name}（{tokens}）',
   }
 
   const NAMES_ZH = {
@@ -260,6 +267,28 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-window-head h2{font-size:12px;font-weight:600;margin:0;color:var(--ci-fg2);white-space:nowrap}
 .ci-window-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--ci-line2);gap:1px}
 .ci-window-bar span{display:block;height:100%;min-width:0}
+.ci-skills{display:flex;flex-direction:column;gap:8px}
+.ci-skills-head{display:flex;align-items:center;gap:12px;min-width:0}
+.ci-skills-num{display:flex;align-items:baseline;gap:3px;flex:0 0 auto}
+.ci-skills-num b{font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ci-skills-num span{font-size:11.5px;color:var(--ci-fg3)}
+.ci-skills-text{flex:1 1 auto;min-width:0}
+.ci-skills-text .k{font-size:12.5px;font-weight:600}
+.ci-skills-text .s{font-size:11.5px;color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-skills-providers{display:flex;flex-wrap:wrap;gap:4px 14px}
+.ci-skills-provider{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11.5px;cursor:pointer;padding:2px 0;min-width:0}
+.ci-skills-provider:hover{color:var(--ci-fg)}
+.ci-skills-provider .n{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-skills-provider .ci-bar-track{width:56px;height:6px;flex:0 0 56px}
+.ci-skills-provider .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
+@container (max-width:430px){
+.ci-skills-head{flex-wrap:wrap;gap:8px}
+.ci-skills-text{flex:1 1 100%;order:2}
+.ci-skills-head .ci-btn{order:1;margin-left:auto}
+.ci-skills-provider{flex:0 0 100%}
+.ci-skills-provider .n{max-width:none;flex:1 1 auto}
+}
+.ci-skills-note{font-size:11.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-strip{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:11.5px;color:var(--ci-fg3);min-width:0}
 .ci-strip .k{color:var(--ci-fg2);font-weight:600;white-space:nowrap}
 .ci-strip .ci-window-bar{flex:1 1 220px;min-width:110px}
@@ -695,6 +724,74 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
           segments,
           h('text', { x: 66, y: 64, textAnchor: 'middle', className: 'ci-donut-v' }, token(total)),
           h('text', { x: 66, y: 81, textAnchor: 'middle', className: 'ci-donut-k' }, t('total')),
+        )
+      }
+
+      // Skills are the reason people end up needing this plugin: a collected
+      // catalog sits in every request. This card is the "why is my prompt so
+      // big" answer, and its button jumps straight to that channel.
+      function SkillsFocus({ snapshot, t, onFilter }) {
+        const state = snapshot.skillsState
+        if (state === undefined || state === null || !Number.isFinite(state.catalogTokens)) return null
+        if ((state.total ?? 0) === 0) return null
+        const heaviest = state.heaviest
+        const rows = (state.topProviders ?? []).slice(0, 3)
+        const providerMax = rows.reduce((max, row) => Math.max(max, row.tokens), 1)
+        return h(
+          'div',
+          { className: 'ci-card ci-skills' },
+          h(
+            'div',
+            { className: 'ci-skills-head' },
+            h('div', { className: 'ci-skills-num' }, h('b', null, String(state.total)), h('span', null, t('skillsUnit'))),
+            h(
+              'div',
+              { className: 'ci-skills-text' },
+              h('div', { className: 'k' }, t('skillsCallout')),
+              h(
+                'div',
+                { className: 's' },
+                t('skillsLine', {
+                  tokens: token(state.catalogTokens),
+                  share: state.catalogShare,
+                  avg: token(state.averageTokens ?? 0),
+                  providers: state.providers ?? 0,
+                }),
+              ),
+            ),
+            h(
+              'button',
+              { type: 'button', className: 'ci-btn', onClick: () => onFilter('skills'), title: t('skillsJump') },
+              t('skillsManage'),
+            ),
+          ),
+          rows.length > 0
+            ? h(
+                'div',
+                { className: 'ci-skills-providers' },
+                rows.map((row) =>
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'ci-skills-provider',
+                      key: row.provider,
+                      title: `${row.provider} · ${row.count} ${t('items')} · ${digits(row.tokens)} token`,
+                      onClick: () => onFilter('skills'),
+                    },
+                    h('span', { className: 'n' }, row.provider),
+                    h('span', { className: 'ci-bar-track' }, h('span', { className: 'ci-bar-fill', style: { width: `${Math.max(3, (row.tokens / providerMax) * 100)}%`, background: COLOR.skills } })),
+                    h('span', { className: 't' }, `${row.count} · ${token(row.tokens)}`),
+                  ),
+                ),
+              )
+            : null,
+          state.truncated > 0
+            ? h('div', { className: 'ci-skills-note' }, t('truncatedHint', { count: state.truncated }))
+            : null,
+          heaviest !== null && heaviest !== undefined
+            ? h('div', { className: 'ci-skills-note' }, t('heaviestSkill', { name: heaviest.name, tokens: token(heaviest.tokens) }))
+            : null,
         )
       }
 
@@ -2070,6 +2167,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
                 : null,
               h(Kpis, { snapshot, t, trend }),
               h(RequestStrip, { snapshot, t }),
+              h(SkillsFocus, { snapshot, t, onFilter: setFilter }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                 ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
@@ -2115,6 +2213,7 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
               : null,
             h(Kpis, { snapshot, t, trend }),
             h(RequestStrip, { snapshot, t }),
+            h(SkillsFocus, { snapshot, t, onFilter: setFilter }),
             snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
               ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
               : null,

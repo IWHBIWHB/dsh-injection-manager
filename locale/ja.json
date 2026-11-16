@@ -186,6 +186,13 @@
     "requestComposition": "今回のリクエスト構成",
     "injectionComposition": "初回注入の構成",
     "noTrim": "ポリシー未適用",
-    "mixedOff": "一部オフ"
+    "mixedOff": "一部オフ",
+    "skillsCallout": "集めたスキルは毎回のリクエストに載ります",
+    "skillsLine": "{tokens} token · 初回の {share}% · 平均 {avg} · {providers} プロバイダー",
+    "skillsUnit": "スキル",
+    "skillsManage": "管理",
+    "skillsJump": "スキルのみ表示",
+    "truncatedHint": "{count} 件の説明が上限を超え、切り詰められます",
+    "heaviestSkill": "最大：{name}（{tokens}）"
   }
 }

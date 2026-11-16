@@ -186,6 +186,13 @@
     "requestComposition": "Composition de la requête",
     "injectionComposition": "Injection du premier tour",
     "noTrim": "aucun retrait",
-    "mixedOff": "partiel"
+    "mixedOff": "partiel",
+    "skillsCallout": "Les skills collectées sont dans chaque requête",
+    "skillsLine": "{tokens} tokens · {share} % du premier tour · {avg} en moyenne · {providers} fournisseurs",
+    "skillsUnit": "skills",
+    "skillsManage": "Gérer",
+    "skillsJump": "Filtrer sur les skills",
+    "truncatedHint": "{count} descriptions dépassent la limite et sont tronquées",
+    "heaviestSkill": "La plus grosse : {name} ({tokens})"
   }
 }

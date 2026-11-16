@@ -186,6 +186,13 @@
     "requestComposition": "Состав запроса",
     "injectionComposition": "Первый впрыск",
     "noTrim": "без сокращений",
-    "mixedOff": "частично"
+    "mixedOff": "частично",
+    "skillsCallout": "Собранные навыки едут в каждом запросе",
+    "skillsLine": "{tokens} token · {share}% первого запроса · в среднем {avg} · источников: {providers}",
+    "skillsUnit": "навыков",
+    "skillsManage": "Управлять",
+    "skillsJump": "Только навыки",
+    "truncatedHint": "описаний длиннее лимита обрезано: {count}",
+    "heaviestSkill": "Самый большой: {name} ({tokens})"
   }
 }

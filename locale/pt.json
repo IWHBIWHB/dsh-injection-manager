@@ -186,6 +186,13 @@
     "requestComposition": "Composição da requisição",
     "injectionComposition": "Injeção do primeiro turno",
     "noTrim": "sem cortes",
-    "mixedOff": "parcial"
+    "mixedOff": "parcial",
+    "skillsCallout": "As skills coletadas vão em toda requisição",
+    "skillsLine": "{tokens} tokens · {share}% do primeiro turno · {avg} em média · {providers} provedores",
+    "skillsUnit": "skills",
+    "skillsManage": "Gerenciar",
+    "skillsJump": "Filtrar só skills",
+    "truncatedHint": "{count} descrições passam do limite e são cortadas",
+    "heaviestSkill": "Maior: {name} ({tokens})"
   }
 }

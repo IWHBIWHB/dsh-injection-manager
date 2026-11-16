@@ -186,6 +186,13 @@
     "requestComposition": "Zusammensetzung der Anfrage",
     "injectionComposition": "Ersteinspielung",
     "noTrim": "nichts gekürzt",
-    "mixedOff": "teils aus"
+    "mixedOff": "teils aus",
+    "skillsCallout": "Gesammelte Skills stecken in jeder Anfrage",
+    "skillsLine": "{tokens} Token · {share}% des ersten Aufrufs · Ø {avg} · {providers} Anbieter",
+    "skillsUnit": "Skills",
+    "skillsManage": "Verwalten",
+    "skillsJump": "Nur Skills filtern",
+    "truncatedHint": "{count} Beschreibungen überschreiten die Länge und werden gekürzt",
+    "heaviestSkill": "Größter: {name} ({tokens})"
   }
 }

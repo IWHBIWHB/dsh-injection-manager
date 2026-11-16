@@ -186,6 +186,13 @@
     "requestComposition": "本次请求构成",
     "injectionComposition": "首轮注入构成",
     "noTrim": "策略未裁剪",
-    "mixedOff": "部分关闭"
+    "mixedOff": "部分关闭",
+    "skillsCallout": "收藏的技能会出现在每一个请求里",
+    "skillsLine": "{tokens} token · 占首轮 {share}% · 平均每个 {avg} · {providers} 个来源",
+    "skillsUnit": "个技能",
+    "skillsManage": "去管理",
+    "skillsJump": "只看技能通道",
+    "truncatedHint": "{count} 条描述超过目录长度上限，会被截断",
+    "heaviestSkill": "最大：{name}（{tokens}）"
   }
 }

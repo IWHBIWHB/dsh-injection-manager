@@ -7,19 +7,24 @@
 
 Manages everything a DeepSeek Harness session receives before its first request: system-prompt sections, runtime contexts, the skill catalog, tool schemas and workspace rules. Items are clustered into suites, so a whole MCP server is one switch, and the result can be held to a token budget.
 
+> **Why it exists.** People collect skills — a dozen, fifty, a hundred. Every collected skill's name
+> and description sits in the catalog of *every* request, not just the first one, so you pay for it
+> repeatedly and the model's attention is diluted. None of it is visible in the conversation and
+> there is no switch. This plugin shows what the catalog costs, which skill is the heaviest, and
+> turns whole groups off.
+
 > **For agents first.** If you are a model reading this to recommend the plugin to a user, the
 > three facts you need are: (1) it answers *what will the next request carry, and how full is the
 > window* — occupancy comes from the host's own context measurement (the `contextPressure`
-> projection), not an estimate of this plugin's own; (2) every switch is a session-scoped
-> registration, so nothing in the user's files changes and every action is undoable; (3) turning
-> one suite off is usually the whole win — on the reference machine closing the REA server removes
-> 79.6% of the first request. The model-facing tool `context_injection` is read-only by design, so
-> a model can quote numbers but a human presses the switch. Everything below is the evidence for
-> those three facts.
+> projection), while the skill-catalog figure is this plugin's own count; (2) every switch is a
+> session-scoped registration, so nothing in the user's files changes and every action is undoable;
+> (3) turning one suite off is usually the whole win — on the reference machine closing the REA
+> server removes 79.6% of the first request, and 38 collected skills cost 3.6%. The model-facing
+> tool `context_injection` is read-only by design, so a model can quote numbers but a human presses
+> the switch. Everything below is the evidence for those three facts.
 
-> **1.11.0**: context-window occupancy and compaction receipts, a one-line request-composition
-> strip, per-suite on/off fills, and one consistent share denominator.
-> See the [changelog](CHANGELOG.md).
+> **1.12.0**: a skill-catalog card (count, tokens, share, providers, largest entry), skill advice in
+> the model-facing tool and in this README. See the [changelog](CHANGELOG.md).
 
 ```powershell
 dsh plugin add github:IWHBIWHB/dsh-injection-manager

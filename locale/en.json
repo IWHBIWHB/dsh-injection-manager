@@ -186,6 +186,13 @@
     "requestComposition": "Request composition",
     "injectionComposition": "First-turn injection",
     "noTrim": "nothing trimmed",
-    "mixedOff": "partly off"
+    "mixedOff": "partly off",
+    "skillsCallout": "Collected skills live in every request",
+    "skillsLine": "{tokens} tokens · {share}% of the first turn · about {avg} each · {providers} providers",
+    "skillsUnit": "skills",
+    "skillsManage": "Manage",
+    "skillsJump": "Filter the list to skills",
+    "truncatedHint": "{count} descriptions are longer than the catalog line, so they are cut off",
+    "heaviestSkill": "Largest: {name} ({tokens})"
   }
 }
