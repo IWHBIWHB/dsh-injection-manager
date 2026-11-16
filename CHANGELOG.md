@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.0 — 2026-11-16
+
+- The composer chip is quieter: muted text with a dot, no border until hover,
+  `83.8k 97%` instead of `注入 83.8k · 可关闭 97%`, plus a hover × to hide it.
+  Hiding is per browser (localStorage) and the Notes tab can switch it back on.
+  The chip now carries its own stylesheet — it used to render as a native
+  button because the panel's `<style>` only mounted with the panel.
+- The panel refreshes itself: a silent `/summary` poll every 5 s (chip: 15 s)
+  while the page is visible, paused when hidden, plus an immediate broadcast on
+  every write. A policy changed by `/inject`, another window or a plugin reload
+  now shows up without pressing 刷新.
+
 ## 1.9.10 — 2026-11-15
 
 - Corrected a stale limitation line: sections are filtered through the scoped

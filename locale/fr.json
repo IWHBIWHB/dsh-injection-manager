@@ -153,6 +153,11 @@
     "budgetOverwrite": "{count} éléments sont désactivés à la main ; appliquer la suggestion recalcule la politique et remplace ces choix.",
     "presetOverwrite": "{count} éléments sont désactivés à la main ; changer de préréglage recalcule et remplace ces choix.",
     "outsideBudget": "hors budget",
-    "outsideBudgetHint": "Le plan de budget actuel désactive cet élément"
+    "outsideBudgetHint": "Le plan de budget actuel désactive cet élément",
+    "hideDock": "Masquer la puce",
+    "showDock": "Afficher la puce sous le compositeur",
+    "dockHint": "Injection estimée du premier tour pour cette session ; cliquez pour ouvrir le panneau",
+    "dockCardTitle": "Puce du compositeur",
+    "dockCardHint": "La puce sous le compositeur n'affiche que les tokens du premier tour et la part désactivable. Fermez-la avec son × ou cet interrupteur ; vous pouvez la réafficher à tout moment."
   }
 }

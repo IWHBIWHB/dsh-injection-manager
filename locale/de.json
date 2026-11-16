@@ -153,6 +153,11 @@
     "budgetOverwrite": "{count} Einträge sind manuell deaktiviert; das Anwenden des Vorschlags berechnet neu und ersetzt diese Auswahl.",
     "presetOverwrite": "{count} Einträge sind manuell deaktiviert; ein Preset-Wechsel berechnet neu und ersetzt diese Auswahl.",
     "outsideBudget": "über Budget",
-    "outsideBudgetHint": "Der aktuelle Budgetplan deaktiviert diesen Eintrag"
+    "outsideBudgetHint": "Der aktuelle Budgetplan deaktiviert diesen Eintrag",
+    "hideDock": "Chip ausblenden",
+    "showDock": "Chip unter dem Eingabefeld anzeigen",
+    "dockHint": "Geschätzte erste Anfrage dieser Sitzung; klicken öffnet das Panel",
+    "dockCardTitle": "Chip am Eingabefeld",
+    "dockCardHint": "Der kleine Chip unter dem Eingabefeld zeigt nur die Token der ersten Anfrage und den abschaltbaren Anteil. Mit × oder diesem Schalter ausblenden, jederzeit wieder einblendbar."
   }
 }

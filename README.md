@@ -95,7 +95,7 @@ Required contexts (working directory, subagent identity) are read-only too; no p
 | --- | --- | --- |
 | Sidebar icon | Left panel list, "Injection" | Opens the management page |
 | Management page | Main area | Items / Policy / Budget / Notes |
-| Composer chip | Under the input | One line: first-turn total and how much is switchable |
+| Composer chip | Under the input | First-turn total and switchable share, deliberately muted; × hides it, Notes can bring it back |
 | `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card |
 | `/inject` command | Composer | Text report; `/inject minimal`, `/inject all`, `/inject budget 20000`, `/inject apply [20000]`, `/inject undo` |
 

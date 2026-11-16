@@ -153,6 +153,11 @@
     "budgetOverwrite": "{count} 件が手動で無効です。提案を適用すると予算で再計算され、これらの選択は上書きされます。",
     "presetOverwrite": "{count} 件が手動で無効です。プリセットを切り替えると再計算され、これらの選択は上書きされます。",
     "outsideBudget": "予算外",
-    "outsideBudgetHint": "現在の予算案では無効になります"
+    "outsideBudgetHint": "現在の予算案では無効になります",
+    "hideDock": "チップを隠す",
+    "showDock": "入力欄の下にチップを表示",
+    "dockHint": "このセッションの初回注入の推定値。クリックでパネルを開きます",
+    "dockCardTitle": "入力欄のチップ",
+    "dockCardHint": "入力欄の下の小さなチップは初回 token と切替可能な割合だけを表示します。× かこのスイッチで閉じられ、いつでも再表示できます。"
   }
 }

@@ -167,6 +167,19 @@
   const digits = (value) => String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0)
 
+  const DOCK_STYLE = `
+.ci-dock-wrap{display:inline-flex;align-items:center;gap:0}
+.ci-dock{display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;background:transparent;color:var(--ci-fg3,#8a8f99);border-radius:999px;padding:2px 7px;font-size:11px;font-family:inherit;cursor:pointer;line-height:1.5;opacity:.7;transition:opacity .15s,background .15s,border-color .15s}
+.ci-dock:hover{opacity:1;border-color:var(--ci-line,rgba(127,127,127,.28));background:var(--ci-bg,transparent)}
+.ci-dock:focus-visible{outline:2px solid var(--ci-accent,#4d6bfe);outline-offset:2px}
+.ci-dock b{color:var(--ci-fg2,#5f6470);font-weight:600;font-variant-numeric:tabular-nums}
+.ci-dock i{width:5px;height:5px;border-radius:50%;background:var(--ci-accent,#4d6bfe);opacity:.75;display:block}
+.ci-dock em{font-style:normal;color:var(--ci-fg3,#8a8f99);font-size:10.5px}
+.ci-dock-x{width:15px;height:15px;border:0;background:transparent;color:var(--ci-fg3,#8a8f99);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0;transition:opacity .12s}
+.ci-dock-wrap:hover .ci-dock-x,.ci-dock-x:focus-visible{opacity:.55}
+.ci-dock-x:hover{opacity:1}
+`
+
   const STYLE = `
 .ci-root{--ci-fg:var(--dsw-alias-content-primary,#18181b);--ci-fg2:var(--dsw-alias-content-secondary,#52525b);--ci-fg3:var(--dsw-alias-content-tertiary,#8a8a93);--ci-line:var(--dsw-alias-border-secondary,rgba(0,0,0,.09));--ci-line2:var(--dsw-alias-border-tertiary,rgba(0,0,0,.055));--ci-bg:var(--dsw-alias-bg-primary,#fff);--ci-card:var(--dsw-alias-bg-secondary,#fafafa);--ci-accent:var(--dsw-alias-brand-primary,#4d6bfe);--ci-warn:var(--dsw-alias-warning-primary,#b45309);color:var(--ci-fg);font-size:13px;line-height:1.55;display:flex;flex-direction:column;height:100%;min-height:0;container-type:inline-size}
 body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8b95;--ci-line:rgba(255,255,255,.12);--ci-line2:rgba(255,255,255,.07);--ci-bg:#161619;--ci-card:#1d1d21;--ci-accent:#7c8dff;--ci-warn:#fbbf24}
@@ -249,10 +262,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-mini{display:flex;align-items:center;gap:8px}
 .ci-mini .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 .ci-mini .t{font-size:11px;color:var(--ci-fg3);font-variant-numeric:tabular-nums}
-.ci-dock{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ci-line);background:var(--ci-bg);color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11.5px;cursor:pointer;line-height:1.4}
-.ci-dock:hover{background:var(--ci-card)}
-.ci-dock b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
-.ci-dock i{width:6px;height:6px;border-radius:50%;background:var(--ci-accent);display:block}
+.ci-dock-wrap{display:inline-flex;align-items:center;gap:0}
+.ci-dock{display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;background:transparent;color:var(--ci-fg3);border-radius:999px;padding:2px 7px;font-size:11px;cursor:pointer;line-height:1.5;opacity:.7;transition:opacity .15s,background .15s,border-color .15s}
+.ci-dock:hover{opacity:1;border-color:var(--ci-line);background:var(--ci-bg)}
+.ci-dock b{color:var(--ci-fg2);font-weight:600;font-variant-numeric:tabular-nums}
+.ci-dock i{width:5px;height:5px;border-radius:50%;background:var(--ci-accent);opacity:.75;display:block}
+.ci-dock em{font-style:normal;color:var(--ci-fg3);font-size:10.5px}
+.ci-dock-x{width:15px;height:15px;border:0;background:transparent;color:var(--ci-fg3);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:0;transition:opacity .12s}
+.ci-dock-wrap:hover .ci-dock-x,.ci-dock-x:focus-visible{opacity:.55}
+.ci-dock-x:hover{opacity:1}
 .ci-toast{position:sticky;bottom:8px;align-self:center;max-width:92%;display:flex;align-items:center;gap:10px;border:1px solid var(--ci-line);background:var(--ci-card);color:var(--ci-fg);border-radius:10px;padding:7px 12px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);z-index:5}
 .ci-toast.warn{border-color:var(--ci-warn);color:var(--ci-warn)}
 .ci-toast .ci-btn{padding:2px 8px;font-size:11px}
@@ -324,29 +342,49 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         return [value, setValue]
       }
 
-      function useSnapshot(sessionId) {
+      function useSnapshot(sessionId, pollMs = 5000) {
         const [state, setState] = useState({ status: 'loading', data: null, error: null })
         const [nonce, setNonce] = useState(0)
+        const inFlight = useRef(false)
         useEffect(() => {
           let cancelled = false
           const url = ROUTES.summary + (sessionId ? `?session=${encodeURIComponent(sessionId)}` : '')
-          setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
-          getJson(url)
-            .then((data) => {
+
+          // Silent refreshes keep the panel honest after a write that happened
+          // somewhere else (slash command, second window, plugin config reload).
+          const load = async (silent) => {
+            if (inFlight.current) return
+            inFlight.current = true
+            if (!silent) setState((previous) => ({ ...previous, status: previous.data === null ? 'loading' : 'refreshing' }))
+            try {
+              const data = await getJson(url)
               if (!cancelled) setState({ status: 'ready', data, error: null })
-            })
-            .catch((error) => {
+            } catch (error) {
               if (cancelled) return
               setState((previous) => ({
                 status: previous.data === null ? 'failed' : 'ready',
                 data: previous.data,
                 error: String(error.message || error),
               }))
-            })
+            } finally {
+              inFlight.current = false
+            }
+          }
+
+          load(false).catch(() => {})
+          const timer = setInterval(() => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') load(true).catch(() => {})
+          }, pollMs)
+          const onVisible = () => {
+            if (document.visibilityState === 'visible') load(true).catch(() => {})
+          }
+          document.addEventListener('visibilitychange', onVisible)
           return () => {
             cancelled = true
+            clearInterval(timer)
+            document.removeEventListener('visibilitychange', onVisible)
           }
-        }, [sessionId, nonce])
+        }, [sessionId, nonce, pollMs])
         const reload = useCallback(() => setNonce((value) => value + 1), [])
         return { ...state, reload }
       }
@@ -1301,6 +1339,21 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       function AboutTab({ snapshot, t, sessionId }) {
         const locked = snapshot.locks
+        const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
+
+        useEffect(() => {
+          const onPref = (event) => {
+            const detail = event && event.detail
+            if (detail && typeof detail.hidden === 'boolean') setDockHidden(detail.hidden)
+          }
+          window.addEventListener('injection-manager:dock', onPref)
+          return () => window.removeEventListener('injection-manager:dock', onPref)
+        }, [setDockHidden])
+
+        const setDockVisible = (visible) => {
+          setDockHidden(!visible)
+          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: !visible } }))
+        }
         const [verification, setVerification] = useState(null)
         const [verifying, setVerifying] = useState(false)
 
@@ -1349,6 +1402,18 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
                   ),
                 )
               : null,
+          ),
+          h(
+            'div',
+            { className: 'ci-card' },
+            h('h2', null, t('dockCardTitle')),
+            h('div', { className: 'ci-note' }, t('dockCardHint')),
+            h(
+              'div',
+              { className: 'ci-rowline' },
+              h('span', null, t('showDock')),
+              h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') }),
+            ),
           ),
           h(
             'div',
@@ -1438,6 +1503,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             try {
               await postJson(ROUTES.action, Object.assign({ session: sessionId, label: message }, action))
               reload()
+              try {
+                window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+              } catch {
+                /* no window in tests */
+              }
               showNotice({ kind: 'ok', text: message || t('applied'), undo: true }, 6000)
             } catch (failure) {
               // A failed switch must be visible: silence here would look like
@@ -1598,11 +1668,30 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 
       function DockChip(props) {
         const sessionId = pickSessionId(props)
-        const { status, data } = useSnapshot(sessionId)
+        // The chip is ambient information; poll slowly so it does not compete
+        // with the panel's own refresh.
+        const { status, data, reload } = useSnapshot(sessionId, 15000)
         const t = useLocale(data)
+        const [hidden, setHidden] = useStoredState('dockHidden', false)
+
+        useEffect(() => {
+          const onPref = (event) => {
+            const detail = event && event.detail
+            if (detail && typeof detail.hidden === 'boolean') setHidden(detail.hidden)
+          }
+          window.addEventListener('injection-manager:dock', onPref)
+          window.addEventListener('injection-manager:changed', reload)
+          return () => {
+            window.removeEventListener('injection-manager:dock', onPref)
+            window.removeEventListener('injection-manager:changed', reload)
+          }
+        }, [setHidden, reload])
+
         if (status === 'failed') return null
-        // `dock: false` hides the composer chip without disabling the plugin.
+        // Config `dock: false` is the installation-level switch.
         if (data && data.settings && data.settings.dock === false) return null
+        if (hidden) return null
+
         const tokens = data ? data.totals.tokens : null
         const open = () => {
           try {
@@ -1612,13 +1701,27 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             /* opening is best effort */
           }
         }
+        const hide = () => {
+          setHidden(true)
+          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: true } }))
+        }
+
         return h(
-          'button',
-          { type: 'button', className: 'ci-dock', onClick: open, title: t('open') },
-          h('i', null),
-          h('span', null, t('panelLabel')),
-          h('b', null, tokens === null ? '…' : token(tokens)),
-          data && data.totals.savableTokens > 0 ? h('span', null, `· ${t('savable')} ${data.totals.savablePercent}%`) : null,
+          'span',
+          { className: 'ci-dock-wrap' },
+          h('style', null, DOCK_STYLE),
+          h(
+            'button',
+            { type: 'button', className: 'ci-dock', onClick: open, title: t('dockHint') },
+            h('i', null),
+            h('b', null, tokens === null ? '…' : token(tokens)),
+            data && data.totals.savableTokens > 0 ? h('em', null, `${data.totals.savablePercent}%`) : null,
+          ),
+          h(
+            'button',
+            { type: 'button', className: 'ci-dock-x', onClick: hide, title: t('hideDock'), 'aria-label': t('hideDock') },
+            '×',
+          ),
         )
       }
 

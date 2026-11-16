@@ -89,7 +89,7 @@ Plugins → dsh-injection-manager → Configuration 里有四项，只影响显�
 | --- | --- | --- |
 | 侧栏图标 | 左侧面板列表「注入」 | 一键打开管理页 |
 | 管理页 | 主区域 | 清单 / 策略 / 预算 / 说明 四个标签 |
-| 输入框徽标 | 输入框下方 | 一行摘要：首轮注入多少、可关多少 |
+| 输入框徽标 | 输入框下方 | 首轮注入与可关比例，弱化显示；点 × 隐藏，说明页可重新打开 |
 | 工具 `context_injection` | 模型可调用 | 只读快照，含 markdown 卡片 |
 | 斜杠命令 `/inject` | 输入框 | 文本清单；`/inject minimal`、`/inject all`、`/inject budget 20000`、`/inject apply [20000]`、`/inject undo` |
 

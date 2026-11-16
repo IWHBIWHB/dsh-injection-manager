@@ -153,6 +153,11 @@
     "budgetOverwrite": "当前有 {count} 项被手动关闭；应用建议会按预算重算，并覆盖这些选择。",
     "presetOverwrite": "当前有 {count} 项手动关闭；切换预设会重算并覆盖这些选择。",
     "outsideBudget": "预算外",
-    "outsideBudgetHint": "当前预算方案会关闭这一项"
+    "outsideBudgetHint": "当前预算方案会关闭这一项",
+    "hideDock": "隐藏摘要",
+    "showDock": "在输入框下方显示摘要",
+    "dockHint": "当前会话首轮注入估算；点击打开面板",
+    "dockCardTitle": "输入框摘要",
+    "dockCardHint": "输入框下方的小条只显示首轮 token 与可关比例。不需要时点它的 × 或关掉这里的开关，随时可以再打开。"
   }
 }

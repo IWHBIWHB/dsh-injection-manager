@@ -153,6 +153,11 @@
     "budgetOverwrite": "{count} itens estão desligados à mão; aplicar a sugestão recalcula a política e substitui essas escolhas.",
     "presetOverwrite": "{count} itens estão desligados à mão; trocar de preset recalcula e substitui essas escolhas.",
     "outsideBudget": "fora do orçamento",
-    "outsideBudgetHint": "O plano de orçamento atual desativa este item"
+    "outsideBudgetHint": "O plano de orçamento atual desativa este item",
+    "hideDock": "Ocultar chip",
+    "showDock": "Mostrar chip sob o compositor",
+    "dockHint": "Injeção estimada do primeiro turno desta sessão; clique para abrir o painel",
+    "dockCardTitle": "Chip do compositor",
+    "dockCardHint": "O chip sob o compositor mostra apenas os tokens do primeiro turno e a fração desativável. Feche com o × ou com este interruptor; pode reabrir quando quiser."
   }
 }
