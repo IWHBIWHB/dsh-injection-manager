@@ -165,6 +165,7 @@
     "restoreGroup": "恢复整套",
     "sessionNotApplied": "本会话在策略保存前创建，不受新策略影响；「策略后」是下一个新会话的预估。",
     "baseline": "全开时",
-    "mixed": "多通道"
+    "mixed": "多通道",
+    "sortHint": "点击切换排序"
   }
 }

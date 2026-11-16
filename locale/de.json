@@ -165,6 +165,7 @@
     "restoreGroup": "Suite wiederherstellen",
     "sessionNotApplied": "Diese Sitzung stammt von vor der Richtlinie und ist nicht betroffen; „nach Richtlinie“ schätzt die nächste neue Sitzung.",
     "baseline": "Ohne Richtlinie",
-    "mixed": "Gemischt"
+    "mixed": "Gemischt",
+    "sortHint": "Klicken zum Sortieren"
   }
 }

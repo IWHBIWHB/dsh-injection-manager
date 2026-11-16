@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.8 — 2026-11-16
+
+- Sorting moved into the table headers, like a normal data grid: 条目 / 通道 /
+  token / 占比 are clickable, show ▲▼ (or ↕ when inactive) and `aria-sort`.
+  The toolbar chips are gone; the choice persists as `key:dir`.
+- Fixed the direction: descending token order was inverted (zero-token suites
+  came first). Suites and flat rows share the same comparator.
+- Screenshot fixture now reads `/summary` and `/locale` live, so regenerated
+  images cannot ship untranslated keys.
+
 ## 1.10.7 — 2026-11-16
 
 - Suites are merged by label across channels: REA's 229 MCP tools and its prompt

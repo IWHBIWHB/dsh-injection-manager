@@ -219,6 +219,10 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-table{border:1px solid var(--ci-line2);border-radius:10px;overflow:auto;background:var(--ci-bg);min-height:0}
 .ci-thead,.ci-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px 58px 52px;gap:8px;align-items:center;padding:7px 12px}
 .ci-thead{font-size:11px;color:var(--ci-fg3);background:var(--ci-card);border-bottom:1px solid var(--ci-line2);position:sticky;top:0;z-index:1}
+.ci-sort{width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-align:inherit}
+.ci-sort:hover{color:var(--ci-fg2)}
+.ci-sort.active{color:var(--ci-fg)}
+.ci-arrow{font-size:9px;opacity:.55;line-height:1}
 .ci-row{border-bottom:1px solid var(--ci-line2);font-size:12.5px}
 .ci-row:last-child{border-bottom:0}
 .ci-row:hover{background:var(--ci-card)}
@@ -732,7 +736,8 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
         const [onlySwitchable, setOnlySwitchable] = useStoredState('onlySwitchable', false)
-        const [sort, setSort] = useStoredState('itemSort', 'tokens')
+        const [sort, setSort] = useStoredState('itemSort', 'tokens:desc')
+        const [sortKey, sortDir] = String(sort).split(':')
         const [expanded, setExpanded] = useState({})
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
@@ -768,9 +773,15 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               return item.name.toLowerCase().indexOf(needle) >= 0 || label.toLowerCase().indexOf(needle) >= 0
             })
             .slice()
-            .sort((left, right) =>
-              sort === 'name' ? left.name.localeCompare(right.name) : right.tokens - left.tokens || left.name.localeCompare(right.name),
-            )
+            .sort((left, right) => {
+              const compare =
+                sortKey === 'name'
+                  ? left.name.localeCompare(right.name)
+                  : sortKey === 'channel'
+                    ? left.channel.localeCompare(right.channel) || left.name.localeCompare(right.name)
+                    : left.tokens - right.tokens || left.name.localeCompare(right.name)
+              return sortDir === 'asc' ? compare : -compare
+            })
         }, [snapshot.items, filter, onlySwitchable, deferredQuery, t])
 
         const isOn = (item) => {
@@ -806,10 +817,16 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             map.set(key, entry)
           }
           const rows = [...map.values()]
-          return rows.sort((left, right) =>
-            sort === 'name' ? String(left.label).localeCompare(String(right.label)) : right.tokens - left.tokens,
-          )
-        }, [items, sort])
+          return rows.sort((left, right) => {
+            const compare =
+              sortKey === 'name'
+                ? String(left.label).localeCompare(String(right.label))
+                : sortKey === 'channel'
+                  ? String(left.channel).localeCompare(String(right.channel)) || left.tokens - right.tokens
+                  : left.tokens - right.tokens || String(left.label).localeCompare(String(right.label))
+            return sortDir === 'asc' ? compare : -compare
+          })
+        }, [items, sortKey, sortDir, sort])
 
         const groupState = (group) => {
           const unlocked = group.items.filter((item) => !item.locked)
@@ -825,6 +842,24 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
         }
 
         const toggleExpanded = (id) => setExpanded((previous) => ({ ...previous, [id]: previous[id] !== true }))
+
+        const sortHeader = (key, label, alignRight) => {
+          const active = sortKey === key
+          const nextDir = active ? (sortDir === 'asc' ? 'desc' : 'asc') : key === 'name' || key === 'channel' ? 'asc' : 'desc'
+          return h(
+            'button',
+            {
+              type: 'button',
+              className: 'ci-sort' + (active ? ' active' : ''),
+              style: alignRight ? { justifyContent: 'flex-end' } : null,
+              'aria-sort': active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none',
+              title: `${label} · ${t('sortHint')}`,
+              onClick: () => setSort(key + ':' + nextDir),
+            },
+            label,
+            h('span', { className: 'ci-arrow', 'aria-hidden': 'true' }, active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'),
+          )
+        }
 
         return h(
           'div',
@@ -870,14 +905,6 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
               },
               t('onlySwitchable'),
             ),
-            h(
-              'div',
-              { className: 'ci-seg' },
-              [
-                ['tokens', t('sortTokens')],
-                ['name', t('sortByName')],
-              ].map(([key, label]) => h('button', { key, type: 'button', className: sort === key ? 'on' : '', onClick: () => setSort(key) }, label)),
-            ),
             view === 'group'
               ? h(
                   'button',
@@ -903,10 +930,10 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
             h(
               'div',
               { className: 'ci-thead' },
-              h('div', null, t('name')),
-              h('div', null, t('channel')),
-              h('div', { style: { textAlign: 'right' } }, t('tokens')),
-              h('div', { style: { textAlign: 'right' } }, t('share')),
+              h('div', null, sortHeader('name', t('name'))),
+              h('div', null, sortHeader('channel', t('channel'))),
+              h('div', { style: { textAlign: 'right' } }, sortHeader('tokens', t('tokens'), true)),
+              h('div', { style: { textAlign: 'right' } }, sortHeader('share', t('share'), true)),
               h('div', { style: { textAlign: 'right' } }, t('switch')),
             ),
             items.length === 0

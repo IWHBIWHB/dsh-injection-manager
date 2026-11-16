@@ -165,6 +165,7 @@
     "restoreGroup": "Restore suite",
     "sessionNotApplied": "This session predates the policy, so it is unaffected; \"after policy\" is the estimate for your next new session.",
     "baseline": "Without policy",
-    "mixed": "Mixed"
+    "mixed": "Mixed",
+    "sortHint": "Click to sort"
   }
 }

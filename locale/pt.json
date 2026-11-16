@@ -165,6 +165,7 @@
     "restoreGroup": "Restaurar suíte",
     "sessionNotApplied": "Esta sessão antecede a política e não é afetada; «após a política» é a estimativa para a próxima sessão.",
     "baseline": "Sem política",
-    "mixed": "Misto"
+    "mixed": "Misto",
+    "sortHint": "Clique para ordenar"
   }
 }
