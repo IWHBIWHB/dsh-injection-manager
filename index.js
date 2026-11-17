@@ -15,7 +15,7 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { applyPolicyForAgent, releaseAll, savePolicy } from './lib/apply.js'
-import { createRoutes, ROUTES } from './lib/routes.js'
+import { createRoutes, makeFencedHandler, ROUTES } from './lib/routes.js'
 import { buildSnapshot, planBudget, policyFromPlan } from './lib/snapshot.js'
 import { watchCompaction } from './lib/compaction.js'
 import { CONTENT_CHANNELS, TOOL_CONTENT_LIMIT, collectContent } from './lib/content.js'
@@ -277,7 +277,12 @@ export function apply(ctx, config) {
   for (const [key, path] of Object.entries(ROUTES)) {
     const handler = routes[key]
     if (typeof handler !== 'function') continue
-    ctx.effect(() => ctx.webServer.register({ kind: 'exact', path, handler }), `injection-manager route ${key}`)
+    // Every registered route first asks the host's connection service for a
+    // Host/Origin (and browser-auth) rejection. A rejected request is answered
+    // by the fence itself, before any route logic or file read. Older hosts
+    // without the service fall through unchanged (see makeFencedHandler).
+    const fenced = makeFencedHandler(ctx, handler)
+    ctx.effect(() => ctx.webServer.register({ kind: 'exact', path, handler: fenced }), `injection-manager route ${key}`)
   }
 
   // The only moment a policy can still influence the first assemble().

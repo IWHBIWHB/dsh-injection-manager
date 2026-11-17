@@ -168,7 +168,17 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 
 ## 安全边界
 
-- 写操作（`POST /action`）要求 `content-type: application/json`，且 `sec-fetch-site` 不是跨站；带 `Origin` 时还要求 host 与页面一致。
+- **所有 15 条路由入口先过宿主的准入栅栏。** `webServer.register` 前统一包一层
+  `makeFencedHandler(ctx, handler)`：每个请求先问 `ctx.connection.requestRejection(req)`
+  （DSH 自己的 Host/Origin 准入 + 浏览器/API 凭据）。宿主返回 `401/403` 时由栅栏直接应答
+  （空 body + `nosniff`/`no-referrer`/frame-deny/`no-store`），路由逻辑、文件与策略都不执行；
+  返回 `undefined` 才放行。
+- 返回 `undefined` 才放行；只有宿主明确返回 401/403 时才拒绝（失败开放：缺服务、缺方法、抛错、异常返回值都放行）。
+- **栅栏可降级，不是硬依赖。** `connection` 没有加进 `inject`：宿主缺少该服务（旧版本、或启动
+  早期）、没有 `requestRejection` 方法、或调用抛错时，栅栏跳过，路由保持 2.0.0 的行为——安全
+  栅栏不能把面板变砖。
+- 写操作（`POST /action`）在此基础上仍要求 `content-type: application/json`，且
+  `sec-fetch-site` 不是跨站；带 `Origin` 时还要求 host 与页面一致。
 - 所有 JSON 响应带 `x-content-type-options: nosniff`、`x-frame-options: DENY`、`cache-control: no-store`。
 - 没有任何 GET 路由会写文件：`/summary`、`/content`、`/trend`、`/events`、`/health`、`/stats`、`/verify`、`/export` 都只读策略、快照、统计与事件文件。
 - `/content` 是唯一读磁盘内容的接口，但路径来自快照登记，不接受外部路径；有 2 秒预算与 256KB 上限。
@@ -193,3 +203,4 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 | `test/health.test.mjs` | 每个 code 的触发条件、排序、summary、不产生的 code |
 | `test/tool-content.test.mjs` | 模型工具单条模式：参数校验、32KB 上限、错误 JSON |
 | `test/command.test.mjs` | `/inject` 子命令（含 health）与错误分支 |
+| `test/fence.test.mjs` | 准入栅栏：缺服务/无方法/undefined/抛错放行，401/403 拒绝且 handler 不执行，15 条路由全包，旧宿主路径仍可用 |

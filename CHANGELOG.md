@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.0.1 — 2026-11-17
+
+### Security
+
+- **Every HTTP route now passes the host's own admission fence first.** All 15 registered
+  route handlers are wrapped at registration time (`makeFencedHandler`): a request asks
+  `ctx.connection.requestRejection(req)` before any route logic runs, so a Host/Origin the
+  host does not trust — or a request without the host-issued browser/API credential — is
+  answered with the host's `403`/`401` and an empty body. The rejection happens before any
+  JSON, file or policy data is read, so nothing leaks; the response still carries the usual
+  `nosniff` / `no-referrer` / frame-deny / `no-store` headers.
+- **Compatible degradation, not a new hard dependency.** `connection` is not added to the
+  plugin's `inject` list: on a host without the service (older DSH, or before it is available
+  during boot), without a `requestRejection` method, or when the call throws, the fence is
+  skipped and the routes behave exactly as in 2.0.0. A security fence must never turn the
+  panel into a blank page.
+- Write actions keep their own same-origin check on top: `POST /action` requires a JSON
+  content type, a non-cross-site `sec-fetch-site`, and a matching `Origin` when one is sent.
+- New tests cover the fence paths: service missing → pass-through, `401`/`403` → handler not
+  executed and response ended, `undefined` → pass-through, thrown error → pass-through; the
+  registration path is covered route-by-route (15/15 fenced) and the old-host path still answers.
+  11 new tests, `node --test` 207/207 green; `npm run smoke` green.
+
 ## 2.0.0 — 2026-11-16
 
 The control-plane release: the panel now shows what the next request carries, what can be

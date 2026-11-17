@@ -281,7 +281,9 @@ Plugins → dsh-injection-manager → Configuration 里有四项，只影响显�
 | 插件行 `config` | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration |
 | 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的提示卡 | 只在这个浏览器 |
 
-不联网、不遥测、不上传。事件流只存策略与会话元数据：字符串会被拍平并截到 200 字符，会话正文
+不联网、不遥测、不上传。所有 HTTP 路由在入口先过宿主的 Host/Origin 准入门：不可信来源，或没有
+宿主签发凭据的请求，直接 401/403 且空 body；只有宿主没有该服务时才跳过栅栏（此时行为与 2.0.0
+相同）。事件流只存策略与会话元数据：字符串会被拍平并截到 200 字符，会话正文
 永远不写进去。内容抽屉只在打开时读磁盘，只读快照登记过的路径，读完不落盘。
 
 ## 自查

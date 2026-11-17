@@ -316,7 +316,11 @@ for switches.
 | Plugin config row | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration |
 | Browser local storage | Drawer line numbers, insights range, dismissed cards | This browser only |
 
-No network requests, no telemetry, no uploads. The event feed stores only policy and session
+No network requests, no telemetry, no uploads. Every HTTP route also passes the host's own
+Host/Origin admission fence before any route logic runs: an untrusted origin, or a request without
+the host-issued browser/API credential, gets a `401`/`403` with an empty body. Only on a host that
+does not offer that service is the fence skipped (the routes then behave exactly as in 2.0.0). The
+event feed stores only policy and session
 metadata: strings are flattened and truncated to 200 characters and the session's prompt text is
 never written. The content drawer reads files from disk only when you open it, only for paths the
 snapshot registered, and nothing read there is persisted.
