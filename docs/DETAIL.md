@@ -69,7 +69,7 @@ re-interpreted as HTML. A slow read returns `timeout` after 2 seconds instead of
 
 | Code | Fires when | Action |
 | --- | --- | --- |
-| `heavy-suite` | one suite is ≥25% of the first turn or ≥30k tokens | turn that suite off |
+| `heavy-suite` | one suite is ≥25% of the next first request under the saved policy, or ≥30k tokens | turn that suite off (every channel it spans) |
 | `budget-gap` | the projection is above the saved budget | open the budget / drop the suggested suite |
 | `catalog-truncated` | skill descriptions are cut at the catalog line length | read the affected skill |
 | `locked-items` | items that cannot be switched off are ≥10% | jump to the manage list |
@@ -77,7 +77,11 @@ re-interpreted as HTML. A slow read returns `timeout` after 2 seconds instead of
 | `no-policy` | nothing has been switched off in this workspace | open settings |
 | `empty-catalog` | the skill catalog is complete and empty | open settings |
 
-Checks are a pure function of one snapshot (two refreshes cannot disagree). Up to six findings are
+Checks are a pure function of one snapshot (two refreshes cannot disagree). They read the
+**effective projection** — what the next session actually carries under the saved policy — not the
+frozen live assembly, so a suite that was just switched off stops producing its own finding and the
+panel refreshes the strip by itself. Replaying an already-applied switch is a no-op: the action
+answers `changed: false` and writes no undo step, no event row and no toast. Up to six findings are
 shown with a "more" line. Two contract codes, `duplicate-skill` and `tool-name-collision`, are
 never emitted: this host build resolves duplicate names before the plugin can observe them, and
 inventing a finding would be a lie.

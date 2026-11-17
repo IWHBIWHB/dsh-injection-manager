@@ -262,3 +262,66 @@ test('cleanup', async () => {
   await flushStats()
   await rm(home, { recursive: true, force: true })
 })
+
+test('replaying a switch that changes nothing adds no undo step and no event', async () => {
+  const routes = createRoutes(makeCtx())
+  const { clearUndo } = await import('../lib/history.js')
+  await invoke(routes.action, { method: 'POST', headers: sameOrigin, body: JSON.stringify({ kind: 'reset' }) })
+  clearUndo()
+  const body = JSON.stringify({ kind: 'groups', groups: [{ channel: 'tools', group: 'tools:mcp:demo' }], enabled: false })
+  const first = await invoke(routes.action, { method: 'POST', headers: sameOrigin, body })
+  assert.equal(first.status, 200)
+  assert.equal(first.json.changed, true)
+  assert.equal(first.json.undo.depth, 1)
+  const eventsBefore = await invoke(routes.events, { url: '/events' })
+  // The panel can replay the same click (double click, or a stale health row).
+  // It must read as a no-op instead of stacking another "已关闭" undo entry.
+  const second = await invoke(routes.action, { method: 'POST', headers: sameOrigin, body })
+  assert.equal(second.status, 200)
+  assert.equal(second.json.changed, false)
+  assert.equal(second.json.undo.depth, 1, 'no duplicate undo step')
+  const eventsAfter = await invoke(routes.events, { url: '/events' })
+  assert.equal(eventsAfter.json.events.length, eventsBefore.json.events.length, 'no duplicate event row')
+})
+
+test('closing a suite removes its health warning even while the live prompt still has it', async () => {
+  // The user's bug: the panel's counters went effective after a switch, but the
+  // health strip kept reading the all-on snapshot and kept asking to close the
+  // very suite that was already off. Reproduce the real shape here: the frozen
+  // live assembly still contains the tools, the policy marks them off.
+  const { buildSnapshot } = await import('../lib/routes.js')
+  const { buildHealth } = await import('../lib/health.js')
+  const big = makeCtx()
+  big.tools.schemas = () => [
+    { name: 'mcp__demo__one', description: 'x'.repeat(160000), parameters: { type: 'object' } },
+    { name: 'mcp__demo__two', description: 'y'.repeat(160000), parameters: { type: 'object' } },
+  ]
+  const routes = createRoutes(makeCtx())
+  await invoke(routes.action, { method: 'POST', headers: sameOrigin, body: JSON.stringify({ kind: 'reset' }) })
+
+  const open = await buildSnapshot(big, undefined, 'test', undefined)
+  const openHealth = buildHealth(open)
+  const demoOpen = openHealth.checks.find((check) => check.code === 'heavy-suite' && check.params.label === 'DEMO')
+  assert.ok(demoOpen, 'the all-on snapshot flags the DEMO suite')
+  assert.equal(demoOpen.action.kind, 'switch-group')
+
+  await invoke(routes.action, {
+    method: 'POST',
+    headers: sameOrigin,
+    body: JSON.stringify({ kind: 'groups', groups: [{ channel: 'tools', group: 'tools:mcp:demo' }], enabled: false }),
+  })
+  const closed = await buildSnapshot(big, undefined, 'test', undefined)
+  // The frozen live prompt still carries both tools; only the policy says off.
+  const demoItems = closed.items.filter((item) => item.group === 'tools:mcp:demo')
+  assert.equal(demoItems.length, 2)
+  assert.ok(demoItems.every((item) => item.on === false))
+  const demoGroup = closed.groups.find((group) => group.id === 'tools:mcp:demo')
+  assert.equal(demoGroup.onTokens, 0)
+  assert.equal(demoGroup.tokens > 0, true)
+  const closedHealth = buildHealth(closed)
+  assert.equal(
+    closedHealth.checks.some((check) => check.code === 'heavy-suite' && check.params.label === 'DEMO'),
+    false,
+    'the closed suite no longer warns',
+  )
+})

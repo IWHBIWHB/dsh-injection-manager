@@ -161,3 +161,60 @@ test('the summary counts the checks and carries the snapshot clock', () => {
   // Pure: same input, same output, including ordering.
   assert.deepEqual(buildHealth(snapshot()), buildHealth(snapshot()))
 })
+
+test('a suite the policy already closed stops warning (effective size, not all-on)', () => {
+  const closed = snapshot({
+    // The host reports both bases: raw totals (everything that was measured) and
+    // effective totals (what the next request carries). Health must read the
+    // effective one, or closing a suite never silences its own warning.
+    effective: { totals: { tokens: 17900, savableTokens: 15500, chars: 66000, count: 125 } },
+    items: [
+      { channel: 'tools', name: 'mcp__rea__a', group: 'tools:mcp:rea', groupLabel: 'REA', tokens: 40000, locked: false, on: false },
+      { channel: 'sections', name: 'mcp:rea', group: 'sections:mcp:rea', groupLabel: 'REA', tokens: 715, locked: false, on: true },
+      { channel: 'tools', name: 'read', group: 'tools:core', groupLabel: 'core', tokens: 6100, locked: false, on: true },
+    ],
+    groups: [
+      { id: 'tools:mcp:rea', channel: 'tools', label: 'REA', count: 230, tokens: 66715, savableTokens: 66715, onCount: 0, offCount: 230, onTokens: 0, offTokens: 66715, onSavableTokens: 0 },
+      { id: 'sections:mcp:rea', channel: 'sections', label: 'REA', count: 1, tokens: 715, savableTokens: 715, onCount: 1, onTokens: 715, onSavableTokens: 715 },
+      { id: 'tools:core', channel: 'tools', label: 'core', count: 1, tokens: 6100, savableTokens: 6100, onCount: 1, onTokens: 6100, onSavableTokens: 6100 },
+    ],
+    locks: [],
+    policy: { exists: true, preset: 'custom', budget: { tokens: 0 }, preview: { after: 17900 } },
+  })
+  const health = buildHealth(closed)
+  const heavy = health.checks.filter((entry) => entry.code === 'heavy-suite')
+  assert.equal(
+    heavy.some((entry) => entry.params.label === 'REA'),
+    false,
+    'the switched-off REA channel no longer warns about itself',
+  )
+  const core = heavy.find((entry) => entry.params.label === 'core')
+  assert.ok(core, 'the suite that is still on keeps being measured')
+  assert.equal(core.params.tokens, 6100)
+  assert.equal(core.params.count, 1)
+  assert.equal(core.params.share, 34.1) // 6100 of the 17,900-token effective turn
+  assert.equal(core.severity, 'warn')
+})
+
+test('the switch-group action closes every channel the suite spans', () => {
+  const mixed = snapshot({
+    effective: { totals: { tokens: 42715, savableTokens: 42715, chars: 9000, count: 12 } },
+    items: [
+      { channel: 'tools', name: 'mcp__rea__a', group: 'tools:mcp:rea', groupLabel: 'REA', tokens: 40000, locked: false, on: true },
+      { channel: 'sections', name: 'mcp:rea', group: 'sections:mcp:rea', groupLabel: 'REA', tokens: 715, locked: false, on: true },
+    ],
+    groups: [
+      { id: 'tools:mcp:rea', channel: 'tools', label: 'REA', count: 1, tokens: 40000, savableTokens: 40000, onCount: 1, onTokens: 40000, onSavableTokens: 40000 },
+      { id: 'sections:mcp:rea', channel: 'sections', label: 'REA', count: 1, tokens: 715, savableTokens: 715, onCount: 1, onTokens: 715, onSavableTokens: 715 },
+    ],
+    locks: [],
+    policy: { exists: true, preset: 'custom', budget: { tokens: 0 }, preview: { after: 42715 } },
+  })
+  const check = buildHealth(mixed).checks.find((entry) => entry.code === 'heavy-suite')
+  assert.ok(check)
+  assert.equal(check.action.kind, 'switch-group')
+  assert.deepEqual(check.action.payload.parts, [
+    { channel: 'tools', group: 'tools:mcp:rea' },
+    { channel: 'sections', group: 'sections:mcp:rea' },
+  ])
+})

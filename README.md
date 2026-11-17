@@ -163,7 +163,7 @@ The manage page opens with a deterministic strip of findings over the current sn
 
 | Code | Meaning | Action |
 | --- | --- | --- |
-| `heavy-suite` | One suite is ≥25% of the first request (or ≥30k tokens) | Switch that suite off |
+| `heavy-suite` | One suite is ≥25% of the next first request under the saved policy (or ≥30k tokens) | Switch that suite off — every channel it spans |
 | `budget-gap` | The projection is above the saved budget | Open the budget / switch the suggested suite |
 | `catalog-truncated` | Skill descriptions are being cut at the catalog line length | Read the affected skill |
 | `locked-items` | Items that cannot be switched off are ≥10% of the first request | Switch to the manage list |
@@ -173,7 +173,10 @@ The manage page opens with a deterministic strip of findings over the current sn
 
 Severity is `high / warn / info`; up to six rows are shown with a "more" line, and every action
 reuses the same `POST /action` the panel uses. Checks are a pure function of one snapshot, so two
-refreshes of the same data cannot disagree. Two contract codes (`duplicate-skill`,
+refreshes of the same data cannot disagree. Every check reads the **effective projection** — what a
+new session would actually get under the saved policy — so closing a suite makes its own warning go
+away immediately, and repeating a switch that is already applied is a silent no-op: no new undo
+step, no event row, no toast. Two contract codes (`duplicate-skill`,
 `tool-name-collision`) are never emitted: this host build resolves duplicates before the plugin can
 observe them, and inventing a finding would be a lie.
 

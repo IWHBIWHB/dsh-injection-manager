@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.0.3 — 2026-11-17
+
+### Fixed
+
+- **A suite that was switched off no longer keeps asking to be switched off.** The health strip
+  measured the all-on snapshot while the panel's KPIs already read the policy-effective projection:
+  after closing a suite the strip still showed its `heavy-suite` row (with a "close this suite"
+  button) and every click piled another identical step into the undo history. `heavy-suite` now
+  reads `groups.onTokens` / `snapshot.effective.totals` / `policy.preview`, so a closed suite drops
+  out of the check immediately and the remaining findings are shares of what the next request
+  actually carries. The `locked-items` share uses the same effective denominator.
+- **The strip refreshes itself after an action.** Every cached v2 read (health, content, events,
+  trend) now listens for the `injection-manager:changed` event the action dispatches, so a switch
+  cannot leave a stale check — or its action button — on screen until the tab is reopened.
+- **Closing a suite from the strip closes all of it.** `switch-group` now carries `parts[]` — every
+  `channel + group` the suite spans, e.g. an MCP server's tools plus its prompt section — and the
+  panel executes all of them in one `groups` action instead of the first channel only.
+- **Replaying an already-applied switch is a silent no-op.** `POST /action` compares the policy
+  before writing: an unchanged result answers `changed: false` and writes no undo step, no event row
+  and no toast. The duplicate "已关闭 …" undo entries can no longer accumulate.
+- `/inject health` (and the model-side text report) now prints the `groups` action with every
+  channel of the suite, matching what the panel button executes.
+- Docs updated (README EN/ZH, DETAIL EN/ZH, ARCHITECTURE) to state that checks read the effective
+  projection, actions cover every channel of a suite, and repeated switches are silent.
+
+### Verification
+
+- `node --test` 213/213 (6 new tests: effective health basis, multi-channel action payload,
+  all-on vs effective group counters, idempotent replay, a snapshot → close → health regression, and
+  the multi-channel `groups` suggestion text).
+- Live QA instance: a `core` suite at 38% of the first turn was closed from the health strip; the
+  strip re-rendered on its own with the remaining suite measured against the smaller turn, the
+  closed suite reported `onTokens: 0`, and the replay answered `changed: false` with the undo depth
+  unchanged. `policy.json` and `events.json` were restored byte-for-byte after the run.
+- UI fixture matrix re-run: 0 console errors, 0 horizontal overflow.
+
 ## 2.0.2 — 2026-11-17
 
 ### Docs

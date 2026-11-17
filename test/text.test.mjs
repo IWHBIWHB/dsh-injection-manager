@@ -129,3 +129,36 @@ test('near the window limit the advice names the biggest suite to close', () => 
   assert.match(renderCard(crowded), /窗口已用 90%/)
   assert.match(renderCard(crowded), /REA，−50/)
 })
+
+test('the health text names a groups action when the suite spans channels', async () => {
+  const { renderHealthText } = await import('../lib/text.js')
+  const health = {
+    summary: { high: 1, warn: 0, info: 0, checkedAt: 1763300000000 },
+    checks: [
+      {
+        code: 'heavy-suite',
+        severity: 'high',
+        params: { label: 'REA', tokens: 66000, share: 78.6, count: 229, channel: 'tools' },
+        action: {
+          kind: 'switch-group',
+          payload: {
+            channel: 'tools',
+            group: 'tools:mcp:rea',
+            key: 'mcp:rea',
+            enabled: false,
+            op: 'off',
+            parts: [
+              { channel: 'tools', group: 'tools:mcp:rea' },
+              { channel: 'sections', group: 'sections:mcp:rea' },
+            ],
+          },
+        },
+      },
+    ],
+  }
+  const text = renderHealthText(health)
+  assert.match(text, /kind:"groups"/)
+  assert.match(text, /channel:"tools", group:"tools:mcp:rea"/)
+  assert.match(text, /channel:"sections", group:"sections:mcp:rea"/)
+  assert.doesNotMatch(text, /kind:"group",/)
+})

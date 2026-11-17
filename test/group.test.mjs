@@ -74,3 +74,18 @@ test('summaries sort by size and exclude locked tokens from savings', () => {
   assert.equal(rea.tokens, 20)
   assert.equal(rea.savableTokens, 20)
 })
+
+test('summaries keep the measured size and the policy-effective size apart', () => {
+  const items = assignGroups([
+    { channel: 'tools', name: 'mcp__rea__a', tokens: 100, chars: 400, locked: false, on: false },
+    { channel: 'tools', name: 'mcp__rea__b', tokens: 10, chars: 40, locked: false, on: true },
+  ])
+  const rea = summarizeGroups(items).find((group) => group.label === 'REA')
+  assert.equal(rea.count, 2)
+  assert.equal(rea.tokens, 110)
+  assert.equal(rea.offCount, 1)
+  assert.equal(rea.offTokens, 100)
+  assert.equal(rea.onCount, 1)
+  assert.equal(rea.onTokens, 10)
+  assert.equal(rea.onSavableTokens, 10)
+})

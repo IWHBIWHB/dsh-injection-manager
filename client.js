@@ -977,6 +977,17 @@ body[data-ds-dark-theme] .ci-root{
           }
         })
         const [nonce, setNonce] = useState(0)
+        // A policy write invalidates every v2 read: the health strip, the content
+        // drawer, the trend and the event feed all describe the same state. The
+        // action dispatches `injection-manager:changed`; without this listener
+        // the strip kept showing the pre-switch check (and its "close this suite"
+        // button) until the tab was reopened.
+        useEffect(() => {
+          if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+          const onChanged = () => setNonce((value) => value + 1)
+          window.addEventListener('injection-manager:changed', onChanged)
+          return () => window.removeEventListener('injection-manager:changed', onChanged)
+        }, [])
         useEffect(() => {
           if (enabled !== true || !url) {
             setState((previous) => ({ ...previous, status: previous.data === null ? 'idle' : previous.status }))
@@ -2478,7 +2489,18 @@ body[data-ds-dark-theme] .ci-root{
           const payload = action.payload !== null && typeof action.payload === 'object' ? action.payload : {}
           if (action.kind === 'switch-group') {
             const channel = String(payload.channel || '')
-            const parts = resolveGroupParts(snapshot, channel, payload.group !== undefined ? payload.group : payload.key !== undefined ? payload.key : payload.name)
+            // Health actions carry the whole suite (`parts`: every channel that
+            // owns the label), so one click closes REA's tools *and* its prompt
+            // section. Older hosts only sent channel+group; resolve that then.
+            const carried = Array.isArray(payload.parts)
+              ? payload.parts
+                  .map((part) => ({ channel: String((part && part.channel) || ''), group: String((part && part.group) || '') }))
+                  .filter((part) => part.channel.length > 0 && part.group.length > 0)
+              : []
+            const parts =
+              carried.length > 0
+                ? carried
+                : resolveGroupParts(snapshot, channel, payload.group !== undefined ? payload.group : payload.key !== undefined ? payload.key : payload.name)
             if (parts.length === 0) return
             const enabled = payload.op !== 'off' && payload.enabled !== false
             act({ kind: 'groups', groups: parts, enabled }, `${enabled ? t('turnedOn') : t('turnedOff')} ${payload.key || ''}`)
@@ -4450,7 +4472,7 @@ body[data-ds-dark-theme] .ci-root{
           async (action, message) => {
             setBusy(true)
             try {
-              await postJson(ROUTES.action, Object.assign({ session: sessionId, label: message }, action))
+              const result = await postJson(ROUTES.action, Object.assign({ session: sessionId, label: message }, action))
               // A switch changes health/trend computations, so the 30s read
               // cache must not keep serving the pre-switch health strip.
               RESOURCE_CACHE.clear()
@@ -4460,7 +4482,12 @@ body[data-ds-dark-theme] .ci-root{
               } catch {
                 /* no window in tests */
               }
-              showNotice({ kind: 'ok', text: message || t('applied'), undo: true }, 6000)
+              // A replay that changed nothing (closing a suite that is already
+              // off) answers changed:false; claiming "closed" again would be a
+              // lie and the undo list would grow a duplicate step.
+              if (!(result !== null && result !== undefined && result.changed === false)) {
+                showNotice({ kind: 'ok', text: message || t('applied'), undo: true }, 6000)
+              }
             } catch (failure) {
               // A failed switch must be visible: silence here would look like
               // the click did nothing.
