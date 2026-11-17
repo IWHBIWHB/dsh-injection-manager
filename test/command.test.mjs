@@ -44,42 +44,37 @@ const run = (rawInput) => command.handler({ agent, rawInput })
 const policyFile = join(home, 'injection-manager', 'policy.json')
 const readPolicyFile = async () => JSON.parse(await readFile(policyFile, 'utf8'))
 
-test('budget sets a target without touching the channels', async () => {
-  const result = await run('budget 20')
+test('minimal switches the policy and reports the new projection', async () => {
+  const result = await run('minimal')
   assert.equal(result.kind, 'success')
+  assert.match(result.text, /已切换预设：minimal/)
   const policy = await readPolicyFile()
-  assert.equal(policy.budget.tokens, 20)
-  assert.equal(policy.tools.mode, 'all')
+  assert.equal(policy.preset, 'minimal')
+  assert.equal(policy.tools.mode, 'only')
+  assert.ok(policy.tools.names.length > 0)
 })
 
-test('apply turns the plan into exclusions and stays inside the target', async () => {
-  const result = await run('apply')
+test('all switches every channel back on', async () => {
+  const result = await run('all')
   assert.equal(result.kind, 'success')
-  assert.match(result.text, /已按 20 token 预算应用/)
   const policy = await readPolicyFile()
-  assert.equal(policy.tools.mode, 'except')
-  assert.ok(policy.tools.names.length > 0)
-  assert.equal(policy.budget.tokens, 20)
+  assert.equal(policy.preset, 'all')
+  assert.equal(policy.tools.mode, 'all')
 })
 
 test('undo restores the policy before the last write', async () => {
+  await run('minimal')
   const result = await run('undo')
   assert.equal(result.kind, 'success')
   const policy = await readPolicyFile()
+  assert.equal(policy.preset, 'all')
   assert.equal(policy.tools.mode, 'all')
-  assert.equal(policy.budget.tokens, 20)
-})
-
-test('an already-fitting budget is reported, not applied', async () => {
-  const result = await run('apply 999999')
-  assert.equal(result.kind, 'success')
-  assert.match(result.text, /已在 999999 预算内/)
 })
 
 test('unknown subcommands list the available ones', async () => {
   const result = await run('nonsense')
   assert.equal(result.kind, 'error')
-  assert.match(result.text, /\/inject apply/)
+  assert.match(result.text, /\/inject minimal/)
   assert.match(result.text, /\/inject undo/)
 })
 

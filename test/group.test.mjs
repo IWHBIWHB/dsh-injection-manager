@@ -89,3 +89,16 @@ test('summaries keep the measured size and the policy-effective size apart', () 
   assert.equal(rea.onTokens, 10)
   assert.equal(rea.onSavableTokens, 10)
 })
+
+test('summaries stamp the origin so the panel can split plugin and built-in rows', () => {
+  const items = assignGroups([
+    { channel: 'tools', name: 'mcp__rea__a', tokens: 100, chars: 400, locked: false, origin: 'plugin' },
+    { channel: 'tools', name: 'read', tokens: 10, chars: 40, locked: false, origin: 'builtin' },
+    { channel: 'tools', name: 'write', tokens: 10, chars: 40, locked: false, origin: 'builtin' },
+  ])
+  const groups = summarizeGroups(items)
+  const rea = groups.find((group) => group.label === 'REA')
+  const core = groups.find((group) => group.label === 'core')
+  assert.equal(rea.origin, 'plugin')
+  assert.equal(core.origin, 'builtin')
+})

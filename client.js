@@ -78,7 +78,6 @@
     instructions: '工作区规则',
     list: '清单',
     settings: '策略',
-    budget: '预算',
     about: '说明',
     search: '搜索条目',
     all: '全部',
@@ -96,14 +95,6 @@
     promptPrefix: '自定义前言（替换 persona 前缀）',
     promptPrefixHint: '留空即不注入；改动从下一个新会话开始，会改变提示词前缀缓存',
     promptSuffix: '自定义后记（替换 persona 后缀）',
-    budgetTarget: '预算目标（token）',
-    budgetHint: '按条目大小从大到小挑选可关项；必填上下文和工作区规则不参与',
-    budgetBefore: '当前',
-    budgetAfter: '预算后',
-    applyPlan: '应用这套建议',
-    planDrop: '建议关闭',
-    planEmpty: '当前注入已经在预算内，不需要关闭任何条目',
-    unreachable: '即使关掉全部可关条目也到不了这个预算',
     saveHint: '改动即时写入策略文件，只影响之后新建的会话',
     policyPath: '策略文件',
     updatedAt: '更新时间',
@@ -117,7 +108,6 @@
     aboutFiles: '插件不读写你的 AGENTS.md / SKILL.md，只登记会话作用域内的注册',
     aboutNew: '策略只作用于之后新建的会话；正在跑的会话不会被改写',
     aboutTool: '模型侧工具 context_injection 只读，管理动作只能由你在这里点',
-    aboutBudget: '预算按「关掉最大的可关条目优先」贪心计算，结果可逆',
     close: '关闭',
     open: '打开面板',
     empty: '没有匹配的条目',
@@ -334,9 +324,9 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-scroll{overflow:auto;min-height:0}
 .ci-scroll::-webkit-scrollbar{width:8px;height:8px}
 .ci-scroll::-webkit-scrollbar-thumb{background:var(--ci-line);border-radius:8px}
-.ci-head{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
-.ci-head h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
-.ci-head p{margin:2px 0 0;color:var(--ci-fg2);font-size:12px}
+.ci-head{display:flex;align-items:flex-start;gap:10px;padding:8px 14px 6px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
+.ci-head h1{font-size:14px;font-weight:600;margin:0;letter-spacing:.01em}
+.ci-head p{margin:1px 0 0;color:var(--ci-fg3);font-size:11.5px}
 .ci-head .ci-spacer{flex:1}
 .ci-btn{border:1px solid var(--ci-line);background:var(--ci-bg);color:var(--ci-fg);border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;line-height:1.5;white-space:nowrap}
 .ci-btn:hover{background:var(--ci-card)}
@@ -386,12 +376,14 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-bar-fill{display:block;height:100%;border-radius:5px}
 .ci-bar-closed{display:block;height:100%;border-radius:5px;opacity:.28;min-width:3px}
 .ci-spark{display:block;width:100%;height:18px;margin:4px 0 2px;opacity:.9}
-.ci-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ci-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:8px 10px;min-width:0}
-.ci-kpi .k{font-size:11px;color:var(--ci-fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-kpi .v{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.35}
-.ci-kpi .s{font-size:11px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ci-kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container (max-width:760px){.ci-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:4px 9px;min-width:0}
+.ci-kpi .k{font-size:10.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-kpi .v{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
+.ci-kpi .s{font-size:10.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ci-kpi.tone-warn .v{color:var(--ci-warn)}
 .ci-kpi.tone-danger .v{color:var(--ci-danger)}
 .ci-window-head{display:flex;align-items:baseline;gap:8px;min-width:0}
@@ -470,8 +462,8 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-chip{border:1px solid var(--ci-line);background:transparent;color:var(--ci-fg2);border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
 .ci-chip.on{background:var(--ci-fg);color:var(--ci-bg);border-color:transparent}
 .ci-table{border:1px solid var(--ci-line2);border-radius:8px;overflow:auto;background:var(--ci-bg);min-height:0}
-.ci-thead,.ci-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px 58px 52px;gap:8px;align-items:center;padding:7px 12px}
-.ci-thead{font-size:11px;color:var(--ci-fg3);background:var(--ci-card);border-bottom:1px solid var(--ci-line2);position:sticky;top:0;z-index:1}
+.ci-thead,.ci-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px 58px 52px;gap:8px;align-items:center;padding:4px 12px}
+.ci-thead{padding:4px 0;font-size:11px;color:var(--ci-fg3);background:var(--ci-card);border-bottom:1px solid var(--ci-line2);position:sticky;top:0;z-index:1}
 .ci-sort{width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-align:inherit}
 .ci-sort:hover{color:var(--ci-fg2)}
 .ci-sort.active{color:var(--ci-fg)}
@@ -500,6 +492,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-switch[disabled]{opacity:.45;cursor:default}
 .ci-grouphead{cursor:pointer;font-weight:600;background:var(--ci-bg)}
 .ci-grouphead:hover{background:var(--ci-card)}
+.ci-sourceline{display:flex;align-items:center;gap:8px;padding:9px 2px 5px;font-size:11px;color:var(--ci-fg3);border-bottom:1px solid var(--ci-line2);margin-top:2px}
+.ci-sourceline .lbl{font-weight:600;color:var(--ci-fg2);letter-spacing:.01em}
+.ci-sourceline .n{font-variant-numeric:tabular-nums}
 .ci-caret{display:inline-block;width:14px;color:var(--ci-fg3);font-size:10px;transform:translateY(-1px)}
 .ci-row-nested{background:var(--ci-card);padding-left:34px;box-shadow:inset 2px 0 0 var(--ci-line2)}
 .ci-row-nested .n{font-weight:400}
@@ -552,22 +547,23 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-inline-meta{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);min-width:0}
 .ci-inline-meta b{font-weight:600;color:var(--ci-fg2);font-variant-numeric:tabular-nums}
 /* ---- manage: health strip ---- */
-.ci-health{display:flex;flex-direction:column;gap:0;border:1px solid var(--ci-line2);border-radius:10px;background:var(--ci-card);padding:7px 12px 8px;font-size:12px;min-width:0}
+.ci-health{display:flex;flex-direction:column;gap:0;border:1px solid var(--ci-line2);border-radius:10px;background:var(--ci-card);padding:5px 10px 6px;font-size:11.5px;min-width:0}
 .ci-health-head{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-width:0}
-.ci-health-title{font-weight:600;font-size:12px;color:var(--ci-fg2);white-space:nowrap}
+.ci-health-title{font-weight:600;font-size:11.5px;color:var(--ci-fg2);white-space:nowrap}
 .ci-health-counts{display:flex;gap:10px;color:var(--ci-fg3);font-size:11px;flex-wrap:wrap}
 .ci-health-counts b{font-variant-numeric:tabular-nums;color:var(--ci-fg2);font-weight:600;margin-right:2px}
 .ci-health-counts .high b{color:var(--ci-danger)}
 .ci-health-counts .warn b{color:var(--ci-warn)}
 .ci-health-counts .sep{color:var(--ci-line);padding:0 1px}
-.ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 0 0;margin-top:5px;border-top:1px solid var(--ci-line2)}
+.ci-health-more{color:var(--ci-fg3)}
+.ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:center;padding:2px 0 0;margin-top:2px;border-top:1px solid var(--ci-line2)}
 .ci-health-row .sev{width:8px;height:8px;border-radius:50%;display:block;background:var(--ci-fg3)}
 .ci-health-row .sev.high{background:var(--ci-danger)}
 .ci-health-row .sev.warn{background:var(--ci-warn)}
 .ci-health-row .sev.info{background:var(--ci-fg3)}
-.ci-health-text{min-width:0;color:var(--ci-fg2);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.ci-health-text{min-width:0;color:var(--ci-fg2);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-health-allclear{font-size:11px;color:var(--ci-fg3);padding-top:3px}
-.ci-health .ci-btn{align-self:center}
+.ci-health .ci-btn{align-self:center;padding:1px 8px;font-size:11px}
 /* ---- manage: inline preview row ---- */
 .ci-caret-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 16px;padding:0;margin-right:4px;border:0;border-radius:4px;background:transparent;color:var(--ci-fg3);font-size:10px;line-height:1;cursor:pointer;vertical-align:-3px;transition:transform .12s}
 .ci-caret-btn:hover{color:var(--ci-fg);background:var(--ci-line2)}
@@ -775,9 +771,17 @@ body[data-ds-dark-theme] .ci-root{
 @keyframes ci-tip-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.ci-trend-tip{animation:none}}
 /* manage overview: two peer cards instead of one mixed card */
-.ci-manage-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch}
-@container (max-width:900px){.ci-manage-overview{grid-template-columns:minmax(0,1fr)}}
-.ci-overview-card{padding:10px 12px;gap:6px}
+.ci-overview-fused{padding:6px 11px 7px;gap:4px}
+.ci-fused-head{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:nowrap}
+.ci-fused-head h2{font-size:12px;margin:0}
+.ci-fused-head .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ci-fused-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start;min-width:0}
+@container (max-width:700px){.ci-fused-body{grid-template-columns:minmax(0,1fr)}}
+.ci-donut-compact{gap:10px}
+.ci-donut-legend-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
+.ci-bars-compact{gap:3px}
+.ci-bars-compact .ci-barrow{font-size:10.5px;gap:7px;padding:0}
+.ci-bars-compact .ci-bar-track{height:7px}
 .ci-overview-card .ci-cardhead .hint{font-variant-numeric:tabular-nums}
 .ci-barrow-btn{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:var(--ci-radius-chip);cursor:pointer;text-align:left;width:100%}
 .ci-barrow-btn:hover{background:var(--ci-card)}
@@ -877,35 +881,6 @@ body[data-ds-dark-theme] .ci-root{
           }
         }, [key, value])
         return [value, setValue]
-      }
-
-      // Sparkline history of the first-turn total, kept in localStorage. This
-      // is a local decoration; the cross-session trend lives in useTrend below.
-      function useSparkTrend(value) {
-        const [trend, setTrend] = useState(() => {
-          try {
-            const raw = localStorage.getItem(STORAGE_PREFIX + 'trend')
-            const parsed = raw === null ? [] : JSON.parse(raw)
-            return Array.isArray(parsed) ? parsed : []
-          } catch {
-            return []
-          }
-        })
-        useEffect(() => {
-          if (!Number.isFinite(value) || value <= 0) return
-          setTrend((previous) => {
-            const last = previous[previous.length - 1]
-            if (last !== undefined && Math.abs(last.v - value) < 1 && Date.now() - last.t < 60000) return previous
-            const next = previous.concat({ t: Date.now(), v: value }).slice(-40)
-            try {
-              localStorage.setItem(STORAGE_PREFIX + 'trend', JSON.stringify(next))
-            } catch {
-              /* private mode */
-            }
-            return next
-          })
-        }, [value])
-        return trend
       }
 
       function useSnapshot(sessionId, pollMs = 5000) {
@@ -1249,38 +1224,6 @@ body[data-ds-dark-theme] .ci-root{
         return h('i', { style: { background: COLOR[channel] || '#94a3b8' }, 'aria-hidden': 'true' })
       }
 
-      // A trend line is decoration unless it says what it ranges over: the
-      // title carries min/max and the SVG carries an accessible label.
-      function Sparkline({ values, width, height, label }) {
-        if (!Array.isArray(values) || values.length < 2) return null
-        const max = Math.max(...values)
-        const min = Math.min(...values)
-        const span = max - min || 1
-        const step = width / (values.length - 1)
-        const points = values
-          .map((value, index) => `${(index * step).toFixed(1)},${(height - ((value - min) / span) * (height - 4) - 2).toFixed(1)}`)
-          .join(' ')
-        return h(
-          'svg',
-          {
-            className: 'ci-spark',
-            viewBox: `0 0 ${width} ${height}`,
-            preserveAspectRatio: 'none',
-            role: 'img',
-            'aria-label': label || '',
-          },
-          h('polyline', {
-            points,
-            fill: 'none',
-            stroke: 'var(--ci-accent)',
-            strokeWidth: 1.5,
-            strokeLinejoin: 'round',
-            strokeLinecap: 'round',
-            vectorEffect: 'non-scaling-stroke',
-          }),
-        )
-      }
-
       function Donut({ rows, t, size, centerLabel, centerSub, ariaLabel }) {
         const list = Array.isArray(rows) ? rows : []
         const total = list.reduce((sum, row) => sum + (Number(row.tokens) || 0), 0)
@@ -1437,21 +1380,17 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      function Kpis({ snapshot, t, trend }) {
+      function Kpis({ snapshot, t }) {
         const totals = snapshot.totals
         const policy = snapshot.policy
         const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
         const context = snapshot.context || null
-        const trendValues = (trend || []).map((point) => point.v)
         const windowKnown = context !== null && context.window !== null && context.used !== null
-        const budget = Number(policy.budget && policy.budget.tokens) || 0
-        const overBudget = budget > 0 && view.tokens > budget
         const rows = [
           {
             key: 'total',
             value: token(view.tokens),
             sub: `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}`,
-            spark: true,
           },
           {
             key: 'window',
@@ -1473,20 +1412,7 @@ body[data-ds-dark-theme] .ci-root{
             value: token(view.savableTokens),
             sub: `${view.savablePercent}% · ${t('shareOf')}`,
           },
-          {
-            key: 'budget',
-            value: budget > 0 ? token(budget) : '—',
-            sub:
-              budget > 0
-                ? overBudget
-                  ? t('v2.budgetOver', { tokens: token(view.tokens - budget) })
-                  : t('v2.budgetUnder', { tokens: token(budget - view.tokens) })
-                : t('v2.noBudget'),
-            tone: overBudget ? 'danger' : undefined,
-            title: t('budgetHint'),
-          },
         ]
-        const sparkLabel = trendValues.length > 1 ? t('trendLabel', { min: token(Math.min(...trendValues)), max: token(Math.max(...trendValues)) }) : ''
         return h(
           'div',
           { className: 'ci-kpis' },
@@ -1496,7 +1422,6 @@ body[data-ds-dark-theme] .ci-root{
               { className: 'ci-kpi' + (row.tone && row.tone !== 'ok' && row.tone !== 'unknown' ? ` tone-${row.tone}` : ''), key: row.key, title: row.title || null },
               h('div', { className: 'k' }, t(row.key)),
               h('div', { className: 'v' }, row.value),
-              row.spark ? h(Sparkline, { values: trendValues, width: 200, height: 18, label: sparkLabel }) : null,
               h('div', { className: 's', title: row.sub }, row.sub),
             ),
           ),
@@ -1760,7 +1685,7 @@ body[data-ds-dark-theme] .ci-root{
         return Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
       }
 
-      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, planned, previewOpen, onPreview }) {
+      function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, previewOpen, onPreview }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
         const showRaw = !snapshot.settings || snapshot.settings.showRawNames !== false
@@ -1789,7 +1714,6 @@ body[data-ds-dark-theme] .ci-root{
                   '▸',
                 ),
             h(HitMark, { text: label, needle }),
-            planned ? h('span', { className: 'ci-tag', title: t('outsideBudgetHint') }, t('outsideBudget')) : null,
             !on && !locked ? h('span', { className: 'ci-tag' }, t('turnedOff')) : null,
             item.offClosed === true ? h('span', { className: 'ci-tag ci-tag-closed', title: t('closedRestoreHint') }, t('closedBadge')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
@@ -1897,11 +1821,6 @@ body[data-ds-dark-theme] .ci-root{
           return () => window.removeEventListener('keydown', onKeyDown)
         }, [])
         const needle = deferredQuery.trim().toLowerCase()
-        const plannedKeys = useMemo(() => {
-          const plan = snapshot.policy.plan
-          if (!plan || !Array.isArray(plan.drop) || snapshot.policy.budget.tokens <= 0) return new Set()
-          return new Set(plan.drop.map((entry) => entry.channel + ':' + entry.name))
-        }, [snapshot.policy])
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
@@ -1942,6 +1861,7 @@ body[data-ds-dark-theme] .ci-root{
               channels: [],
               parts: [],
               items: [],
+              origin: item.origin === 'plugin' ? 'plugin' : 'builtin',
               tokens: 0,
               savableTokens: 0,
             }
@@ -1949,6 +1869,7 @@ body[data-ds-dark-theme] .ci-root{
             if (!entry.parts.some((part) => part.channel === item.channel && part.group === item.group)) {
               entry.parts.push({ channel: item.channel, group: item.group })
             }
+            if (item.origin === 'plugin') entry.origin = 'plugin'
             entry.items.push(item)
             entry.tokens += item.tokens
             if (!item.locked) entry.savableTokens += item.tokens
@@ -2044,32 +1965,57 @@ body[data-ds-dark-theme] .ci-root{
         })()
         const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
 
+        // Suites are split by origin: what an installed plugin / MCP server
+        // injects first, then what the host itself injects. A single-origin list
+        // keeps the plain form, so a clean profile never shows a lonely header.
+        const groupSections = () => {
+          const plugin = groups.filter((group) => group.origin === 'plugin')
+          const builtin = groups.filter((group) => group.origin !== 'plugin')
+          const list = [
+            { key: 'plugin', label: t('v2.originPlugin'), groups: plugin },
+            { key: 'builtin', label: t('v2.originBuiltin'), groups: builtin },
+          ].filter((section) => section.groups.length > 0)
+          if (list.length < 2) return [{ key: 'all', header: null, groups }]
+          return list.map((section) => ({
+            key: section.key,
+            header: h(
+              'div',
+              { className: 'ci-sourceline', key: 'src:' + section.key, role: 'group', 'aria-label': section.label, title: t('v2.originHint') },
+              h('span', { className: 'lbl' }, section.label),
+              h('span', { className: 'n' }, `${section.groups.length} ${t('groups')}`),
+            ),
+            groups: section.groups,
+          }))
+        }
+
+
         return h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
-          // Two peer cards, not one mixed card: composition is a "what is in
-          // here" question, the suite ranking is a "what should I switch off"
-          // question. Each gets its own header and its own column.
+          // One fused card: the ring and the ranking answer the same question
+          // ("where does the next first turn go?") and used to take two tall
+          // cards, pushing the suite list below the fold on laptop heights.
+          // They share one compact row now; the list gets that space back.
           h(
             'div',
-            { className: 'ci-manage-overview' },
+            { className: 'ci-card ci-overview-fused' },
             h(
               'div',
-              { className: 'ci-card ci-overview-card' },
+              { className: 'ci-fused-head' },
+              h('h2', null, `${t('v2.overviewComposition')} · ${t('v2.heaviestTitle')}`),
+              h('span', { className: 'sp' }),
+              h('span', { className: 'hint' }, `${t('total')} ${token(effectiveTotal)} · ${t('topSuites')} · ${t('v2.closedLight')}`),
+            ),
+            h(
+              'div',
+              { className: 'ci-fused-body' },
               h(
                 'div',
-                { className: 'ci-cardhead' },
-                h('h2', null, t('v2.overviewComposition')),
-                h('span', { className: 'sp' }),
-                h('span', { className: 'hint' }, `${t('total')} ${token(effectiveTotal)}`),
-              ),
-              h(
-                'div',
-                { className: 'ci-donut' },
-                h(Donut, { rows: effective, t, size: 124, centerSub: `${viewSavablePercent}% ${t('savable')}` }),
+                { className: 'ci-donut ci-donut-compact' },
+                h(Donut, { rows: effective, t, size: 92, centerSub: `${viewSavablePercent}% ${t('savable')}` }),
                 h(
                   'div',
-                  { className: 'ci-donut-legend' },
+                  { className: 'ci-donut-legend ci-donut-legend-grid' },
                   effective
                     .filter((channel) => channel.tokens > 0)
                     .map((channel) =>
@@ -2084,21 +2030,10 @@ body[data-ds-dark-theme] .ci-root{
                     ),
                 ),
               ),
-            ),
-            h(
-              'div',
-              { className: 'ci-card ci-overview-card' },
               h(
                 'div',
-                { className: 'ci-cardhead' },
-                h('h2', null, t('v2.heaviestTitle')),
-                h('span', { className: 'sp' }),
-                h('span', { className: 'hint' }, `${t('topSuites')} · ${topSuites.length} · ${t('v2.closedLight')}`),
-              ),
-              h(
-                'div',
-                { className: 'ci-bars' },
-                topSuites.map((group, index) => {
+                { className: 'ci-bars ci-bars-compact' },
+                topSuites.slice(0, 5).map((group) => {
                   const closedTokens = Math.max(0, group.tokens - group.effectiveTokens)
                   const onPercent = group.tokens > 0 ? Math.max(0, Math.min(100, (group.effectiveTokens / group.tokens) * 100)) : 0
                   return h(
@@ -2110,15 +2045,7 @@ body[data-ds-dark-theme] .ci-root{
                       title: `${groupLabelOf(t, group)} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effectiveTokens)} · ${t('v2.closedLight')}`,
                       onClick: () => setSuite(groupLabelOf(t, group)),
                     },
-                    h(
-                      'span',
-                      { className: 'n' },
-                      groupLabelOf(t, group),
-                    ),
-                    // The track spans the suite's full (all-on) size; the solid
-                    // part is what stays on and the faded part is what the
-                    // policy switched off, so an all-off suite still reads as a
-                    // long bar instead of an empty rail.
+                    h('span', { className: 'n' }, groupLabelOf(t, group)),
                     h(
                       'span',
                       { className: 'ci-bar-track', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%`, minWidth: 3 } },
@@ -2141,6 +2068,7 @@ body[data-ds-dark-theme] .ci-root{
               ),
             ),
           ),
+
           // Two rows, not one: scope + search + view + the filter menu on top,
           // the active filters (when any) on a second line. Eight chips in a row
           // was the densest thing in the panel and none of them was the primary
@@ -2217,10 +2145,12 @@ body[data-ds-dark-theme] .ci-root{
               ),
             ),
           ),
-          // The filter bar is always visible: every active exclusion is a chip
-          // with an ×, and one control clears the whole set. Clicking a suite
-          // name adds its chip here, so "why is this list short" is answerable.
-          h(
+          // Active filters are chips with an ×, and one control clears them all.
+          // An empty bar would only cost a suite row, so it stays hidden until
+          // the first filter exists.
+                    filter === 'all' && suite === null && !onlySwitchable && query.trim().length === 0
+            ? null
+            : h(
             'div',
             { className: 'ci-filterbar', role: 'group', 'aria-label': t('v2.filters') },
             h('span', { className: 'lbl' }, t('activeFilters')),
@@ -2264,7 +2194,9 @@ body[data-ds-dark-theme] .ci-root{
                     : null,
                 )
               : view === 'group'
-                ? groups.map((group) => {
+                ? groupSections().flatMap((section) => [
+                    section.header,
+                    ...section.groups.map((group) => {
                     const state = groupState(group)
                     const open = expanded[group.id] === true
                     const groupEffective = group.items.reduce((sum, item) => (isOn(item) ? sum + item.tokens : sum), 0)
@@ -2307,13 +2239,6 @@ body[data-ds-dark-theme] .ci-root{
                           ),
                           h('span', { className: 'id' }, `${group.items.length} ${t('items')}`),
                           groupSaved > 0 ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(groupSaved) }) }, '−' + token(groupSaved)) : null,
-                          plannedKeys.size > 0 && group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length > 0
-                            ? h(
-                                'span',
-                                { className: 'ci-tag' },
-                                `${group.items.filter((item) => plannedKeys.has(item.channel + ':' + item.name)).length} ${t('outsideBudget')}`,
-                              )
-                            : null,
                           state.on ? null : h('span', { className: 'ci-tag' }, state.mixed ? t('mixedOff') : t('turnedOff')),
                         ),
                         h(
@@ -2346,7 +2271,6 @@ body[data-ds-dark-theme] .ci-root{
                                 busy,
                                 nested: true,
                                 needle,
-                                planned: plannedKeys.has(item.channel + ':' + item.name),
                                 previewOpen: openPeek,
                                 onPreview: v2 === true ? togglePeek : undefined,
                               }),
@@ -2356,7 +2280,8 @@ body[data-ds-dark-theme] .ci-root{
                           })
                         : null,
                     )
-                  })
+                  }),
+                  ])
                 : items.flatMap((item) => {
                     const key = itemKey(item)
                     const openPeek = peek[key] === true
@@ -2370,7 +2295,6 @@ body[data-ds-dark-theme] .ci-root{
                         onToggle,
                         busy,
                         needle,
-                        planned: plannedKeys.has(item.channel + ':' + item.name),
                         previewOpen: openPeek,
                         onPreview: v2 === true ? togglePeek : undefined,
                       }),
@@ -2506,10 +2430,6 @@ body[data-ds-dark-theme] .ci-root{
             act({ kind: 'groups', groups: parts, enabled }, `${enabled ? t('turnedOn') : t('turnedOff')} ${payload.key || ''}`)
             return
           }
-          if (action.kind === 'set-budget') {
-            onOpenTab('settings')
-            return
-          }
           if (action.kind === 'open-content') {
             if (payload.channel !== undefined && (payload.id !== undefined || payload.itemId !== undefined)) {
               onOpenContent({ channel: String(payload.channel), id: String(payload.id !== undefined ? payload.id : payload.itemId), name: payload.name })
@@ -2525,7 +2445,7 @@ body[data-ds-dark-theme] .ci-root{
 
         const actionLabel = (action) => {
           if (action === null || action === undefined) return ''
-          const known = ['switch-group', 'set-budget', 'open-content', 'open-tab'].indexOf(action.kind) >= 0
+          const known = ['switch-group', 'open-content', 'open-tab'].indexOf(action.kind) >= 0
           return known ? t('health.action.' + action.kind) : t('v2.openContent')
         }
 
@@ -2552,6 +2472,7 @@ body[data-ds-dark-theme] .ci-root{
                   h('span', { key, className }, h('b', null, String(value)), key === 'high' ? t('v2.sevHigh') : key === 'warn' ? t('v2.sevWarn') : t('v2.sevInfo')),
                 ])
                 .flat(),
+              rest > 0 ? h('span', { className: 'ci-health-more' }, t('v2.moreChecks', { count: rest })) : null,
             ),
             data !== null && Number.isFinite(Number(data.checkedAt))
               ? h('span', { className: 'ci-inline-meta', style: { marginLeft: 'auto' } }, t('v2.healthChecked', { time: fullTime(data.checkedAt) }))
@@ -2599,7 +2520,6 @@ body[data-ds-dark-theme] .ci-root{
                 : null,
             )
           }),
-          rest > 0 ? h('div', { className: 'ci-health-allclear' }, t('v2.moreChecks', { count: rest })) : null,
         )
       }
 
@@ -3316,7 +3236,7 @@ body[data-ds-dark-theme] .ci-root{
         ]
         return h(
           'div',
-          { className: 'ci-kpis' },
+          { className: 'ci-kpis ci-kpis-4' },
           rows.map((row) =>
             h(
               'div',
@@ -4094,124 +4014,6 @@ body[data-ds-dark-theme] .ci-root{
         }, 0)
       }
 
-      function BudgetTab({ snapshot, t, act }) {
-        const policy = snapshot.policy
-        const [target, setTarget] = useState(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
-        const plan = policy.plan
-        const timer = useRef(null)
-        const [sort, setSort] = useStoredState('budgetSort', 'tokens')
-
-        // Applying a plan recomputes every channel; count manual choices first.
-        const excludedCount = excludedCountOf(snapshot)
-        const dropGroups = (plan.dropGroups || []).slice().sort((left, right) =>
-          sort === 'name'
-            ? groupLabelOf(t, left).localeCompare(groupLabelOf(t, right), undefined, { numeric: true })
-            : right.tokens - left.tokens,
-        )
-
-        useEffect(() => {
-          setTarget(policy.budget.tokens > 0 ? String(policy.budget.tokens) : '')
-        }, [policy.budget.tokens])
-        useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
-
-        const commit = (value) => {
-          if (timer.current !== null) clearTimeout(timer.current)
-          timer.current = setTimeout(() => act({ kind: 'budget', tokens: value.length > 0 ? Number(value) : 0 }), 450)
-        }
-
-        return h(
-          'div',
-          { className: 'ci-list' },
-          h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('budgetTarget')),
-            h(
-              'div',
-              { className: 'ci-toolbar' },
-              h('input', {
-                className: 'ci-input',
-                inputMode: 'numeric',
-                placeholder: '24000',
-                value: target,
-                onChange: (event) => {
-                  const value = event.target.value.replace(/[^0-9]/g, '')
-                  setTarget(value)
-                  commit(value)
-                },
-                'aria-label': t('budgetTarget'),
-              }),
-              h(
-                'button',
-                { type: 'button', className: 'ci-btn ci-primary', disabled: plan.target <= 0, onClick: () => act({ kind: 'budget.apply', tokens: Number(target) || plan.target }) },
-                t('applyPlan'),
-              ),
-              [24000, 48000, 80000].map((value) =>
-                h(
-                  'button',
-                  {
-                    key: value,
-                    type: 'button',
-                    className: 'ci-chip' + (Number(target) === value ? ' on' : ''),
-                    onClick: () => {
-                      setTarget(String(value))
-                      commit(String(value))
-                    },
-                  },
-                  digits(value),
-                ),
-              ),
-            ),
-            h('div', { className: 'hint' }, t('budgetHint')),
-          ),
-          h(
-            'div',
-            { className: 'ci-card' },
-            h(
-              'div',
-              { className: 'ci-rowline' },
-              h('span', { className: 'lbl' }, `${t('budgetBefore')} ${digits(plan.before)}`),
-              h('span', { className: 'lbl' }, `${t('budgetAfter')} ${digits(plan.after)}`),
-            ),
-            h('div', { className: 'ci-bar' }, h('span', { style: { width: `${Math.min(100, pct(plan.after, Math.max(1, plan.before)))}%`, background: COLOR.sections } })),
-            excludedCount > 0 ? h('div', { className: 'ci-note warn' }, t('budgetOverwrite', { count: excludedCount })) : null,
-            h(
-              'div',
-              { className: 'ci-toolbar', style: { margin: '6px 0' } },
-              h('button', { type: 'button', className: 'ci-chip' + (sort === 'tokens' ? ' on' : ''), onClick: () => setSort('tokens') }, t('sortTokens')),
-              h('button', { type: 'button', className: 'ci-chip' + (sort === 'name' ? ' on' : ''), onClick: () => setSort('name') }, t('sortName')),
-            ),
-            plan.reachable ? null : h('div', { className: 'ci-note warn' }, t('unreachable')),
-            plan.drop.length === 0
-              ? h('div', { className: 'ci-note' }, t('planEmpty'))
-              : h(
-                  'div',
-                  null,
-                  h(
-                    'div',
-                    { className: 'hint', style: { marginBottom: 4 } },
-                    `${t('planDrop')} ${plan.drop.length} ${t('items')} · ${dropGroups.length} ${t('groups')} · −${digits(plan.savedTokens)} token`,
-                  ),
-                  h(
-                    'div',
-                    { className: 'ci-list' },
-                    dropGroups.slice(0, 8).map((group) =>
-                      h(
-                        'div',
-                        { className: 'ci-mini', key: group.id },
-                        h(Dot, { channel: group.channel }),
-                        h('span', { className: 'n', title: group.id }, groupLabelOf(t, group)),
-                        h('span', { className: 't' }, `${group.count} ${t('items')}`),
-                        h('span', { className: 't' }, digits(group.tokens)),
-                      ),
-                    ),
-                  ),
-                  dropGroups.length > 8 ? h('div', { className: 'hint' }, t('moreGroups', { count: dropGroups.length - 8 })) : null,
-                ),
-          ),
-        )
-      }
-
       function AboutTab({ snapshot, t, sessionId }) {
         const locked = snapshot.locks
         const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
@@ -4318,7 +4120,6 @@ body[data-ds-dark-theme] .ci-root{
             h('div', { className: 'ci-note' }, t('aboutFiles')),
             h('div', { className: 'ci-note' }, t('aboutNew')),
             h('div', { className: 'ci-note' }, t('aboutTool')),
-            h('div', { className: 'ci-note' }, t('aboutBudget')),
             h(
               'div',
               { className: 'ci-foot' },
@@ -4410,7 +4211,6 @@ body[data-ds-dark-theme] .ci-root{
           'div',
           { className: 'ci-list' },
           h(SettingsTab, { snapshot, t, act, sessionId, notify }),
-          h(BudgetTab, { snapshot, t, act }),
           h(PreferencesCard, { t }),
           h(AboutTab, { snapshot, t, sessionId }),
           h(VersionCard, { snapshot, t }),
@@ -4433,7 +4233,6 @@ body[data-ds-dark-theme] .ci-root{
         // A v1 host hides the new tab; a stored 'insights' falls back instead of
         // rendering an empty body.
         const activeTab = tab === 'insights' && v2 !== true ? 'manage' : tab
-        const trend = useSparkTrend(data ? (data.effective && data.effective.totals ? data.effective.totals.tokens : data.totals.tokens) : 0)
         const noticeTimer = useRef(null)
 
         const showNotice = useCallback((next, ttl) => {
@@ -4627,7 +4426,7 @@ body[data-ds-dark-theme] .ci-root{
               snapshot.host && snapshot.host.supported === false
                 ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                 : null,
-              h(Kpis, { snapshot, t, trend }),
+              h(Kpis, { snapshot, t }),
               h(RequestStrip, { snapshot, t }),
               h(SkillsFocus, { snapshot, t, onFilter: setFilter }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
@@ -4746,7 +4545,7 @@ body[data-ds-dark-theme] .ci-root{
                     ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                     : null,
                   v2 !== true ? h(V2Gate, { snapshot, t }) : null,
-                  h(Kpis, { snapshot, t, trend }),
+                  h(Kpis, { snapshot, t }),
                   h(RequestStrip, { snapshot, t }),
                   h(ManageHealth, { snapshot, t, sessionId, v2, act, onOpenContent: openContent, onOpenTab: openTab }),
                   snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0

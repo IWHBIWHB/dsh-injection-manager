@@ -1,5 +1,48 @@
 # Changelog
 
+## 2.1.0 — 2026-11-18
+
+The focus release. The plugin explicitly does one job — show and manage what a new DSH session
+injects — so the token-budget side feature is gone, the manage page stops crowding the list, and
+suites are split by where they come from.
+
+### Removed
+
+- **Token budget, everywhere.** The budget KPI card, the budget section on the settings page, the
+  `budget-gap` health check and its `set-budget` action, the `/inject budget` and `/inject apply`
+  slash commands, the `budgetTokens` plugin config, the `budget` field in `policy.json` and the
+  "outside budget" markers in the suite list are all removed. Old policy files that still carry a
+  `budget` object keep loading — the field is ignored and dropped on the next write. The word
+  "budget" that remains in the UI/docs refers to the 64 KiB AGENTS.md per-file cap and to read
+  timeouts, not to a token target.
+- **The KPI sparkline** (and its `localStorage` trend copy): the insights tab owns the trend, and
+  the sparkline was the tallest thing in the row while saying the least.
+
+### Changed
+
+- **Manage page is fused and denser.** The composition ring and the suite ranking share one
+  compact card instead of two tall ones, the KPI row has three cells, the filter bar only appears
+  when a filter is active, and the header/health/table spacing is tighter. At 1050×747 the list
+  shows about 6 suites instead of 2; at 1440×960 about 14 instead of 8.
+- **Suites are split by origin.** The grouped list now renders an "插件 / MCP" section (MCP tool
+  namespaces, `mcp:` prompt sections, provider-backed skills) followed by a "DSH 自带" section
+  (host prompt sections, runtime contexts, workspace rules, core built-in tools, instruction
+  files), each with its suite count. A profile with only one origin keeps the plain list. The
+  classification is stamped per item/group as `origin: "plugin" | "builtin"` in `/summary`, next to
+  the new effective group counters (`onCount`, `offCount`, `onTokens`, `offTokens`,
+  `onSavableTokens`).
+- Health checks are unchanged from 2.0.3 semantically: they still read the policy-effective
+  projection, a closed suite stops warning about itself, and replaying a switch is a silent no-op.
+
+### Verification
+
+- `node --test` 209/209 (new origin test; budget planner/health tests removed with the feature).
+- UI fixture matrix: 0 console errors, 0 horizontal overflow at 560/900/1440 widths, light/dark.
+- Layout probe at the user's real panel size (1050×747): 6 fully visible suite rows (before: 2).
+- Live QA instance: origin split renders REA under 插件 / MCP and the built-in families under
+  DSH 自带; settings page no longer shows a budget section; `/inject` help lists only
+  `health / all / minimal / undo`.
+
 ## 2.0.3 — 2026-11-17
 
 ### Fixed

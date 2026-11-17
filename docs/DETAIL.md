@@ -8,7 +8,7 @@ sections, runtime contexts, the skill catalog as text, one JSON schema per tool,
 turn any of it off.
 
 This page is the five-minute version of what the plugin measures, what it can and cannot switch,
-and what the new surfaces show. The [README](../README.md) is the overview; the
+and what the surfaces in 2.1.0 show. The [README](../README.md) is the overview; the
 [architecture](ARCHITECTURE.md) is the implementation.
 
 ## 1. Three numbers, three questions
@@ -31,23 +31,28 @@ record the model adapter used.
 
 | Surface | What it is for |
 | --- | --- |
-| Manage (管理) | Health strip, KPI row, request strip, then the suite-clustered list with switches; every row can expand a preview or open its content. |
+| Manage (管理) | KPI row, request strip, health strip, one compact composition/ranking card, then the suite-clustered list (split into Plugins / MCP and DSH built-in) with switches; every row can expand a preview or open its content. |
 | Insights (洞察) | Cross-session first-turn trend, aggregate band, session cards, cross-session composition, heaviest suites, this session's event timeline, coverage footnote. |
-| Settings (设置) | Presets, four channel masters, custom prefix/suffix, budget, export/import, undo history, verification, plugin preferences, versions and language. |
+| Settings (设置) | Presets, four channel masters, custom prefix/suffix, export/import, undo history, verification, plugin preferences, versions and language. |
 | Composer chip | First-turn total and window occupancy, one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
 
 ## 3. What the manage page shows
 
 - **Health** — deterministic findings over the current snapshot (section 5), each with an action.
-- **KPI** — first-turn injection, window occupancy with its denominator, the switchable share and the
-  current budget; the composer chip mirrors the same numbers.
+- **KPI** — first-turn injection, window occupancy with its denominator, and the switchable share;
+  the composer chip mirrors the same numbers.
 - **Request strip** — system / tools / messages split of the *current* request and compaction
   receipts, from the host's own projections.
-- **The list** — five channels, clustered into suites (one MCP server = one switch), with a
-  description column for every item. A suite row carries item count, tokens, share and a tri-state
-  switch; a closed suite stays visible with its remembered size so it can be reopened. Items expand
-  an inline preview; the content button opens the drawer.
+- **Overview card** — the first-turn composition ring and the suite ranking share one compact card
+  above the list; the filter bar only appears when a filter is active, so the list keeps the height.
+- **The list** — five channels, clustered into suites (one MCP server = one switch) and split into
+  **Plugins / MCP** (MCP tool namespaces, `mcp:<server>` prompt sections, provider-backed skills)
+  and **DSH built-in** (host prompt sections, runtime contexts, workspace rules, core built-in tool
+  families, instruction files); a profile with only one origin keeps the plain list. Every item
+  carries a description; a suite row carries item count, tokens, share and a tri-state switch; a
+  closed suite stays visible with its remembered size so it can be reopened. Items expand an inline
+  preview; the content button opens the drawer.
 
 ## 4. What the content drawer reads
 
@@ -70,7 +75,6 @@ re-interpreted as HTML. A slow read returns `timeout` after 2 seconds instead of
 | Code | Fires when | Action |
 | --- | --- | --- |
 | `heavy-suite` | one suite is ≥25% of the next first request under the saved policy, or ≥30k tokens | turn that suite off (every channel it spans) |
-| `budget-gap` | the projection is above the saved budget | open the budget / drop the suggested suite |
 | `catalog-truncated` | skill descriptions are cut at the catalog line length | read the affected skill |
 | `locked-items` | items that cannot be switched off are ≥10% | jump to the manage list |
 | `unknown-window` | no measurement yet, so occupancy is unknowable | — |
@@ -101,7 +105,7 @@ inventing a finding would be a lie.
 - **Cross-session composition** — the five-channel ring averaged over sessions that have a split.
 - **Heaviest suites** — the current session's suites by size, with the policy-removed part drawn
   lighter.
-- **Event timeline** — policy saves, presets, budget edits, imports, undos, compactions and prunes
+- **Event timeline** — policy saves, presets, imports, undos, compactions and prunes
   for this session (`events.json`, capped at 300, up to 60 shown).
 - **Coverage footnote** — recorded N of M sessions; the trend only contains what this plugin
   measured plus a bounded log backfill.
@@ -109,7 +113,7 @@ inventing a finding would be a lie.
 ## 7. What a policy does, and when
 
 A policy is one JSON file: per channel, `all`, `only [names]` or `except [names]`, plus an optional
-persona prefix/suffix and a token budget.
+persona prefix/suffix.
 
 It is applied exactly once, at `agent/created` with `source: startup|clear`. A session that already
 exists is never rewritten mid-flight, so:
@@ -127,7 +131,7 @@ the reason this plugin exists.
 
 ## 9. Data and privacy
 
-`policy.json` (switches and budget), `stats.json` (one measured row per session, with a channel
+`policy.json` (switches), `stats.json` (one measured row per session, with a channel
 split from 2.0.0 on), `events.json` (append-only, 300 rows, policy metadata only — strings are
 flattened and truncated to 200 characters, prompt text has no path in), and browser-local UI
 preferences. No network requests, no telemetry, no uploads. Details: [FAQ](FAQ.md).

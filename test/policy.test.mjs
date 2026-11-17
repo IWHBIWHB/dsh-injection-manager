@@ -4,7 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { defaultPolicy, isExcluded, nameMatcher, normalizePolicy } from '../lib/policy.js'
-import { planBudget, policyFromPlan, previewPolicy } from '../lib/snapshot.js'
+import { previewPolicy } from '../lib/snapshot.js'
 
 const items = [
   { channel: 'sections', name: 'harness:identity', tokens: 10, chars: 40, locked: false },
@@ -61,47 +61,3 @@ test('custom persona text replaces the persona section instead of stacking', () 
   assert.ok(preview.replaced.includes('deployment:persona-prefix'))
 })
 
-test('budget planner drops the largest switchable items first', () => {
-  const policy = defaultPolicy()
-  const plan = planBudget(policy, items, 700)
-  const dropped = plan.drop.map((entry) => entry.name)
-  assert.equal(dropped[0], 'mcp__rea__analyze_function')
-  assert.ok(!dropped.includes('AGENTS.md'))
-  assert.ok(!dropped.includes('working-directory:current'))
-  assert.ok(plan.after <= 700)
-  // Same drop list, summarised per suite: the REA tool is one group.
-  assert.equal(plan.dropGroups[0].label, 'REA')
-  assert.equal(plan.dropGroups[0].count, 1)
-  assert.equal(
-    plan.dropGroups.reduce((sum, group) => sum + group.count, 0),
-    plan.drop.length,
-  )
-  assert.equal(
-    plan.dropGroups.reduce((sum, group) => sum + group.tokens, 0),
-    plan.drop.reduce((sum, entry) => sum + entry.tokens, 0),
-  )
-})
-
-test('an unreachable budget is reported, not faked', () => {
-  const policy = defaultPolicy()
-  const plan = planBudget(policy, items, 1)
-  assert.equal(plan.reachable, false)
-  assert.ok(plan.after > 1)
-})
-
-test('policyFromPlan round-trips into an except policy', () => {
-  const policy = defaultPolicy()
-  const plan = planBudget(policy, items, 700)
-  const next = policyFromPlan(policy, plan)
-  for (const channel of ['sections', 'contexts', 'skills', 'tools']) {
-    const dropped = plan.drop.filter((entry) => entry.channel === channel).map((entry) => entry.name)
-    if (dropped.length === 0) {
-      assert.equal(next[channel].mode, 'all')
-      continue
-    }
-    assert.equal(next[channel].mode, 'except')
-    for (const name of dropped) assert.ok(next[channel].names.includes(name))
-  }
-  const preview = previewPolicy(normalizePolicy(next), items, names)
-  assert.ok(preview.after <= 700)
-})

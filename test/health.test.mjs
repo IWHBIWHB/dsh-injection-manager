@@ -55,30 +55,6 @@ test('a suite over a quarter of the turn becomes a high heavy-suite check', () =
   assert.equal(smaller, undefined, 'a 2k suite is below the 25% gate and the 30k floor')
 })
 
-test('budget-gap reports the gap and suggests the largest switchable suite', () => {
-  const health = buildHealth(
-    snapshot({
-      policy: { exists: true, preset: 'custom', budget: { tokens: 40000 }, preview: { after: 83800, savedTokens: 0 } },
-    }),
-  )
-  const check = byCode(health, 'budget-gap')
-  assert.ok(check)
-  assert.equal(check.severity, 'high', 'more than double the budget')
-  assert.equal(check.params.current, 83800)
-  assert.equal(check.params.target, 40000)
-  assert.equal(check.params.gap, 43800)
-  assert.equal(check.params.tokens, 43800, 'locale health.budget-gap interpolates {tokens}')
-  assert.equal(check.params.suggestion.label, 'REA')
-  assert.equal(check.action.kind, 'switch-group')
-
-  const tight = buildHealth(
-    snapshot({
-      policy: { exists: true, preset: 'custom', budget: { tokens: 80000 }, preview: { after: 83800, savedTokens: 0 } },
-    }),
-  )
-  assert.equal(byCode(tight, 'budget-gap').severity, 'warn')
-})
-
 test('catalog truncation and locked items describe measurable facts', () => {
   const truncated = byCode(buildHealth(snapshot()), 'catalog-truncated')
   assert.ok(truncated)

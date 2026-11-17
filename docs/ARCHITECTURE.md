@@ -31,7 +31,6 @@ Config ───────┤
          assignGroups()  → 按套件聚类
               ▼
          previewPolicy() → 关掉后剩多少 / 省多少
-         planBudget()    → 目标预算下的关闭建议
               ▼
    { items(+preview), groups, channels, totals, context, policy, undo }
               ├─▶ 面板 / context_injection / /export / applyPolicyForAgent
@@ -41,6 +40,16 @@ Config ───────┤
 `context` 那一路是唯一不由本插件估算的部分：`window` / `pressure` / `projected` 来自宿主的 `contextPressure` 投影，`breakdown` 来自 `contextBreakdown`，（缺分母时才）用 `ctx.llm.resolveModelInfo()` 的 `contextWindow` 兜底；压缩回执由 `session/event` 监听器从 `compaction/*` 累积。因此面板里的占用百分比与宿主自己的「上下文已用 x%」是同一个数，不会各说各话。
 
 关键不变量：**只有一份实现**。浏览器不重算 token、不重算预览；它拿到什么就画什么。这也让「预览数字」和「实际生效」不会打架。v2 只加了两个派生：每个条目的 `preview`（快照阶段切好的前 180 字符纯文本）和 `buildHealth()` 的检查结果——两者都从同一份快照算，不额外读盘。
+
+## 来源分类
+
+2.1.0 起，快照给每个条目与分组打上 `origin: "plugin" | "builtin"`，回答「这条注入来自装进来的插件，还是宿主自带」。分类是 `lib/snapshot.js` 里 `itemOrigin()` 的启发式，不是宿主给的元数据：
+
+- 名字匹配 `mcp__`、`mcp:` 或 `tool:mcp__` 的段落、上下文与工具算 `plugin`——一个 MCP server 的命名空间就是「装进来的东西」最诚实的信号；
+- 技能带 `provider` 或 `source: 'user'` 算 `plugin`，没有 provider 的技能算 `builtin`；
+- 其余全部算 `builtin`：宿主提示词段落、运行时上下文、工作区规则、内置工具族、指令文件。
+
+`/summary` 的每个 item 带这个字段；`lib/group.js` 的 `summarizeGroups()` 为每个 group 打同样的 `origin`（组内只要有一条 plugin 就是 plugin）。同一函数还顺带算出策略生效后的计数：`onCount` / `offCount` / `onTokens` / `offTokens` / `onSavableTokens`，而 `count` / `tokens` 仍是测量时全开的体积。健康检查读 `on*`，所以关掉一套后它自己的告警会消失。面板的套件清单按 `origin` 分成「插件 / MCP」与「DSH 自带」两段，只有一种来源时不分段。
 
 ## 生效时序
 
@@ -70,7 +79,7 @@ agent/created (source=startup|clear)
 | 路由 | 方法 | 作用 | 响应要点 |
 | --- | --- | --- | --- |
 | `/ping` | GET | 注册自检 | 路由清单、策略文件路径 |
-| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`settings`、`locale` |
+| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`items[].origin`、`groups[].on*`、`settings`、`locale` |
 | `/content` | GET | 单条原文 | `?channel=&id=[&session=]`；`contentType`、`content`、`bytes`、`truncated`、`sourcePath`、`note`；256KB 上限、2 秒预算、404/400 分支 |
 | `/trend` | GET | 跨会话趋势 | `?range=all｜30d｜7d&limit=120`（上限 500）；`points[]`、`aggregate`、`coverage {recorded, known}`、`backfilling` |
 | `/events` | GET | 事件流 | `?session=&limit=60`（上限 300）；`events[]`、`coverage {from, count, limit}` |
@@ -82,7 +91,7 @@ agent/created (source=startup|clear)
 | `/export` | GET | 导出 | Markdown / JSON |
 | `/locale` | GET | 八语言字典 | 客户端词条 |
 | `/registrations`、`/boot` | **POST** | 客户端自报诊断（仅内存） | 启动表与注册诊断，不落盘；GET 返回 405 |
-| `/action` | **POST** | 改策略入口 | 同源 JSON；开关/预设/预算/导入/撤销 |
+| `/action` | **POST** | 改策略入口 | 同源 JSON；开关/预设/导入/撤销 |
 
 约定的响应边界：JSON 单次响应有上限，`/summary` 的条目文本靠 `preview` 控制体积；`/content` 的 256KB 上限和 UTF-8 安全截断在 `lib/content.js` 里实现；`/trend` 的 `limit` 与被回填的会话数都封顶；`/events` 读的是已经封顶 300 条的 `events.json`。
 
@@ -90,11 +99,11 @@ agent/created (source=startup|clear)
 
 | 位置 | 内容 | 谁写 | 生命周期 |
 | --- | --- | --- | --- |
-| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记、预算 | 面板动作（原子写） | 持久，卸载后保留 |
+| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记 | 面板动作（原子写） | 持久，卸载后保留 |
 | `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量：`allOn` / `effective` / `saved` / `peak` / `samples` / `firstAt` / `scope` / `policy` / `compactions` / 新快照才有的 `channels` | 每次取快照（面板/工具/命令） | 上限 400 行，原子写，可被日志回填补齐 |
-| `$DSH_HOME/injection-manager/events.json` | `{version:1, events:[…]}`，最多 300 条；每条 `id` / `at` / `kind` / `params`（拍平的原始值，字符串 ≤200 字符，≤24 项）/ `tokensDelta` / 可选 `sessionId` / `dedupeKey` | 策略保存、预设、预算、导入、撤销、压缩 | 追加式；tmp+rename；去重键防重放 |
+| `$DSH_HOME/injection-manager/events.json` | `{version:1, events:[…]}`，最多 300 条；每条 `id` / `at` / `kind` / `params`（拍平的原始值，字符串 ≤200 字符，≤24 项）/ `tokensDelta` / 可选 `sessionId` / `dedupeKey` | 策略保存、预设、导入、撤销、压缩 | 追加式；tmp+rename；去重键防重放 |
 | `$DSH_HOME/injection-manager/` 的旧目录 | `context-injection/`、`context-preflight/` | 只在首次读取时迁移 | 只读兼容 |
-| 插件行 `config` | dock / refreshOnFocus / showRawNames / budgetTokens | Plugins → Configuration | 持久 |
+| 插件行 `config` | dock / refreshOnFocus / showRawNames | Plugins → Configuration | 持久 |
 | 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的 gate 卡 | 面板 | 只在这个浏览器 |
 | 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告、压缩回执（按会话）、路由窗口容量缓存 | 进程内 | 重启清空 |
 
@@ -107,7 +116,7 @@ agent/created (source=startup|clear)
 | 位置 | kind | 说明 |
 | --- | --- | --- |
 | `index.js` 的 `agent/created` | `session-created` | 新会话建立（`source: startup｜clear`），fire-and-forget，不进首轮关键路径 |
-| `lib/apply.js` 的 `savePolicy()` | `policy-saved` / `preset` / `budget` / `switch` / `import` / `undo` | 由调用方通过 `meta` 指定，缺省 `policy-saved` |
+| `lib/apply.js` 的 `savePolicy()` | `policy-saved` / `preset` / `switch` / `import` / `undo` | 由调用方通过 `meta` 指定，缺省 `policy-saved` |
 | `lib/compaction.js` 的摘要/剪枝回执 | `compaction` / `prune` | 宿主的 `compaction/summary`、`compaction/prune` 事件 |
 | `lib/compaction.js` 的失败回执 | `diagnostic` | 宿主报告 `compaction/*` 带 `error` 时写一条：`params {phase:'compaction', error, compactionId}`，用于解释"这次压缩失败了" |
 
@@ -119,10 +128,10 @@ agent/created (source=startup|clear)
 
 `lib/health.js` 的 `buildHealth(snapshot)` 是纯函数：输入一份快照，输出 `{summary, checks}`；唯一的时钟值是 `snapshot.generatedAt`，所以同一份快照两次调用逐字节一致。面板、`/health` 路由、`/inject health` 都调它。
 
-- 固定 9 个 code 的枚举，当前实现实际会产生 7 个：`heavy-suite`（策略生效后单套仍占 ≥25% 或 ≥30k token）、`budget-gap`（预测值超预算）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。
-- 检查一律读**有效投影**（`groups.onTokens` / `snapshot.effective.totals` / `policy.preview`），不是当前会话冻结的全量装配：当前会话里已经关掉的套件条目还在（本会话不受新策略影响），但它的有效 token 是 0，所以关掉一套之后它自己的告警立刻消失。快照没有 `on*` 字段时回退到全量口径，旧宿主行为不变。
+- 固定 8 个 code 的枚举，当前实现实际会产生 6 个：`heavy-suite`（策略生效后单套仍占 ≥25% 或 ≥30k token）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。
+- 检查一律读**有效投影**（`groups.onTokens` / `groups.onSavableTokens` / `snapshot.effective.totals`），不是当前会话冻结的全量装配：当前会话里已经关掉的套件条目还在（本会话不受新策略影响），但它的有效 token 是 0，所以关掉一套之后它自己的告警立刻消失。快照没有 `on*` 字段时回退到全量口径，旧宿主行为不变。
 - `duplicate-skill` 与 `tool-name-collision` **刻意不产生**：这版宿主的技能注册表与工具注册表在插件可见之前就解析掉了重名，报出来就是编造。枚举保留完整，未来宿主能观察到时再加，UI 契约不变。
-- `action.kind` 只有四种：`switch-group` / `set-budget` / `open-content` / `open-tab`；`payload` 直接是 `POST /action` 能吃下的形状（`{channel, group, enabled, op}` 等），`switch-group` 额外带 `parts[]`（这套覆盖的每个 `channel+group`），面板一次点掉所有通道；旧宿主只给 `channel+group` 时面板按 label 反查。动作不再做二次映射。
+- `action.kind` 只有三种：`switch-group` / `open-content` / `open-tab`；`payload` 直接是 `POST /action` 能吃下的形状（`{channel, group, enabled, op}` 等），`switch-group` 额外带 `parts[]`（这套覆盖的每个 `channel+group`），面板一次点掉所有通道；旧宿主只给 `channel+group` 时面板按 label 反查。动作不再做二次映射。
 - 幂等：`POST /action` 写盘前比较前后策略，相同则返回 `changed:false`，不写 policy、不写 undo、不写事件；面板据此不弹「已关闭」提示，也不会出现同一开关在撤销历史里堆 7 条。
 - 排序：严重度 → 涉及 token 数 → code；`summary` 按严重度计数，`checkedAt` 来自快照。
 
@@ -148,7 +157,7 @@ agent/created (source=startup|clear)
 
 ```
 index.js            插件入口：Config、工具（含单条内容模式）、/inject、路由、agent/created
-lib/snapshot.js     快照、套件聚类、行内预览、策略预览/预算
+lib/snapshot.js     快照、套件聚类、来源分类、行内预览、策略预览
 lib/apply.js        四通道生效 + 策略保存（含事件埋点）
 lib/group.js        套件聚类
 lib/policy.js       策略 schema、原子读写、旧目录迁移
@@ -191,7 +200,7 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 
 | 文件 | 覆盖 |
 | --- | --- |
-| `test/policy.test.mjs` | 模式语义、必填锁定、预算贪心、计划回写 |
+| `test/policy.test.mjs` | 模式语义、必填锁定、自定义人设替换 |
 | `test/group.test.mjs` | MCP/前缀/provider 聚类、汇总 |
 | `test/settings.test.mjs` | 配置归一化与默认值 |
 | `test/text.test.mjs` | 工具卡片、文本报告与健康摘要的数字/告警 |

@@ -16,7 +16,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { applyPolicyForAgent, releaseAll, savePolicy } from './lib/apply.js'
 import { createRoutes, makeFencedHandler, ROUTES } from './lib/routes.js'
-import { buildSnapshot, planBudget, policyFromPlan } from './lib/snapshot.js'
+import { buildSnapshot } from './lib/snapshot.js'
 import { watchCompaction } from './lib/compaction.js'
 import { CONTENT_CHANNELS, TOOL_CONTENT_LIMIT, collectContent } from './lib/content.js'
 import { appendEvent } from './lib/events.js'
@@ -66,9 +66,6 @@ export const Config =
         showRawNames: Schema.boolean()
           .default(true)
           .description('在中文条目名旁显示原始键名（如 harness:identity），排障时有用。'),
-        budgetTokens: Schema.number()
-          .default(0)
-          .description('策略文件还没有时的默认预算 token（0 = 不设）；只在首次使用前作为初始值。'),
       })
 
 // Hard dependencies: the tool needs the registry, the snapshot needs the prompt
@@ -167,7 +164,7 @@ export function createTool(ctx) {
 export function createCommand(ctx) {
   return {
     name: 'inject',
-    description: '查看首轮上下文注入清单；`/inject health` 看健康检查，`/inject minimal|all` 切换预设，`/inject budget 20000` 设定预算。',
+    description: '查看首轮上下文注入清单；`/inject health` 看健康检查，`/inject minimal|all` 切换预设，`/inject undo` 撤销上一步。',
     async handler(invocation) {
       const agent = invocation?.agent
       const sessionId = typeof agent?.id === 'string' && agent.id.length > 0 ? agent.id : undefined
@@ -196,54 +193,11 @@ export function createCommand(ctx) {
           pushUndo(state.policy)
           const next = presetPolicy(command, names)
           next.prompt = state.policy.prompt
-          next.budget = state.policy.budget
           await savePolicy(next, { sessionId, kind: 'preset', params: { name: command, via: 'command' } })
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           return {
             kind: 'success',
             text: `已切换预设：${command}\n新会话首轮 ≈ ${after.policy.preview.after} token（−${after.policy.preview.savedTokens}）\n\n${renderText(after)}`,
-          }
-        }
-
-        if (command === 'budget') {
-          const tokens = Number(value)
-          if (!Number.isFinite(tokens) || tokens <= 0) {
-            return { kind: 'error', text: '用法：/inject budget <token 数>，例如 /inject budget 20000' }
-          }
-          const state = await readPolicy()
-          pushUndo(state.policy)
-          await savePolicy(
-            { ...state.policy, budget: { tokens: Math.round(tokens) } },
-            { sessionId, kind: 'budget', params: { tokens: Math.round(tokens), via: 'command' } },
-          )
-          return { kind: 'success', text: `首轮注入预算已设为 ${Math.round(tokens)} token（新会话生效）。` }
-        }
-
-        if (command === 'apply') {
-          const state = await readPolicy()
-          const target = Number(value) > 0 ? Math.round(Number(value)) : state.policy.budget.tokens
-          if (!Number.isFinite(target) || target <= 0) {
-            return { kind: 'error', text: '用法：/inject apply [token 数]，或用 /inject budget <token 数> 先设预算。' }
-          }
-          const plan = planBudget(state.policy, snapshot.items, target)
-          if (plan.drop.length === 0) {
-            return { kind: 'success', text: `当前首轮注入 ${plan.before} token 已在 ${plan.target} 预算内，无需关闭。` }
-          }
-          pushUndo(state.policy)
-          const next = policyFromPlan(state.policy, plan)
-          next.prompt = state.policy.prompt
-          next.budget = { tokens: plan.target }
-          await savePolicy(next, {
-            sessionId,
-            kind: 'budget',
-            params: { tokens: plan.target, dropped: plan.drop.length, saved: plan.savedTokens, via: 'plan' },
-            tokensDelta: -plan.savedTokens,
-          })
-          const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
-          const suites = (plan.dropGroups ?? []).map((group) => `  ${group.label} · ${group.count} 项 · ${group.tokens} token`).join('\n')
-          return {
-            kind: 'success',
-            text: `已按 ${plan.target} token 预算应用：关闭 ${plan.drop.length} 项（−${plan.savedTokens}），预计首轮 ${plan.after}。\n${suites}\n\n${renderText(after)}`,
           }
         }
 
@@ -258,7 +212,7 @@ export function createCommand(ctx) {
 
         return {
           kind: 'error',
-          text: '可用：/inject · /inject health · /inject all · /inject minimal · /inject budget <token 数> · /inject apply [token 数] · /inject undo',
+          text: '可用：/inject · /inject health · /inject all · /inject minimal · /inject undo',
         }
       } catch (error) {
         return { kind: 'error', text: `注入策略操作失败：${error?.message ?? error}` }
