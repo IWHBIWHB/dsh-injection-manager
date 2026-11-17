@@ -41,7 +41,18 @@ jobs:
         run: node --test
       - name: Pack contents
         run: npm pack --dry-run
+      - name: Check whether this version is already on npm
+        id: npm-version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "dsh-injection-manager@${version}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "dsh-injection-manager@${version} is already published; skipping publish"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish with provenance
+        if: steps.npm-version.outputs.exists != 'true'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
