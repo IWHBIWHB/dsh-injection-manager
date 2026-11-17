@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.2 — 2026-11-17
+
+### Docs
+
+- **Re-shot documentation media without private host content.** The screenshots and the demo GIF
+  were captured against a real DeepSeek Harness instance, so the host sidebar carried real session
+  titles (one of them an internal address), and the settings card carried a session id plus a local
+  policy path. Those regions are now pixel-masked in every shipped image; nothing else changed.
+  No plugin code, route, locale or contract changed in this release.
+
 ## 2.0.1 — 2026-11-17
 
 ### Security
