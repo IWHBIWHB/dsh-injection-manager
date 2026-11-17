@@ -59,9 +59,11 @@ applies the switches without touching your files.
   one plain list without headers. `/summary` stamps `origin: "plugin" | "builtin"` on every item
   and group and adds the effective counters `onCount`, `offCount`, `onTokens`, `offTokens`,
   `onSavableTokens` to each group.
-- **Health checks** — deterministic findings (`heavy-suite`, `catalog-truncated`, `locked-items`,
-  `unknown-window`, `no-policy`, `empty-catalog`) over the policy-effective projection, each with a
-  one-click action.
+- **Health checks** — deterministic findings (`heavy-suite`, `builtin-heavy`, `catalog-truncated`,
+  `locked-items`, `unknown-window`, `no-policy`, `empty-catalog`) over the policy-effective
+  projection. Only installed plugin / MCP suites get a one-click "switch it off"; a large DSH
+  built-in suite is reported as an informational note, because closing the host's own tool families
+  is not a sensible default.
 - The content drawer, the insights tab and the rest of the control plane are unchanged.
 
 Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
@@ -175,7 +177,8 @@ The manage page opens with a deterministic strip of findings over the current sn
 
 | Code | Meaning | Action |
 | --- | --- | --- |
-| `heavy-suite` | One suite is ≥25% of the next first request under the saved policy (or ≥30k tokens) | Switch that suite off — every channel it spans |
+| `heavy-suite` | An installed plugin / MCP suite is ≥25% of the next first request under the saved policy (or ≥30k tokens) | Switch that suite off — every channel it spans |
+| `builtin-heavy` | A DSH built-in suite is that big (informational; closing host tool families is not recommended) | (informational) |
 | `catalog-truncated` | Skill descriptions are being cut at the catalog line length | Read the affected skill |
 | `locked-items` | Items that cannot be switched off are ≥10% of the first request | Switch to the manage list |
 | `unknown-window` | No measurement yet, so occupancy is unknowable | (informational) |

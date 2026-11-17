@@ -4310,8 +4310,13 @@ body[data-ds-dark-theme] .ci-root{
             const verb = enabled ? t('turnedOn') : t('turnedOff')
             const count = group.items ? group.items.length : group.count
             const label = `${verb} ${groupLabelOf(t, group)} · ${count} ${t('items')}`
-            if (Array.isArray(group.parts) && group.parts.length > 1) {
-              act({ kind: 'groups', groups: group.parts, enabled }, label)
+            const parts = Array.isArray(group.parts) ? group.parts.filter((part) => part !== null && typeof part === 'object') : []
+            if (parts.length > 1) {
+              act({ kind: 'groups', groups: parts, enabled }, label)
+            } else if (parts.length === 1) {
+              // The merged row is keyed by label; the action needs the real
+              // channel+group pair, exactly like the health-strip action.
+              act({ kind: 'group', channel: parts[0].channel, group: parts[0].group, enabled }, label)
             } else {
               act({ kind: 'group', channel: group.channel, group: group.id, enabled }, label)
             }

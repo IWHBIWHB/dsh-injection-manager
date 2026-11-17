@@ -50,8 +50,10 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
   规则、内置工具族、指令文件）归在「DSH 自带」。只有一种来源时仍是不带分区标题的平铺清单。
   `/summary` 为每个条目与分组打上 `origin: "plugin" | "builtin"`，分组还带生效计数
   `onCount`、`offCount`、`onTokens`、`offTokens`、`onSavableTokens`。
-- **健康检查**：确定性的检查项（`heavy-suite`、`catalog-truncated`、`locked-items`、
-  `unknown-window`、`no-policy`、`empty-catalog`），读策略生效后的投影，每条可直接点动作。
+- **健康检查**：确定性的检查项（`heavy-suite`、`builtin-heavy`、`catalog-truncated`、
+  `locked-items`、`unknown-window`、`no-policy`、`empty-catalog`），读策略生效后的投影。只有
+  安装的插件 / MCP 套件会给「关掉这一套」；占比大的 DSH 自带套件只做提示，不建议关闭宿主自己的
+  工具族。
 - 内容抽屉、洞察页等其余表面不变。
 
 完整变化见 [CHANGELOG.md](CHANGELOG.md)，五分钟版见 [docs/DETAIL.zh.md](docs/DETAIL.zh.md)。
@@ -155,7 +157,8 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 
 | code | 含义 | 动作 |
 | --- | --- | --- |
-| `heavy-suite` | 策略生效后，某一套仍占下一轮首轮 ≥25%（或 ≥30k token） | 关掉这一套（它覆盖的所有通道） |
+| `heavy-suite` | 策略生效后，某个安装的插件 / MCP 套件仍占下一轮首轮 ≥25%（或 ≥30k token） | 关掉这一套（它覆盖的所有通道） |
+| `builtin-heavy` | DSH 自带套件占到同样的量（只提示；不建议关闭宿主工具族） | （提示） |
 | `catalog-truncated` | 技能描述被目录行长度截断 | 看那条技能的内容 |
 | `locked-items` | 不可关的条目占首轮 ≥10% | 去管理列表 |
 | `unknown-window` | 还没有测量数据，占用率无从判断 | （提示） |

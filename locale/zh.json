@@ -395,6 +395,7 @@
     "trend.backfilling": "正在补齐历史记录…",
     "v2.originPlugin": "插件 / MCP",
     "v2.originBuiltin": "DSH 自带",
-    "v2.originHint": "MCP 命名空间与带 provider 的技能算「插件」；宿主提示词段落、运行时上下文、工作区规则与内置工具算「DSH 自带」。"
+    "v2.originHint": "MCP 命名空间与带 provider 的技能算「插件」；宿主提示词段落、运行时上下文、工作区规则与内置工具算「DSH 自带」。",
+    "health.builtin-heavy": "「{label}」占首轮 {share}%（DSH 自带套件，不建议关闭）"
   }
 }

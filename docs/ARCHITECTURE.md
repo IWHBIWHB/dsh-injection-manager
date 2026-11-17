@@ -128,7 +128,7 @@ agent/created (source=startup|clear)
 
 `lib/health.js` 的 `buildHealth(snapshot)` 是纯函数：输入一份快照，输出 `{summary, checks}`；唯一的时钟值是 `snapshot.generatedAt`，所以同一份快照两次调用逐字节一致。面板、`/health` 路由、`/inject health` 都调它。
 
-- 固定 8 个 code 的枚举，当前实现实际会产生 6 个：`heavy-suite`（策略生效后单套仍占 ≥25% 或 ≥30k token）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。
+- 固定 9 个 code 的枚举，当前实现实际会产生 7 个：`heavy-suite`（策略生效后，**安装的插件 / MCP 套件**仍占 ≥25% 或 ≥30k token）、`builtin-heavy`（同类阈值但来源是 DSH 自带套件：只报 info、不给 action——关宿主的工具族不是合理默认）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。来源取自 `group.origin`：`plugin` 才进 `heavy-suite`，`builtin` 进 `builtin-heavy`；没有 `origin` 的旧快照按可行动处理，行为不变。
 - 检查一律读**有效投影**（`groups.onTokens` / `groups.onSavableTokens` / `snapshot.effective.totals`），不是当前会话冻结的全量装配：当前会话里已经关掉的套件条目还在（本会话不受新策略影响），但它的有效 token 是 0，所以关掉一套之后它自己的告警立刻消失。快照没有 `on*` 字段时回退到全量口径，旧宿主行为不变。
 - `duplicate-skill` 与 `tool-name-collision` **刻意不产生**：这版宿主的技能注册表与工具注册表在插件可见之前就解析掉了重名，报出来就是编造。枚举保留完整，未来宿主能观察到时再加，UI 契约不变。
 - `action.kind` 只有三种：`switch-group` / `open-content` / `open-tab`；`payload` 直接是 `POST /action` 能吃下的形状（`{channel, group, enabled, op}` 等），`switch-group` 额外带 `parts[]`（这套覆盖的每个 `channel+group`），面板一次点掉所有通道；旧宿主只给 `channel+group` 时面板按 label 反查。动作不再做二次映射。

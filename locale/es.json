@@ -395,6 +395,7 @@
     "trend.backfilling": "Rellenando historial…",
     "v2.originPlugin": "Plugins / MCP",
     "v2.originBuiltin": "Integrado en DSH",
-    "v2.originHint": "Los espacios de nombres MCP y las skills con proveedor cuentan como plugins; las secciones del host, contextos de ejecución, reglas del espacio de trabajo y herramientas integradas cuentan como DSH."
+    "v2.originHint": "Los espacios de nombres MCP y las skills con proveedor cuentan como plugins; las secciones del host, contextos de ejecución, reglas del espacio de trabajo y herramientas integradas cuentan como DSH.",
+    "health.builtin-heavy": "«{label}» es el {share}% del primer turno (suite integrada de DSH; no se recomienda desactivarla)"
   }
 }

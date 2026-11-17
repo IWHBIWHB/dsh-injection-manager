@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.1.1 — 2026-11-18
+
+### Fixed
+
+- **Health checks no longer recommend closing DSH's own suites.** `heavy-suite` is now restricted to
+  installed plugin / MCP suites (`group.origin === 'plugin'`), so a big `core`, `browser`,
+  `schedule` or `subagent` suite gets an informational `builtin-heavy` note instead of a "turn this
+  suite off" button — closing the host's own tool families is not a sensible default. Snapshots
+  without `origin` (older hosts) keep the previous behaviour.
+- **Switching a suite from the list actually writes the policy.** The grouped list keys rows by
+  label (`filesystem`) while `POST /action` needs the real group id (`skills:filesystem`); the
+  single-channel branch sent the label, matched zero rows and returned `changed: false`, so a click
+  on a suite row was a silent no-op. It now sends the real `channel + group` pair from the row's
+  parts (same as the health strip action).
+
+### Verification
+
+- `node --test` 211/211 (two new tests: built-in heavy suites are informational and carry no
+  action; a heavy plugin suite keeps its switch recommendation; the huge tool fixture moved to an
+  MCP namespace so it remains a plugin suite).
+- Live QA: `core` at 38% renders as `builtin-heavy` info with no button; clicking the `filesystem`
+  suite switch now answers `changed: true` and writes `skills: except […]`.
+- Docs screenshots and the demo GIF re-shot after the change and re-masked (host session titles,
+  session ids, local policy path).
+
 ## 2.1.0 — 2026-11-18
 
 The focus release. The plugin explicitly does one job — show and manage what a new DSH session

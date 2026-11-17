@@ -395,6 +395,7 @@
     "trend.backfilling": "Backfilling history…",
     "v2.originPlugin": "Plugins / MCP",
     "v2.originBuiltin": "DSH built-in",
-    "v2.originHint": "MCP namespaces and provider-backed skills count as plugins; host prompt sections, runtime contexts, workspace rules and built-in tools count as DSH built-in."
+    "v2.originHint": "MCP namespaces and provider-backed skills count as plugins; host prompt sections, runtime contexts, workspace rules and built-in tools count as DSH built-in.",
+    "health.builtin-heavy": "\"{label}\" is {share}% of the first turn (DSH built-in suite — not recommended to switch off)"
   }
 }

@@ -194,3 +194,47 @@ test('the switch-group action closes every channel the suite spans', () => {
     { channel: 'sections', group: 'sections:mcp:rea' },
   ])
 })
+
+test('a heavy DSH built-in suite is reported as info, never as a "turn it off" row', () => {
+  const builtinOnly = snapshot({
+    effective: { totals: { tokens: 17900, savableTokens: 15500, chars: 66000, count: 125 } },
+    items: [
+      { channel: 'tools', name: 'read', group: 'tools:core', groupLabel: 'core', tokens: 9000, locked: false, on: true, origin: 'builtin' },
+      { channel: 'tools', name: 'pwsh', group: 'tools:core', groupLabel: 'core', tokens: 8000, locked: false, on: true, origin: 'builtin' },
+    ],
+    groups: [
+      { id: 'tools:core', channel: 'tools', label: 'core', origin: 'builtin', count: 2, tokens: 17000, savableTokens: 17000, onCount: 2, offCount: 0, onTokens: 17000, offTokens: 0, onSavableTokens: 17000 },
+    ],
+    locks: [],
+    policy: { exists: true, preset: 'custom', preview: { after: 17900 } },
+  })
+  const health = buildHealth(builtinOnly)
+  const actionable = health.checks.filter((check) => check.code === 'heavy-suite')
+  assert.equal(actionable.length, 0, 'built-in suites are not switch recommendations')
+  const note = byCode(health, 'builtin-heavy')
+  assert.ok(note, 'the built-in heavy suite is still reported')
+  assert.equal(note.severity, 'info')
+  assert.equal(note.params.label, 'core')
+  assert.equal(note.params.share, 95) // 17000 of 17900
+  assert.equal(note.action, undefined, 'no action button for a built-in suite')
+})
+
+test('a heavy plugin suite keeps the switch recommendation', () => {
+  const plugin = snapshot({
+    effective: { totals: { tokens: 40000, savableTokens: 40000, chars: 120000, count: 60 } },
+    items: [
+      { channel: 'tools', name: 'mcp__rea__a', group: 'tools:mcp:rea', groupLabel: 'REA', tokens: 38000, locked: false, on: true, origin: 'plugin' },
+    ],
+    groups: [
+      { id: 'tools:mcp:rea', channel: 'tools', label: 'REA', origin: 'plugin', count: 1, tokens: 38000, savableTokens: 38000, onCount: 1, offCount: 0, onTokens: 38000, offTokens: 0, onSavableTokens: 38000 },
+    ],
+    locks: [],
+    policy: { exists: true, preset: 'custom', preview: { after: 40000 } },
+  })
+  const health = buildHealth(plugin)
+  const recommendation = health.checks.find((check) => check.code === 'heavy-suite')
+  assert.ok(recommendation)
+  assert.equal(recommendation.params.label, 'REA')
+  assert.equal(recommendation.action.kind, 'switch-group')
+  assert.equal(byCode(health, 'builtin-heavy'), undefined)
+})

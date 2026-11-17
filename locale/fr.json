@@ -395,6 +395,7 @@
     "trend.backfilling": "Complément de l’historique…",
     "v2.originPlugin": "Extensions / MCP",
     "v2.originBuiltin": "Intégré à DSH",
-    "v2.originHint": "Les espaces de noms MCP et les skills fournies par un fournisseur comptent comme extensions ; les sections d’invite, contextes d’exécution, règles d’espace de travail et outils intégrés comptent comme DSH."
+    "v2.originHint": "Les espaces de noms MCP et les skills fournies par un fournisseur comptent comme extensions ; les sections d’invite, contextes d’exécution, règles d’espace de travail et outils intégrés comptent comme DSH.",
+    "health.builtin-heavy": "« {label} » représente {share} % du premier tour (suite intégrée à DSH, non recommandée à désactiver)"
   }
 }

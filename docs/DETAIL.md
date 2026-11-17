@@ -74,7 +74,8 @@ re-interpreted as HTML. A slow read returns `timeout` after 2 seconds instead of
 
 | Code | Fires when | Action |
 | --- | --- | --- |
-| `heavy-suite` | one suite is ≥25% of the next first request under the saved policy, or ≥30k tokens | turn that suite off (every channel it spans) |
+| `heavy-suite` | an installed plugin / MCP suite is ≥25% of the next first request under the saved policy, or ≥30k tokens | turn that suite off (every channel it spans) |
+| `builtin-heavy` | a DSH built-in suite is that big (informational: closing host tool families is not recommended) | — |
 | `catalog-truncated` | skill descriptions are cut at the catalog line length | read the affected skill |
 | `locked-items` | items that cannot be switched off are ≥10% | jump to the manage list |
 | `unknown-window` | no measurement yet, so occupancy is unknowable | — |

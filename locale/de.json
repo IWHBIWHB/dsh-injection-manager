@@ -395,6 +395,7 @@
     "trend.backfilling": "Verlauf wird nachgefüllt…",
     "v2.originPlugin": "Plugins / MCP",
     "v2.originBuiltin": "DSH-integriert",
-    "v2.originHint": "MCP-Namespaces und Skills mit Provider zählen als Plugins; Prompt-Abschnitte, Laufzeitkontexte, Workspace-Regeln und integrierte Werkzeuge zählen als DSH."
+    "v2.originHint": "MCP-Namespaces und Skills mit Provider zählen als Plugins; Prompt-Abschnitte, Laufzeitkontexte, Workspace-Regeln und integrierte Werkzeuge zählen als DSH.",
+    "health.builtin-heavy": "„{label}“ sind {share} % des ersten Aufrufs (DSH-integrierte Suite — Ausschalten nicht empfohlen)"
   }
 }

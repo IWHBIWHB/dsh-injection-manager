@@ -38,7 +38,7 @@ const ctx = {
       { name: 'mcp__demo__one', description: 'one', parameters: { type: 'object' } },
       { name: 'mcp__demo__two', description: 'two', parameters: { type: 'object' } },
       { name: 'read', description: 'read', parameters: { type: 'object' } },
-      { name: 'huge_tool', description: 'y'.repeat(40000), parameters: { type: 'object' } },
+      { name: 'mcp__huge__tool', description: 'y'.repeat(40000), parameters: { type: 'object' } },
     ],
   },
   agents: { get: () => undefined, currentInitiator: () => undefined, list: () => [] },
@@ -112,7 +112,7 @@ test('{channel,name} also returns section text', async () => {
 })
 
 test('a 40k description is cut to the 32KB model budget, not dumped', async () => {
-  const result = await run({ channel: 'tools', name: 'huge_tool' })
+  const result = await run({ channel: 'tools', name: 'mcp__huge__tool' })
   assert.equal(result.ok, true)
   assert.equal(result.truncated, true)
   assert.ok(result.bytes <= TOOL_CONTENT_LIMIT)
@@ -163,7 +163,7 @@ test('a /health action payload is directly executable by POST /action', async ()
   assert.equal(health.status, 200)
   assert.equal(health.json.ok, true)
   const heavy = health.json.checks.find((check) => check.code === 'heavy-suite')
-  assert.ok(heavy, 'the huge_tool suite is heavy enough to be flagged')
+  assert.ok(heavy, 'the huge MCP suite is heavy enough to be flagged')
   assert.equal(heavy.action.kind, 'switch-group')
   const payload = heavy.action.payload
   const apply = await invoke(routes.action, {
@@ -175,7 +175,7 @@ test('a /health action payload is directly executable by POST /action', async ()
   assert.equal(apply.status, 200)
   assert.equal(apply.json.ok, true)
   assert.equal(apply.json.policy.tools.mode, 'except')
-  assert.ok(apply.json.policy.tools.names.includes('huge_tool'))
+  assert.ok(apply.json.policy.tools.names.includes('mcp__huge__tool'))
 })
 
 test('/content maps success and failures to HTTP statuses', async () => {
