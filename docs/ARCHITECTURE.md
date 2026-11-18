@@ -1,6 +1,6 @@
 # 架构
 
-这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样；v2 新增的只读表面（内容透视、趋势、事件、健康检查）分别从哪来、写到哪去。
+这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样；v2 新增的只读表面（内容透视、趋势、事件、健康检查）分别从哪来、写到哪去；2.2.0 的两个数字口径（`numbers.session` / `numbers.next`）和策略写入队列也在这里说明。
 
 ## 四条注入通道
 
@@ -32,12 +32,14 @@ Config ───────┤
               ▼
          previewPolicy() → 关掉后剩多少 / 省多少
               ▼
-   { items(+preview), groups, channels, totals, context, policy, undo }
+   { items(+preview), groups, channels, totals, context, numbers, policy, undo }
               ├─▶ 面板 / context_injection / /export / applyPolicyForAgent
               └─▶ buildHealth(snapshot) → 健康检查（纯函数，见下）
 ```
 
 `context` 那一路是唯一不由本插件估算的部分：`window` / `pressure` / `projected` 来自宿主的 `contextPressure` 投影，`breakdown` 来自 `contextBreakdown`，（缺分母时才）用 `ctx.llm.resolveModelInfo()` 的 `contextWindow` 兜底；压缩回执由 `session/event` 监听器从 `compaction/*` 累积。因此面板里的占用百分比与宿主自己的「上下文已用 x%」是同一个数，不会各说各话。
+
+`numbers` 是 2.2.0 新增的两个口径：`session = totals.tokens`（本会话此刻的注入量），`next = effective.totals.tokens`（按已保存策略，之后新建会话的首轮注入量）。两者只在会话中途改过策略时不同；面板 KPI、面板底栏、侧栏脚注、输入框徽标和构成卡标题都读这一对，不再各自从 `totals` / `effective` 推算。`session` 不是「下一次请求」——下一次请求还带着对话历史，占用率那条才是。
 
 关键不变量：**只有一份实现**。浏览器不重算 token、不重算预览；它拿到什么就画什么。这也让「预览数字」和「实际生效」不会打架。v2 只加了两个派生：每个条目的 `preview`（快照阶段切好的前 180 字符纯文本）和 `buildHealth()` 的检查结果——两者都从同一份快照算，不额外读盘。
 
@@ -74,12 +76,12 @@ agent/created (source=startup|clear)
 
 ## HTTP 面
 
-全部挂在 `/plugins/dsh-injection-manager` 下，共 15 条路由：**12 条只读 GET + 3 条 POST-only**（`/action` 改策略；`/boot`、`/registrations` 是客户端自报诊断，二者收到 GET 会返回 405）：
+全部挂在 `/plugins/dsh-injection-manager` 下，共 15 条路由：**12 条 GET + 3 条 POST-only**（`/action` 改策略；`/boot`、`/registrations` 是客户端自报诊断，二者收到 GET 会返回 405）。GET 不改策略、不改工作区；快照路由会刷新本机 `stats.json`，见「安全边界」。
 
 | 路由 | 方法 | 作用 | 响应要点 |
 | --- | --- | --- | --- |
 | `/ping` | GET | 注册自检 | 路由清单、策略文件路径 |
-| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`items[].origin`、`groups[].on*`、`settings`、`locale` |
+| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`items[].origin`、`groups[].on*`、`numbers {session,next}`、`settings`、`locale`；`?lang=zh｜en｜…` 只回该语言 + en 兜底，不带 `lang` 回全部 8 份（`/locale` 用） |
 | `/content` | GET | 单条原文 | `?channel=&id=[&session=]`；`contentType`、`content`、`bytes`、`truncated`、`sourcePath`、`note`；256KB 上限、2 秒预算、404/400 分支 |
 | `/trend` | GET | 跨会话趋势 | `?range=all｜30d｜7d&limit=120`（上限 500）；`points[]`、`aggregate`、`coverage {recorded, known}`、`backfilling` |
 | `/events` | GET | 事件流 | `?session=&limit=60`（上限 300）；`events[]`、`coverage {from, count, limit}` |
@@ -93,21 +95,35 @@ agent/created (source=startup|clear)
 | `/registrations`、`/boot` | **POST** | 客户端自报诊断（仅内存） | 启动表与注册诊断，不落盘；GET 返回 405 |
 | `/action` | **POST** | 改策略入口 | 同源 JSON；开关/预设/导入/撤销 |
 
-约定的响应边界：JSON 单次响应有上限，`/summary` 的条目文本靠 `preview` 控制体积；`/content` 的 256KB 上限和 UTF-8 安全截断在 `lib/content.js` 里实现；`/trend` 的 `limit` 与被回填的会话数都封顶；`/events` 读的是已经封顶 300 条的 `events.json`。
+约定的响应边界：JSON 单次响应有上限，`/summary` 的条目文本靠 `preview` 控制体积，语言字典靠 `?lang=` 控制（客户端只取自己那份 + en，单次约 267KB → 约 150KB；`/locale` 仍取全部八份）；`/content` 的 256KB 上限和 UTF-8 安全截断在 `lib/content.js` 里实现；`/trend` 的 `limit` 与被回填的会话数都封顶；`/events` 读的是已经封顶 300 条的 `events.json`。
 
 ## 数据文件
 
 | 位置 | 内容 | 谁写 | 生命周期 |
 | --- | --- | --- | --- |
-| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记 | 面板动作（原子写） | 持久，卸载后保留 |
-| `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量：`allOn` / `effective` / `saved` / `peak` / `samples` / `firstAt` / `scope` / `policy` / `compactions` / 新快照才有的 `channels` | 每次取快照（面板/工具/命令） | 上限 400 行，原子写，可被日志回填补齐 |
+| `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记 | 面板动作与 `/inject`（写队列 + 原子写） | 持久，卸载后保留 |
+| `$DSH_HOME/injection-manager/policy.json.bak` | 上一份能解析的策略 | 每次写策略前复制（已有旧文件时） | 持久；`policy.json` 损坏时用于恢复 |
+| `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量：`allOn` / `effective` / `saved` / `peak` / `samples` / `firstAt` / `scope` / `policy` / `compactions` / 新快照才有的 `channels` | 每次 `buildSnapshot()`（面板/工具/命令/导出/健康检查），以及趋势后台回填 | 上限 400 行，原子写，可被日志回填补齐 |
 | `$DSH_HOME/injection-manager/events.json` | `{version:1, events:[…]}`，最多 300 条；每条 `id` / `at` / `kind` / `params`（拍平的原始值，字符串 ≤200 字符，≤24 项）/ `tokensDelta` / 可选 `sessionId` / `dedupeKey` | 策略保存、预设、导入、撤销、压缩 | 追加式；tmp+rename；去重键防重放 |
 | `$DSH_HOME/injection-manager/` 的旧目录 | `context-injection/`、`context-preflight/` | 只在首次读取时迁移 | 只读兼容 |
 | 插件行 `config` | dock / refreshOnFocus / showRawNames | Plugins → Configuration | 持久 |
 | 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的 gate 卡 | 面板 | 只在这个浏览器 |
 | 内存 | 撤销栈（20 步）、最近一次应用结果、客户端 boot 报告、压缩回执（按会话）、路由窗口容量缓存 | 进程内 | 重启清空 |
 
-不上传、不联网、不写 workspace 文件。
+不上传、不联网、不写 workspace 文件。读路由会刷新 `stats.json`，但不改工作区与策略。
+
+## 策略写入
+
+`policy.json` 的每一次修改都是读-改-写，2.2.0 起由 `lib/lock.js` 的进程内队列串行化：
+
+- `withPolicyLock(task)` 把任务排在前一个任务之后，前一个失败不会卡住队列，每个调用仍拿到自己的结果或错误；
+- `POST /action` 的「读策略 → 应用动作 → 读回状态」整体在队列里，`/inject all|minimal|undo` 也走同一把锁，所以同一个 DSH 进程里两个窗口各关一个套件时两次修改都会保留；
+- 锁只覆盖本进程：两个 DSH 进程共享同一个 `DSH_HOME` 不在保证范围内，原子 rename 至少保证不会写出半个文件；
+- `lib/policy.js` 的 `writePolicy()` 自己还有一条写链，即使调用方不在队列里也不会并发写同一个文件；
+- 临时文件名是 `policy.json.tmp-<pid>-<计数器>-<随机后缀>`，同一毫秒内的两次写不会撞名；
+- 写新文件前先复制当前文件为 `policy.json.bak`（首次写或旧文件读不到时跳过）；`readPolicy()` 解析失败时先读 `.bak`，成功则返回 `{recovered: true, error: '...; recovered from .bak'}`，只有备份也不可用才回落到全开并带错误。
+
+失败语义：读不到文件（`ENOENT`）仍按旧逻辑找历史目录；坏 JSON 不再静默丢开关。
 
 ## 事件埋点
 
@@ -160,7 +176,8 @@ index.js            插件入口：Config、工具（含单条内容模式）、
 lib/snapshot.js     快照、套件聚类、来源分类、行内预览、策略预览
 lib/apply.js        四通道生效 + 策略保存（含事件埋点）
 lib/group.js        套件聚类
-lib/policy.js       策略 schema、原子读写、旧目录迁移
+lib/policy.js       策略 schema、串行原子写、`.bak` 恢复、旧目录迁移
+lib/lock.js         策略读-改-写队列（进程内，POST /action 与 /inject 共用）
 lib/routes.js       HTTP 面（15 条路由、同源写校验、安全头）
 lib/content.js      内容透视：白名单读取、UTF-8 安全截断
 lib/events.js       事件流：校验、去重、封顶、原子写
@@ -183,17 +200,16 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
   `makeFencedHandler(ctx, handler)`：每个请求先问 `ctx.connection.requestRejection(req)`
   （DSH 自己的 Host/Origin 准入 + 浏览器/API 凭据）。宿主返回 `401/403` 时由栅栏直接应答
   （空 body + `nosniff`/`no-referrer`/frame-deny/`no-store`），路由逻辑、文件与策略都不执行；
-  返回 `undefined` 才放行。
-- 返回 `undefined` 才放行；只有宿主明确返回 401/403 时才拒绝（失败开放：缺服务、缺方法、抛错、异常返回值都放行）。
+  返回 `undefined` 才放行；只有宿主明确返回 401/403 时才拒绝（失败开放：缺服务、缺方法、抛错、异常返回值都放行）。
 - **栅栏可降级，不是硬依赖。** `connection` 没有加进 `inject`：宿主缺少该服务（旧版本、或启动
   早期）、没有 `requestRejection` 方法、或调用抛错时，栅栏跳过，路由保持 2.0.0 的行为——安全
   栅栏不能把面板变砖。
 - 写操作（`POST /action`）在此基础上仍要求 `content-type: application/json`，且
   `sec-fetch-site` 不是跨站；带 `Origin` 时还要求 host 与页面一致。
 - 所有 JSON 响应带 `x-content-type-options: nosniff`、`x-frame-options: DENY`、`cache-control: no-store`。
-- 没有任何 GET 路由会写文件：`/summary`、`/content`、`/trend`、`/events`、`/health`、`/stats`、`/verify`、`/export` 都只读策略、快照、统计与事件文件。
+- **GET 路由不改策略、不改工作区**：`/summary`、`/export`、`/health` 会重新 `buildSnapshot()`，因此会刷新本机 `stats.json` 的一行统计（`lib/stats.js` 的 `recordSnapshot()`）；`/trend`、`/stats` 的后台回填也只写这份统计。除此之外，`/content`、`/events`、`/verify` 只读各自的文件与内存快照，没有任何 GET 会写 `policy.json` 或 workspace 文件。
 - `/content` 是唯一读磁盘内容的接口，但路径来自快照登记，不接受外部路径；有 2 秒预算与 256KB 上限。
-- 策略与统计、事件写入都是同目录临时文件 + rename，崩溃时保留旧文件。
+- 策略、统计、事件写入都是同目录临时文件 + rename；策略写还串行化并保留 `.bak`，崩溃或坏文件都能退回上一份好策略。
 - 插件不发起网络请求，不上传策略或会话内容；`events.json` 只收策略与被截断的原始值。
 
 ## 测试
@@ -201,6 +217,7 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 | 文件 | 覆盖 |
 | --- | --- |
 | `test/policy.test.mjs` | 模式语义、必填锁定、自定义人设替换 |
+| `test/policy-write.test.mjs` | 并发写不丢、临时文件名唯一、坏 JSON 从 `.bak` 恢复 |
 | `test/group.test.mjs` | MCP/前缀/provider 聚类、汇总 |
 | `test/settings.test.mjs` | 配置归一化与默认值 |
 | `test/text.test.mjs` | 工具卡片、文本报告与健康摘要的数字/告警 |

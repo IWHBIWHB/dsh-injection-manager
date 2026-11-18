@@ -48,6 +48,8 @@
 | `GET /content`（tools） | 2.1 ms | 697 B |
 | `GET /content`（skills） | 5.5 ms | 7.4 KB |
 
+`/summary` 的 175 KB 是未带 `?lang=` 的旧采样；2.2.0 起客户端会带语言，响应体随之变小（见 README 的体积对比），上表延迟未按新响应重测。
+
 趋势与统计（回填改为后台后的单次探针，671 个会话的语料）：
 
 | 路由 | 实测 | 备注 |
@@ -67,7 +69,7 @@
 
 ## 复现
 
-- 管理页基线：`_research/polish-shots.mjs`（离线夹页，同一份真实快照；会顺带截设置页、深色主题）。
-- 三 tab、抽屉、趋势的真实界面：由 `qa` 的临时 profile 实例（`_research/verify/`）截图与探针生成，不碰你的 desktop profile。
+- 管理页基线来自开发机上的本地脚本 `_research/polish-shots.mjs`（离线夹页，同一份真实快照）；`_research/` 不随包发布（见 `.gitignore`），需要向维护者要脚本。
+- 三 tab、抽屉、趋势的真实界面：由 `qa` 的临时 profile 实例截图与探针生成（同样只存在于开发机），不碰你的 desktop profile。
 
 如果某天条目涨到四位数或会话历史过万，先看趋势点数（>40 已合并）与列表行数（按套件折叠）；这两个是唯一会随数据线性增长的地方。

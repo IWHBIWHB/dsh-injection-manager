@@ -76,6 +76,9 @@ test('items carry the policy on-flag the panel renders', async () => {
   // The projection and the per-item flags must agree: effective excludes beta.
   const betaTokens = byKey.get('tools:mcp__demo__beta').tokens
   assert.equal(snapshot.effective.totals.tokens, snapshot.totals.tokens - betaTokens)
+  // One pair of numbers, named once, for every surface to quote.
+  assert.deepEqual(snapshot.numbers, { session: snapshot.totals.tokens, next: snapshot.effective.totals.tokens })
+  assert.equal(snapshot.numbers.session - snapshot.numbers.next, betaTokens)
 })
 
 test('cleanup', async () => {

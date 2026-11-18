@@ -25,6 +25,7 @@ import { presetPolicy } from './lib/presets.js'
 import { readPolicy } from './lib/policy.js'
 import { setSettings } from './lib/settings.js'
 import { pushUndo, undoLastPolicy } from './lib/actions.js'
+import { withPolicyLock } from './lib/lock.js'
 import { renderCard, renderHealthLine, renderHealthText, renderText } from './lib/text.js'
 
 export const name = 'injection-manager'
@@ -189,11 +190,15 @@ export function createCommand(ctx) {
             skills: snapshot.items.filter((item) => item.channel === 'skills').map((item) => item.name),
             tools: snapshot.items.filter((item) => item.channel === 'tools').map((item) => item.name),
           }
-          const state = await readPolicy()
-          pushUndo(state.policy)
-          const next = presetPolicy(command, names)
-          next.prompt = state.policy.prompt
-          await savePolicy(next, { sessionId, kind: 'preset', params: { name: command, via: 'command' } })
+          // Same queue as the panel's writes: a slash command racing a click
+          // must not lose either change.
+          await withPolicyLock(async () => {
+            const state = await readPolicy()
+            pushUndo(state.policy)
+            const next = presetPolicy(command, names)
+            next.prompt = state.policy.prompt
+            await savePolicy(next, { sessionId, kind: 'preset', params: { name: command, via: 'command' } })
+          })
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           return {
             kind: 'success',
@@ -202,7 +207,7 @@ export function createCommand(ctx) {
         }
 
         if (command === 'undo') {
-          await undoLastPolicy({ sessionId, params: { via: 'command' } })
+          await withPolicyLock(() => undoLastPolicy({ sessionId, params: { via: 'command' } }))
           const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
           return {
             kind: 'success',

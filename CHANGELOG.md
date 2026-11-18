@@ -1,5 +1,65 @@
 # Changelog
 
+## 2.2.0 — 2026-11-18
+
+The consistency release. Every surface now quotes the same two numbers, "off" has one meaning,
+and a policy write either lands whole or leaves the previous file intact.
+
+### Changed
+
+- **Two numbers, two names.** `/summary` gained `numbers: { session, next }`: what the current
+  conversation is injecting, and what a session created after the saved policy will get. The KPI
+  header, the panel footer, the sidebar footer, the composer badge and the composition header all
+  read that pair and say 新会话首轮 / 本会话 (next session / this session) instead of sharing one
+  "首轮注入" label. The badge used to read the all-on total, so closing a 66k suite moved the panel
+  by three quarters and the badge by nothing; it now reads `next` and keeps `session` in the tooltip.
+- **"Off" is no longer two words for one badge.** A row that is still in this session's assembly but
+  excluded from the next one says 新会话关闭; an item that has already left the assembly says
+  已关闭. Both used to render on the same row.
+- **The tool card and `/inject health` tell installed suites and host suites apart.** An MCP/plugin
+  suite is described as closeable and is the one the card recommends; a host suite (`core`,
+  `browser`, `schedule`, `subagent`) is reported as informational and never suggested. The
+  recommendation also skips suites the policy already closed, and the card headline says 本会话.
+- **Sidebar kind chips land on a channel.** `提示词` / `规则` used to send `prompts` / `rules` — ids
+  no channel filter could match, so the click opened an empty list with raw translation keys. They
+  map to `sections` / `instructions` now.
+
+### Fixed
+
+- **Concurrent policy writes can neither drop a switch nor corrupt the file.** `POST /action` and
+  the `/inject` preset/undo commands go through one process-wide queue (`lib/lock.js`), and the file
+  write itself is queued with a unique temp name. Two panels flipping two suites used to interleave,
+  keep the later write only, and — when both landed in the same millisecond — publish a truncated
+  JSON that read back as "everything on", silently re-enabling the suites that had just been closed.
+- **A corrupt `policy.json` recovers from `policy.json.bak`** (written before every save) instead of
+  falling back to "everything on"; the read reports `recovered: true` and names the backup in
+  `error`.
+
+### Performance
+
+- **Polled `/summary` responses are ~44% smaller.** They carried all eight client dictionaries
+  (~137 KB of 267 KB on the reference profile) while the panel renders one. The client now sends
+  `?lang=`, the host answers with that dictionary plus English, `/locale` still returns all eight
+  for host-level registration, and a polled response drops to about 150 KB.
+
+### Verification
+
+- `node --test` 220/220 (nine new: policy queue/backup recovery, corrupt-file recovery, `numbers`
+  contract, per-language payload, installed-vs-host suite wording, closed-suite recommendation).
+- Fixture harness (`_research/rsi/`): 22 screenshots across three surfaces, two themes, three
+  locales and five policy states; no horizontal overflow, no unnamed controls, no console errors
+  beyond a fixture 404.
+- `node scripts/self-audit.mjs` scores the repository; `docs/RSI.md` records the loop and this
+  round's baseline.
+
+### Notes
+
+- `docs/images/*` and the demo GIF still show the 2.1.1 labels. The numbers and wording under them
+  are unchanged; a re-shoot is queued for the next release rather than faked here.
+- Backlog after this round: attribute a tool to the plugin that registered it (the host's
+  `ToolSchema` has no owner field), per-skill last-used, session-to-session diff, filterable
+  event timeline, virtualised 354-row list.
+
 ## 2.1.1 — 2026-11-18
 
 ### Fixed

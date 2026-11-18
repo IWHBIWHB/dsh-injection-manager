@@ -139,6 +139,19 @@ test('JSON responses carry hardening headers', async () => {
   assert.equal(response.headers['cache-control'], 'no-store')
 })
 
+test('a polled summary ships only the dictionary the panel asked for', async () => {
+  const routes = createRoutes(makeCtx())
+  const all = await invoke(routes.summary, { url: '/summary' })
+  assert.equal(Object.keys(all.json.locale).length, 8, 'no language hint keeps the full set for /locale consumers')
+  const zh = await invoke(routes.summary, { url: '/summary?lang=zh' })
+  assert.deepEqual(Object.keys(zh.json.locale).sort(), ['en', 'zh'])
+  assert.ok(zh.json.locale.zh.nextTurn.length > 0)
+  const unknown = await invoke(routes.summary, { url: '/summary?lang=xx' })
+  assert.equal(Object.keys(unknown.json.locale).length, 8, 'an unknown language is not a filter')
+  // Same snapshot either way: the language only selects bytes.
+  assert.equal(zh.json.totals.tokens, all.json.totals.tokens)
+})
+
 test('export serves a downloadable JSON manifest of the same snapshot', async () => {
   const routes = createRoutes(makeCtx())
   const response = await invoke(routes.export, { url: '/export?format=json' })

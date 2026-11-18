@@ -1,0 +1,100 @@
+# RSI：可重复的自审计
+
+一句话：每次改数字、改开关或改文案，跑一次 `node scripts/self-audit.mjs`，把代码、面板和文档对一遍；对不上就红，不靠人眼。
+
+## 为什么
+
+- 用户信的是面板上的数字。口径漂移一次（徽标读全开总量、面板读生效值），之后每个数字都可疑。
+- 「关闭」有两种事实：本会话已移除、只对新会话生效。混用一个词，用户会以为开关失灵。
+- 发布前的人眼检查不可复现；固定结构的 JSON 报告才能让下一轮直接 diff。
+- 自审不是发布仪式，是给下一轮省时间：先找最弱项，再决定改什么。
+
+## PDCA 四步
+
+| 步骤 | 本仓库动作 | 产物 |
+| --- | --- | --- |
+| Plan | 跑 `node scripts/self-audit.mjs`，按 fail > warn > 分低选最弱项 | 本轮 1~2 个目标 |
+| Do | 先加会红的测试，再改代码；一次只动一个口径 | `test/*.test.mjs` + 代码 |
+| Check | 重跑 self-audit；`node _research/rsi/shot.mjs` 截图；`node --test` | `--json` 报告、截图、通过数 |
+| Act | 写 CHANGELOG；把新修的点变成护栏；没做完的进 backlog | 版本条目 + 本文件 |
+
+Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node --test` 的通过数，缺一不可。
+
+## 六个审计视角
+
+### 1. MECE
+
+- 七个检查项是否覆盖「测试 / 文案 / 契约 / 包 / 体积 / 规则」，且互不重叠。
+- 新增一个面（例如权限）时，是加检查项还是塞进已有项；权重是否要重分。
+- 同一事实是否只在一处定义：路由表、`Config`、locale。
+- 有没有「脚本说 pass 但人看不出为什么」的项。
+
+### 2. 宿主正确性
+
+- `/summary` 的 `numbers.session` / `numbers.next` 是否同源；旧宿主回退是否只影响显示。
+- 写策略是否都走 `withPolicyLock`，临时文件名是否唯一，`.bak` 是否在写前落盘。
+- 路由是否仍接 `requestRejection` 栅栏，POST 是否限同源。
+- 宿主升级后 `API_VERSION` 是否要加，客户端能否特性检测。
+
+### 3. 客户端
+
+- DockChip、面板头、页脚、侧栏是否读同一对数字。
+- `t()` 的字面量 key 是否都在 `locale/en.json`；前缀拼接（`health.`）是否有兜底。
+- `ItemRow` 的关闭标签是否区分「本会话已移除」与「新会话关闭」。
+- 排序、搜索、展开态在 354 行列表上是否仍可操作。
+
+### 4. 文档与 i18n
+
+- README、README.zh、docs 是否都写了 15 条路由、4 个子命令、3 个配置字段。
+- 8 份 locale 的 key、空串、占位符集合是否与 en 一致。
+- 截图和文案是否同一版本；过期截图要标注，不假装。
+- CHANGELOG 最新版本号是否等于 `package.json`。
+
+### 5. UX
+
+- 首屏是否回答「这次注入多少、能关多少、关了什么」。
+- 「关闭」动作后，本会话与新会话的反馈是否分开说。
+- 空态、错态、旧宿主态是否都有下一步，而不是空白。
+- 颜色之外是否还有文字/图标表达状态；键盘能否走完主路径。
+
+### 6. 同类对比
+
+- 相邻插件（`dsh-context`、`billion-context`、`dsh-mnemon-*`）解决的是注入前、注入后还是记忆，别把三件事混成一件。
+- 该补的必须落在「看/管首轮注入」职责内；越界的（压缩、请求重放、记忆开关）明确写「不做」。
+- 宿主已有能力（`contextPressure`、`compaction/summary`）先用，不在插件里重算一个。
+
+## 指标与权重
+
+`score = Σ(权重 × 系数)`；pass = 1、warn = 0.5、fail = 0；满分 100。体积权重 0，只 warn，不拉低分数。
+
+| id | 看什么 | 权重 | 判定 |
+| --- | --- | --- | --- |
+| tests | `node --test` 的 pass/fail/耗时（120s 超时） | 30 | 有 fail、0 通过或解析不到 → fail |
+| locale | 8 份 `locale/*.json` 的 client key 对等 | 15 | 缺失/多余/空串/占位符不一致 → fail |
+| keys | `client.js` 的 `t('...')` 字面量 vs en | 10 | 有 key 不在 en → fail |
+| reconcile | 路由/命令/配置字段的代码↔文档双向差集 | 15 | 文档有代码无 → fail；仅代码有或 API 版本未写 → warn |
+| package | `files`、`exports`、版本 vs CHANGELOG | 10 | 文件/导出缺失或版本不一致 → fail；自审脚本没进包 → warn |
+| invariants | 4 条护栏，每条 5 分 | 20 | 任一条不成立 → fail，按通过条数给分 |
+| size | client / en / 包体字节与基线 | 0 | 永不 fail；超预算、涨 5% 或缺基线只 warn |
+
+- `--strict` 只在任一 fail 时退出 1；warn 不拦。
+- `--json` 输出固定字段顺序；基线在 `_research/rsi/baseline-metrics.json`，只有 `--write-baseline` 才写。
+- 护栏：(a) DockChip 不得读 `data.totals.tokens`；(b) `offNextSession` 存在且 `ItemRow` 不用 `turnedOff`；(c) action 路由含 `withPolicyLock`；(d) `policy.js` 含 `BACKUP_SUFFIX`。
+
+## 2026-11-18 这一轮
+
+- 基线：2.1.1，211 个测试。
+- 修了：数字口径统一（`/summary` 增 `numbers: { session, next }`，徽标/页头/页脚同源）；关闭语义拆分（`offNextSession` 与 `turnedOff` 不再同排）；策略写入串行化 + 写前 `.bak`；`/summary` 按 `?lang=` 只回一份词典；`text.js` 不再建议关闭宿主自带套件。
+- 结果：220 个测试全过（新增 9 条），新增护栏 4 条。
+- 自审终态：7 pass / 0 warn / 0 fail，100/100，`--strict` 退出 0；体积基线已写（`_research/rsi/baseline-metrics.json`）。
+- 护栏当场抓到一次：首跑 (a) 失败，因为 DockChip 的旧宿主回退仍直接读 `data.totals.tokens`。没有放宽护栏，而是把 DockChip 改成复用 `tokenNumbersOf()`——护栏要能逼出更好的代码，不是被代码改窄。
+- 证据：本文件、`_research/rsi/shots/`（22 张）、`node --test` 220/220、`scripts/self-audit.mjs --json`。
+
+## 下一轮候选（backlog）
+
+- 工具归属到插件：`ToolSchema` 没有 owner 字段，健康检查与套件只能靠命名猜。
+- 技能使用频次：技能目录只有体积，没有「上次用到」。
+- 会话间差异：两个会话的首轮构成 diff，而不是只看单点。
+- 事件筛选：事件时间线只能全量看，不能按 kind / 套件过滤。
+- 354 行列表虚拟化：长列表滚动和展开仍有掉帧风险。
+- 洞察页去重：趋势、构成、最大套件之间有重复叙述，收敛成一块。

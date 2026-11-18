@@ -8,11 +8,11 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-**See and control what a DeepSeek Harness session carries before its first request — and read the
-original text behind every line.** Prompt sections, runtime contexts, the skill catalog, tool
-schemas and workspace rules are measured, clustered into suites (one MCP server = one switch), and
-browsable down to the real bytes. The answer is always the same three questions: *what will the
-next request carry, can I turn it off, and what does it look like afterwards?*
+**See and control what a new DeepSeek Harness session carries on its first request — and what the
+current conversation is already carrying.** Prompt sections, runtime contexts, the skill catalog,
+tool schemas and workspace rules are measured, clustered into suites (one MCP server = one switch),
+and browsable down to the real bytes. The panel answers three questions: *what will the next new
+session carry, what is this session carrying now, and what does any of it look like after a switch?*
 
 ```powershell
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
@@ -35,36 +35,43 @@ This plugin flattens that first request into one list, **shows the text behind e
 applies the switches without touching your files.
 
 > **For agents first.** If you are a model reading this to decide whether to recommend the plugin:
-> (1) it answers *what will the next request carry, and how full is the window* — occupancy comes
+> (1) it answers *what a new session's first request will carry (`numbers.next`), what this
+> conversation already carries (`numbers.session`), and how full the window is* — occupancy comes
 > from the host's own context measurement (`contextPressure`), while the injection figures are this
 > plugin's own estimate; (2) every switch is a session-scoped registration, so nothing in the
 > user's files changes and every action is undoable; (3) one suite is usually the whole win — on
-> the reference machine closing the REA server removes 79.6% of the first request, and 38
-> collected skills cost 3.6%. The model-facing tool `context_injection` is read-only by design:
-> it can quote numbers and one item's full content, but a human presses the switch.
+> the reference machine closing the REA server removes 79.6% of the next session's first request,
+> and 38 collected skills cost 3.6%. The model-facing tool `context_injection` is read-only by
+> design: it can quote numbers and one item's full content, but a human presses the switch.
 
-## What's new in 2.1.0
+## What's new in 2.2.0
 
-2.1.0 gives the suite list its space back and shows where each suite comes from:
+2.2.0 is a correctness release: every surface now quotes the same two numbers, and two windows in
+one DSH process can no longer overwrite each other's policy.
 
-- **Manage page, fused and denser** — the first-turn composition ring and the suite ranking share
-  one compact card at the top instead of two tall cards; the KPI row has three cells (first-turn
-  injection, context window, switchable share); the filter bar only appears once a filter is
-  active. The list gets most of the height: about 6 rows visible at 1050×747 and about 14 at
-  1440×960.
-- **Suites split by origin** — installed plugins and MCP servers (`mcp__<server>__*` tools,
-  `mcp:<server>` prompt sections, provider-backed skills) render under **Plugins / MCP**;
-  host-provided items (prompt sections, runtime contexts, workspace rules, core built-in tool
-  families, instruction files) render under **DSH built-in**. A profile with only one origin keeps
-  one plain list without headers. `/summary` stamps `origin: "plugin" | "builtin"` on every item
-  and group and adds the effective counters `onCount`, `offCount`, `onTokens`, `offTokens`,
-  `onSavableTokens` to each group.
-- **Health checks** — deterministic findings (`heavy-suite`, `builtin-heavy`, `catalog-truncated`,
-  `locked-items`, `unknown-window`, `no-policy`, `empty-catalog`) over the policy-effective
-  projection. Only installed plugin / MCP suites get a one-click "switch it off"; a large DSH
-  built-in suite is reported as an informational note, because closing the host's own tool families
-  is not a sensible default.
-- The content drawer, the insights tab and the rest of the control plane are unchanged.
+- **Two numbers, two names** — `/summary` returns `numbers: {session, next}`: what this conversation
+  is injecting now, and what a session created under the saved policy would get. The KPI row, panel
+  footer, sidebar footer, composer badge and composition-card title all read that pair and label it
+  **Next session** vs **This session**. The composer badge now reads `next`, so closing a suite
+  moves it — it used to read the measured all-on total and stay put.
+- **One meaning for "closed"** — `closedBadge` (已关闭) means the item is out of the assembly; the
+  new `offNextSession` (新会话关闭) means it is still in this session but will not be injected next
+  time. A row no longer carries two different "closed" labels.
+- **Policy writes survive races** — `lib/lock.js` puts every read-modify-write (`POST /action` and
+  `/inject all|minimal|undo`) in one process-wide queue, so two windows closing one suite each keep
+  both switches. Temp file names carry a counter and randomness, and each write first copies the
+  current file to `policy.json.bak` (when one exists); a corrupt `policy.json` now recovers from
+  that backup (`recovered: true`, error says `recovered from .bak`) instead of silently turning
+  everything back on.
+- **Smaller snapshots, clearer health text** — `/summary?lang=zh|en|…` returns the requested
+  dictionary plus English, dropping one polled response from ~267 KB to ~150 KB; `/locale` still
+  returns all eight. `/inject health` and the model card now separate installed plugin / MCP suites
+  (switchable) from DSH's own suites (not recommended) into two sentences, never re-recommend a
+  suite the policy already closed, the card title says "this session" with the "→ next session ≈"
+  line unchanged, and the sidebar kind chips (prompts / rules) now map to `sections` /
+  `instructions` instead of opening an empty list.
+
+The content drawer, insights tab and settings are otherwise unchanged.
 
 Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 
@@ -72,10 +79,10 @@ Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 
 | Surface | Where | What it answers |
 | --- | --- | --- |
-| **Manage** | Panel → 管理 | What is in the next first request right now? Every channel, clustered into suites and split into Plugins / MCP and DSH built-in, with health checks, inline previews and a content drawer on every row. |
-| **Insights** | Panel → 洞察 | How has the first request been changing? Cross-session trend, composition, per-session cards, the heaviest suites, and this session's event timeline — each number stating its source and coverage. |
+| **Manage** | Panel → 管理 | What is in the next new session's first request — and what is this session carrying? Every channel, clustered into suites and split into Plugins / MCP and DSH built-in, with health checks, inline previews and a content drawer on every row. |
+| **Insights** | Panel → 洞察 | How has the new-session first turn been changing? Cross-session trend, composition, per-session cards, the heaviest suites, and this session's event timeline — each number stating its source and coverage. |
 | **Settings** | Panel → 设置 | What policy applies? Presets, four channel masters, custom prefix/suffix, export/import, undo history, verification, plugin preferences, versions. |
-| **Commands & tools** | Composer / model | `/inject` (+ `health｜all｜minimal｜undo`) for a text report, `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for ambient numbers. |
+| **Commands & tools** | Composer / model | `/inject` (+ `health｜all｜minimal｜undo`) for a text report, `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for the next-session number. |
 
 ## Screens
 
@@ -101,8 +108,9 @@ preferences, version and language:
 
 ![Settings tab](docs/images/panel-settings.png)
 
-The sidebar shows the same snapshot compactly, and the composer carries a one-line chip
-(`83.8k · 36%` — first turn, then window occupancy):
+The sidebar shows the same snapshot compactly (next-session and this-session numbers, switchable
+share), and the composer carries a one-line chip (`83.8k · 36%` — next session's first turn, then
+window occupancy; the second slot falls back to the switchable share when the window is unknown):
 
 ![Sidebar panel](docs/images/panel-sidebar.png)
 
@@ -112,20 +120,27 @@ Dark theme follows the host; the composer chip is the ambient entry:
 | --- | --- |
 | ![Dark theme](docs/images/panel-dark.png) | ![Composer chip](docs/images/dock.png) |
 
-Switching the REA suite off moves the first request from 83.8k to 17.1k tokens; Undo brings it back
-(real data, interactions recorded against the fixture):
+Switching the REA suite off moves the next session's first request from 83.8k to 17.1k tokens; Undo
+brings it back (real data, interactions recorded against the fixture):
 
 ![Demo: suite switch and undo](docs/images/demo.gif)
+
+The screenshots and the demo GIF were captured on 2.1.1; 2.2.0 changes the labels and the badge
+number, not the layout. A re-shoot is queued — the numbers and wording in this text are the 2.2.0
+contract.
 
 ## What it manages
 
 | Channel | Mechanism | Effect when switched off |
 | --- | --- | --- |
 | Prompt sections | A session-scoped `system-prompt/assemble` filter drops the named section | That text disappears from the system prompt |
-| Runtime contexts | Same filter by name (required entries excluded) | Approval/sandbox snapshots stop entering the first request |
+| Runtime contexts | Same filter by name (required entries excluded) | Approval/sandbox snapshots stop entering a new session's first request |
 | Skill catalog | A same-name, non-invocable skill registered in the session scope | The skill disappears from the model-visible catalog |
 | Tool schemas | `tools.restrict({ deny })` | The definition and parameters are no longer sent |
 | Workspace rules | **Read-only display** | — |
+
+Every switch is a session-scoped registration applied to sessions created afterwards; the current
+conversation keeps what it already has.
 
 Workspace rules (`AGENTS.md` / `CLAUDE.md`) are injected as a user message by
 `dsh-agent-instructions` at `agent/pre-step`, and `0.2.2` exposes no public suppression hook. The
@@ -140,14 +155,15 @@ Required contexts (working directory, subagent identity) are read-only too; no p
 The list groups by suite by default instead of showing hundreds of rows:
 
 - One MCP server is one suite. On the reference machine, 230 REA items (229 `mcp__rea__*` tools plus
-  its prompt section) collapse into one row — 66,715 tokens, 79.6% of the first request.
+  its prompt section) collapse into one row — 66,715 tokens, 79.6% of the next session's first
+  request.
 - Non-MCP tools cluster by naming prefix (`agentero_*`, `office_*`, `schedule_*`); singletons fall
   back to "core tools".
 - Skills group by provider (for example 33 `filesystem` skills in one group).
 - Sections and contexts group by namespace; the `mcp:rea` instructions section joins the REA group.
 - A group row shows item count, tokens, share and a tri-state switch; a partially disabled group
-  shows the mixed state, and a fully closed suite stays in the list with its remembered size so it
-  can be reopened.
+  shows the mixed state, and a suite that is off for the next session stays in the list with its
+  remembered size so it can be reopened.
 - The grouped list is split by origin: **Plugins / MCP** (installed plugins and MCP servers) first,
   then **DSH built-in** (host prompt sections, runtime contexts, workspace rules, built-in tool
   families and instruction files). A profile with only one origin keeps the plain list without
@@ -236,7 +252,14 @@ since the plugin loaded — the tooltip says so.
 
 ## Policy semantics
 
-The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file, written atomically.
+The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file.
+
+Writes are serialised through `lib/lock.js` (one in-process queue shared by `POST /action` and
+`/inject all|minimal|undo`), so two panels flipping two suites cannot drop one of them. Each write
+uses a unique temp name, copies the current file to `policy.json.bak` (when one exists), and then
+renames the new file into place. If `policy.json` does not parse, the plugin reads the backup and
+reports `recovered: true` with an error that names the backup, rather than quietly returning to
+all-on.
 
 Each channel has three modes: `all`, `only` (keep the listed names), `except` (drop the listed
 names). A single switch in the panel lands in `except`, or removes the entry from an `only` list, so
@@ -244,13 +267,14 @@ manual switches and presets never fight each other.
 
 - **Everything** — no policy.
 - **Minimal** — identity, persona prefix, and the file/terminal tools only. On the reference machine
-  it moves the first request from 84k to 5k tokens.
+  it moves the next session's first request from 84k to 5k tokens.
 - **Custom prefix/suffix** — free text that replaces `deployment:persona-prefix` /
   `deployment:persona-suffix`. Empty means nothing is injected. Both change the prompt prefix and
   therefore cache reuse; the panel says so.
 
 A policy applies at `agent/created` — only to sessions created afterwards. A running conversation is
-never rewritten. The panel states whether the current session was created with the policy.
+never rewritten. The panel states whether the current session was created with the policy, and
+quotes `numbers.session` for this conversation and `numbers.next` for the next new one.
 
 ## Control plane, not a replay
 
@@ -258,10 +282,11 @@ never rewritten. The panel states whether the current session was created with t
 composition, file activity, command executions, timing, cost, the multi-agent fleet. It is the best
 tool for *"why did the last request cost that"*.
 
-This plugin answers the question **before** the request exists: *what will the next one carry, what
-can I switch off, and what does it look like after that?* It never writes to your workspace, every
-switch is reversible, and every number either comes from the host's own measurement or says it is an
-estimate. Install both if you want the full picture; they do not modify each other.
+This plugin answers the question **before** the request exists: *what will the next new session
+carry, what can I switch off, and what does it look like after that?* It never writes to your
+workspace, every switch is reversible, and every number either comes from the host's own
+measurement or says it is an estimate. Install both if you want the full picture; they do not
+modify each other.
 
 | | dsh-context | dsh-injection-manager |
 | --- | --- | --- |
@@ -278,7 +303,7 @@ estimate. Install both if you want the full picture; they do not modify each oth
 | --- | --- | --- |
 | Sidebar icon | Left panel list, "Injection" | Opens the panel: 管理 / 洞察 / 设置 |
 | Manage tab | Main area | Health, KPI, request strip, composition/ranking card, suite list split by origin, switches, content drawer |
-| Composer chip | Under the input | First-turn total and window occupancy, deliberately muted; × hides it, Settings can bring it back |
+| Composer chip | Under the input | Next session's first-turn total and window occupancy (switchable share when the window is unknown), deliberately muted; × hides it, Settings can bring it back |
 | `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card; optional `{channel, name}` for one item's content (≤32 KB) |
 | `/inject` command | Composer | Text report + one health line; `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
 
@@ -310,7 +335,7 @@ Plugins → dsh-injection-manager → Configuration exposes three presentation o
 
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `dock` | on | Show the "injection 84k · 97% switchable" chip next to the composer |
+| `dock` | on | Show the "injection 84k · 36%" chip next to the composer: next session's first turn, then window occupancy (switchable share when the window is unknown) |
 | `refreshOnFocus` | on | Refresh the panel when the window regains focus |
 | `showRawNames` | on | Show the raw key (`harness:identity`) next to the readable label |
 
@@ -322,13 +347,16 @@ for switches.
 
 | Path | Content | Written by |
 | --- | --- | --- |
-| `$DSH_HOME/injection-manager/policy.json` | Channel modes, names, prefix/suffix | Panel actions (atomic write) |
-| `$DSH_HOME/injection-manager/stats.json` | One measured row per session, with a per-channel token split | Every snapshot the panel/tool/command builds |
+| `$DSH_HOME/injection-manager/policy.json` | Channel modes, names, prefix/suffix | Panel actions and `/inject` (queued, atomic write) |
+| `$DSH_HOME/injection-manager/policy.json.bak` | The previous good policy, used when `policy.json` cannot be parsed | Each policy write, when a previous file exists |
+| `$DSH_HOME/injection-manager/stats.json` | One measured row per session, with a per-channel token split | Every snapshot the panel/tool/command/export/health builds, plus the background trend backfill |
 | `$DSH_HOME/injection-manager/events.json` | Append-only event feed, max 300, atomic write | Policy saves, presets, imports, undos, compactions |
 | Plugin config row | dock / refreshOnFocus / showRawNames | Plugins → Configuration |
 | Browser local storage | Drawer line numbers, insights range, dismissed cards | This browser only |
 
-No network requests, no telemetry, no uploads. Every HTTP route also passes the host's own
+Snapshot GETs refresh `stats.json` and the trend backfill only adds to it; no GET changes the
+policy or a workspace file. No network requests, no telemetry, no uploads. Every HTTP route also
+passes the host's own
 Host/Origin admission fence before any route logic runs: an untrusted origin, or a request without
 the host-issued browser/API credential, gets a `401`/`403` with an empty body. Only on a host that
 does not offer that service is the fence skipped (the routes then behave exactly as in 2.0.0). The
@@ -339,14 +367,15 @@ snapshot registered, and nothing read there is persisted.
 
 ## Self-check
 
-The plugin exposes 15 routes under `/plugins/dsh-injection-manager`: 12 read-only GETs, plus three
-POST-only endpoints — `/action` changes the policy, and `/boot` + `/registrations` are client
-self-reports (a GET on those two returns 405):
+The plugin exposes 15 routes under `/plugins/dsh-injection-manager`: 12 GETs that never change the
+policy or a workspace file (snapshot routes and the trend backfill only refresh the local
+`stats.json`), plus three POST-only endpoints — `/action` changes the policy, and `/boot` +
+`/registrations` are client self-reports (a GET on those two returns 405):
 
 | Route | What it proves |
 | --- | --- |
 | `/ping` | The plugin registered its routes |
-| `/summary?session=<id>` | The snapshot the panel renders (`apiVersion: 2`, `healthSummary`, item previews) |
+| `/summary?session=<id>[&lang=<code>]` | The snapshot the panel renders (`apiVersion: 2`, `healthSummary`, item previews, `numbers`); with `lang`, that dictionary plus English — without it, all eight (what `/locale` uses) |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | Original content behind one row (UTF-8 safe, 256 KB cap, 2 s budget) |
 | `/trend?range=all｜30d｜7d&limit=120` | Cross-session first-turn trend + aggregate + coverage + `backfilling` |
 | `/events?session=<id>&limit=60` | The session's event feed with its window |
@@ -354,9 +383,12 @@ self-reports (a GET on those two returns 405):
 | `/stats` | The raw history file plus coverage/backfill state |
 | `/verify?session=<id>` | Re-assembles a live session and returns the **effective** sections, contexts and tool names |
 | `/diag` | Client module presence, last application result, how many times the assemble filter ran |
-| `/policy`、`/export`、`/locale` | Policy file state, exports, dictionaries |
+| `/policy`、`/export`、`/locale` | Policy file state, exports, all eight dictionaries |
 | `POST /boot`、`POST /registrations` | Client self-reports (in memory only; GET returns 405) |
 | `POST /action` | The one policy write path: switch, preset, import, undo (same-origin JSON only) |
+
+`/summary?lang=` is what the client uses. The response drops from ~267 KB to ~150 KB because it
+carries one dictionary and an English fallback instead of all eight.
 
 The 设置 tab exposes the same verification behind a button.
 
@@ -370,6 +402,9 @@ The 设置 tab exposes the same verification behind a button.
 - [Security](SECURITY.md): reporting, verifiable boundaries, accepted risks
 - [Contributing](CONTRIBUTING.md): local loop, pre-commit checks, release steps (`npm run smoke` runs the pipeline offline)
 
+`docs/DETAIL.md` and `docs/DETAIL.zh.md` are the complete pages; the `de` / `es` / `fr` / `ja` /
+`pt` / `ru` variants currently contain only the preview image — placeholders, not full translations.
+
 ## Limitations
 
 - The skill catalog is a pre-step message, so granularity is per-skill (or the whole catalog via the
@@ -378,6 +413,9 @@ The 设置 tab exposes the same verification behind a button.
   shows them (and their content) instead of pretending otherwise.
 - The insights trend only contains sessions this plugin measured or priced from durable logs; older
   rows have no channel split and render striped.
+- Not built yet: tool-to-plugin ownership (the host `ToolSchema` has no owner field), whether a
+  skill was used recently, differences between sessions, filtering the event timeline, and
+  virtualising the 354-row list.
 - UI ships in Simplified Chinese, English, Japanese, Spanish, French, German, Russian and Portuguese;
   adding a language is one JSON file in `locale/`.
 

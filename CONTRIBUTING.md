@@ -42,8 +42,8 @@ git tag v2.0.0
 git push origin v2.0.0
 ```
 
-`.github/workflows/release.yml` 会校验 tag 与版本一致、跑测试、`npm pack --dry-run`，最后用仓库 secret `NPM_TOKEN` 发布到 npm。没有该 secret 时发布会失败，其余步骤照常给出信号。
+`.github/workflows/release.yml` 会校验 tag 与版本一致、跑测试、`npm pack --dry-run`，然后发布到 npm：仓库 secret `NPM_TOKEN` 存在时用它兜底，否则走 npm 的 **OIDC trusted publishing**（GitHub Actions 的 `id-token` 换凭据，不需要长期 token）。两者都没准备时 `npm publish` 这一步才会失败，前面的校验照常给出信号。已经发布过的同版本会跳过发布。
 
 ## 语言
 
-界面词条在 `locale/<code>.json` 的 `client` 段，键集必须与 `locale/en.json` 完全一致；`meta` 段给插件市场展示用。新增语言 = 一个 JSON + 一个 `docs/DETAIL.<code>.md`（一行图片）。
+界面词条在 `locale/<code>.json` 的 `client` 段，键集必须与 `locale/en.json` 完全一致；`meta` 段给插件市场展示用。新增语言 = 一个 JSON + 一个 `docs/DETAIL.<code>.md`（目前只需一行图片占位，不是完整译文）。

@@ -12,8 +12,8 @@
 - **不联网**：插件自身不发任何网络请求；面板只访问同源的 `/plugins/dsh-injection-manager/*`。
 - **不写 workspace**：`AGENTS.md`、`SKILL.md` 等项目文件只读；所有开关是 Cordis 作用域注册，随会话释放。
 - **写接口**：`POST /action` 要求 JSON content-type、`sec-fetch-site` 不是跨站；若带 `Origin`，必须与 `Host` 一致。响应带 `nosniff` / `DENY` / `no-store`。
-- **GET 无副作用**：`/summary`、`/verify`、`/export`、`/diag` 只读。
-- **策略原子写**：同目录临时文件 + rename；解析失败回退到「全开」并在面板明示错误，不会静默删掉一半提示词。
+- **读路由不碰工作区与策略**：快照 GET（`/summary`、`/export`、`/health`）会在本机刷新 `stats.json` 里的一行测量缓存（`lib/snapshot.js` → `lib/stats.js`），`/trend`、`/stats` 的后台回填也只补这份统计。除此之外，读路由不改工作区文件，也不改策略；事件流只由策略保存、压缩等真实事件写入。
+- **策略写入串行化**：所有策略读-改-写（`POST /action`、`/inject all|minimal|undo`）走 `lib/lock.js` 的进程内队列，两个窗口同时关两个套件不会丢一个；临时文件名带计数器与随机后缀，写前把当前文件复制成 `policy.json.bak`（有旧文件时）。`policy.json` 解析失败时先读 `.bak` 恢复（返回 `recovered: true`），连备份都没有才回落到全开并在面板明示错误，不会静默删掉一半提示词。
 
 ## 已知的、被接受的风险
 
@@ -25,11 +25,12 @@
 
 发布 npm 包需要凭据，但它**不应该出现在对话、issue 或提交里**。约定：
 
-- 用 npm 的 **Granular Access Token**：权限只勾 `Read and write`，包范围只选本包，有效期设短（7 天足够），并勾选绕过 2FA（自动化发布）。
+- 发布走 npm 的 **OIDC trusted publishing**（`.github/workflows/release.yml` 用 GitHub Actions 的 `id-token` 换 npm 凭据），不需要长期 token；仓库 secret `NPM_TOKEN` 存在时用它兜底。
+- 如果确实要用 token：选 npm 的 **Granular Access Token**，权限只勾 `Read and write`，包范围只选本包，有效期设短（7 天足够），并勾选绕过 2FA（自动化发布）。
 - token 只放在仓库根目录的 `.npmrc`（已在 `.gitignore` 里）或本机环境变量里；维护者不会把文件内容读进对话。
 - 不要用账号密码、也不要贴 2FA 恢复码。密码与恢复码能接管整个 npm 账号，发布 token 只影响一个包。
 - 如果任何凭据曾经出现在聊天/截图/日志里，视为已泄露：立刻在 npm 后台 revoke 并重新生成，再检查 `npm token list`。
 
 ## 支持版本
 
-只有最新发布版本会收到修复。兼容性见 [COMPATIBILITY.md](COMPATIBILITY.md)。
+只有最新发布版本会收到修复。兼容性见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。

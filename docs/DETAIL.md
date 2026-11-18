@@ -8,20 +8,24 @@ sections, runtime contexts, the skill catalog as text, one JSON schema per tool,
 turn any of it off.
 
 This page is the five-minute version of what the plugin measures, what it can and cannot switch,
-and what the surfaces in 2.1.0 show. The [README](../README.md) is the overview; the
+and what the surfaces in 2.2.0 show. The [README](../README.md) is the overview; the
 [architecture](ARCHITECTURE.md) is the implementation.
 
-## 1. Three numbers, three questions
+## 1. The numbers, and what they answer
 
 | Number | Question | Where it comes from |
 | --- | --- | --- |
-| First-turn injection (e.g. 83.8k) | What will the *next new session* be given? | Assembled here: prompt sections and contexts from `systemPrompt.assemble()`, skills from `skills.snapshot()`, tool schemas from `tools.schemas()`, `AGENTS.md` read from the default chain |
-| Window occupancy (e.g. 36%) | How full is *this* conversation? | The host's own `contextPressure` projection, divided by the model's window |
+| New-session first turn (e.g. 83.8k) | What will a *new session* be given under the saved policy? | `numbers.next`: assembled here — prompt sections and contexts from `systemPrompt.assemble()`, skills from `skills.snapshot()`, tool schemas from `tools.schemas()`, `AGENTS.md` read from the default chain — then the saved policy applied |
+| This session (shown when it differs) | What is *this conversation* already carrying? | `numbers.session`: the live session's measured injection before the policy projection, shown next to the first number when the two differ |
+| Window occupancy (e.g. 36%) | How full is the window? | The host's own `contextPressure` projection, divided by the model's window |
 | Content (the drawer) | What does one line *actually say*? | The snapshot's own registered sources: assembled text, tool declarations, skill files or catalog lines, instruction files |
 
-They are not comparable, and the panel never subtracts one from the other. The first number is
-what the plugin controls; the second decides when the host compacts; the third is the raw text
-behind a row, read only when you open it.
+The two injection numbers share a unit but not a scope: `next` is what a session created after the
+saved policy would get, `session` is what the conversation on screen already carries. They diverge
+exactly when a switch is flipped mid-session, and the panel shows both rather than letting one
+label cover both. Neither is comparable with the window percentage, and the panel never subtracts
+one from the other: `next` is what the plugin controls, the percentage decides when the host
+compacts, and the drawer is the raw text behind a row, read only when you open it.
 
 Token counts from this plugin are estimates (ASCII ÷ 4, other characters ÷ 1.6). The occupancy
 figure is not: `pressureTokens` is provider-reported, and the window comes from the same request
@@ -34,14 +38,16 @@ record the model adapter used.
 | Manage (管理) | KPI row, request strip, health strip, one compact composition/ranking card, then the suite-clustered list (split into Plugins / MCP and DSH built-in) with switches; every row can expand a preview or open its content. |
 | Insights (洞察) | Cross-session first-turn trend, aggregate band, session cards, cross-session composition, heaviest suites, this session's event timeline, coverage footnote. |
 | Settings (设置) | Presets, four channel masters, custom prefix/suffix, export/import, undo history, verification, plugin preferences, versions and language. |
-| Composer chip | First-turn total and window occupancy, one line, deliberately muted; × hides it. |
+| Composer chip | Next session's first-turn total and window occupancy (switchable share when the window is unknown), one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
 
 ## 3. What the manage page shows
 
 - **Health** — deterministic findings over the current snapshot (section 5), each with an action.
-- **KPI** — first-turn injection, window occupancy with its denominator, and the switchable share;
-  the composer chip mirrors the same numbers.
+- **KPI** — next session's first turn (`numbers.next`), this session's injection
+  (`numbers.session`) when it differs, window occupancy with its denominator, and the switchable
+  share. The composer chip reads the same `next` number and falls back to the switchable share when
+  the window is unknown.
 - **Request strip** — system / tools / messages split of the *current* request and compaction
   receipts, from the host's own projections.
 - **Overview card** — the first-turn composition ring and the suite ranking share one compact card
@@ -114,13 +120,16 @@ inventing a finding would be a lie.
 ## 7. What a policy does, and when
 
 A policy is one JSON file: per channel, `all`, `only [names]` or `except [names]`, plus an optional
-persona prefix/suffix.
+persona prefix/suffix. Writes are serialised in `lib/lock.js` and copy the current file to
+`policy.json.bak` (when one exists); a corrupt file is recovered from that backup instead of
+reverting to all-on.
 
 It is applied exactly once, at `agent/created` with `source: startup|clear`. A session that already
 exists is never rewritten mid-flight, so:
 
 - the panel says whether *this* session was affected;
-- "after policy" numbers are a projection for the next new session;
+- `numbers.next` is the projection for the next new session, `numbers.session` is what this session
+  already carries; the panel shows both when they differ;
 - undo restores the previous policy file, but still cannot retroactively change a live session.
 
 ## 8. Suites
@@ -132,10 +141,10 @@ the reason this plugin exists.
 
 ## 9. Data and privacy
 
-`policy.json` (switches), `stats.json` (one measured row per session, with a channel
-split from 2.0.0 on), `events.json` (append-only, 300 rows, policy metadata only — strings are
-flattened and truncated to 200 characters, prompt text has no path in), and browser-local UI
-preferences. No network requests, no telemetry, no uploads. Details: [FAQ](FAQ.md).
+`policy.json` (switches), `policy.json.bak` (the previous good copy), `stats.json` (one measured
+row per session, with a channel split from 2.0.0 on), `events.json` (append-only, 300 rows, policy
+metadata only — strings are flattened and truncated to 200 characters, prompt text has no path in),
+and browser-local UI preferences. No network requests, no telemetry, no uploads. Details: [FAQ](FAQ.md).
 
 ## 10. What the model sees
 
@@ -154,5 +163,6 @@ write comes from a human click in the panel.
 - A `compaction/*` event this build does not know: ignored (the receipt simply does not count it).
 - `events.json` unreadable or absent: the timeline shows an empty state; policy saves still work.
 - A content read that exceeds 2 seconds: the drawer shows the timeout and can retry.
-- Policy file unreadable: the panel shows the error and keeps running with the all-on defaults;
-  `/inject` still prints the snapshot.
+- `policy.json` does not parse: the plugin recovers the previous good file from `policy.json.bak`
+  and says so; only when the backup is also unreadable does the panel show the error and keep
+  running with the all-on defaults. `/inject` still prints the snapshot.

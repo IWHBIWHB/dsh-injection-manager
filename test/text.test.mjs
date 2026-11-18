@@ -60,7 +60,7 @@ const snapshot = {
 test('the tool card names suites and the policy projection', () => {
   const card = renderCard(snapshot)
   assert.match(card, /REA/)
-  assert.match(card, /首轮 128 token/)
+  assert.match(card, /本会话 128 token/)
   assert.match(card, /排除 mcp__rea__analyze_function/)
   assert.match(card, /新会话首轮 ≈ 78 token/)
   assert.match(card, /token 为估算/)
@@ -130,8 +130,7 @@ test('near the window limit the advice names the biggest suite to close', () => 
   assert.match(renderCard(crowded), /REA，−50/)
 })
 
-test('the health text names a groups action when the suite spans channels', async () => {
-  const { renderHealthText } = await import('../lib/text.js')
+test('the health text names a groups action when the suite spans channels', async () => {  const { renderHealthText } = await import('../lib/text.js')
   const health = {
     summary: { high: 1, warn: 0, info: 0, checkedAt: 1763300000000 },
     checks: [
@@ -161,4 +160,40 @@ test('the health text names a groups action when the suite spans channels', asyn
   assert.match(text, /channel:"tools", group:"tools:mcp:rea"/)
   assert.match(text, /channel:"sections", group:"sections:mcp:rea"/)
   assert.doesNotMatch(text, /kind:"group",/)
+})
+
+test('an installed suite and the host own suite do not share one verdict', async () => {
+  const { healthCheckText } = await import('../lib/text.js')
+  const plugin = healthCheckText({ code: 'heavy-suite', params: { label: 'REA', tokens: 66000, share: 78.6, count: 229 } })
+  assert.match(plugin, /已安装的插件\/MCP 套件/)
+  assert.match(plugin, /可整套关掉/)
+  assert.doesNotMatch(plugin, /不建议关闭/)
+  const builtin = healthCheckText({ code: 'builtin-heavy', params: { label: 'core', tokens: 6100, share: 34, count: 28 } })
+  assert.match(builtin, /DSH 自带套件，不建议关闭/)
+})
+
+test('the recommendation prefers an installed suite over the host own suite', () => {
+  const groups = [
+    { id: 'tools:core', channel: 'tools', label: 'core', origin: 'builtin', count: 28, tokens: 6100, savableTokens: 6100, onSavableTokens: 6100 },
+    { id: 'tools:mcp:rea', channel: 'tools', label: 'REA', origin: 'plugin', count: 30, tokens: 8000, savableTokens: 8000, onSavableTokens: 8000 },
+  ]
+  const card = renderCard({ ...snapshot, groups, totals: { ...snapshot.totals, tokens: 20000 } })
+  assert.match(card, /最大的可关套件是 \*\*REA\*\*/)
+  assert.doesNotMatch(card, /最大的可关套件是 \*\*core\*\*/)
+})
+
+test('a suite the policy already closed is not recommended again', () => {
+  const groups = [
+    { id: 'tools:mcp:rea', channel: 'tools', label: 'REA', origin: 'plugin', count: 30, tokens: 30000, savableTokens: 30000, onSavableTokens: 0, onCount: 0, offCount: 30 },
+    { id: 'skills:preset', channel: 'skills', label: 'preset', origin: 'plugin', count: 10, tokens: 1900, savableTokens: 1900, onSavableTokens: 1900, onCount: 10, offCount: 0 },
+  ]
+  const card = renderCard({ ...snapshot, groups, totals: { ...snapshot.totals, tokens: 5000 } })
+  assert.match(card, /最大的可关套件是 \*\*preset\*\*/)
+})
+
+test('with only a host suite left the card explains instead of recommending', () => {
+  const groups = [{ id: 'tools:core', channel: 'tools', label: 'core', origin: 'builtin', count: 28, tokens: 6100, savableTokens: 6100, onSavableTokens: 6100 }]
+  const card = renderCard({ ...snapshot, groups, totals: { ...snapshot.totals, tokens: 12000 } })
+  assert.match(card, /DSH 自带/)
+  assert.doesNotMatch(card, /关掉整套比逐条关划算/)
 })

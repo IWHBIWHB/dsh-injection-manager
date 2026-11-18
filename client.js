@@ -35,6 +35,19 @@
 
   const CHANNELS = ['sections', 'contexts', 'skills', 'tools', 'instructions']
   const MANAGED = ['sections', 'contexts', 'skills', 'tools']
+
+  // The browser's language chooses the dictionary. Sending it with /summary lets
+  // the host ship one dictionary plus English instead of all eight — the eight
+  // were 137 KiB of the 267 KiB every polled response carried.
+  const SUPPORTED_LANGUAGES = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']
+  const UI_LANGUAGE = (() => {
+    try {
+      const base = String(navigator.language || 'zh').toLowerCase().split('-')[0]
+      return SUPPORTED_LANGUAGES.indexOf(base) >= 0 ? base : 'en'
+    } catch {
+      return 'zh'
+    }
+  })()
   const COLOR = {
     sections: '#4d6bfe',
     contexts: '#14b8a6',
@@ -892,7 +905,7 @@ body[data-ds-dark-theme] .ci-root{
         const sequence = useRef(0)
         useEffect(() => {
           let cancelled = false
-          const url = ROUTES.summary + (sessionId ? `?session=${encodeURIComponent(sessionId)}` : '')
+          const url = `${ROUTES.summary}?lang=${UI_LANGUAGE}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ''}`
           let local = 0
 
           const load = async (silent) => {
@@ -1286,6 +1299,12 @@ body[data-ds-dark-theme] .ci-root{
         // "tool schemas" is not a skill: say it on the card so a 3k skill block
         // next to a 84k prompt does not read as a contradiction.
         const labels = { skills: t('skills'), tools: t('tools'), prompts: t('sections'), rules: t('instructions') }
+        // The chips are kind filters, the list filters by channel. `prompts` and
+        // `rules` are not channels, so they used to send an id the table could
+        // never match and every click opened an empty list. Prompts = sections +
+        // contexts, and contexts are a handful of tokens, so sections is the
+        // honest landing channel for that kind.
+        const KIND_CHANNEL = { skills: 'skills', tools: 'tools', prompts: 'sections', rules: 'instructions' }
         const toolsKind = (state.kinds ?? []).find((kind) => kind.id === 'tools')
         const topTools = (snapshot.groups ?? []).filter((group) => group.channel === 'tools')[0]
         return h(
@@ -1330,7 +1349,7 @@ body[data-ds-dark-theme] .ci-root{
                       className: 'ci-kind' + (kind.id === 'skills' ? ' on' : ''),
                       'aria-pressed': kind.id === 'skills' ? 'true' : 'false',
                       title: `${labels[kind.id] ?? kind.id} · ${kind.count} ${t('items')} · ${digits(kind.tokens)} token`,
-                      onClick: () => onFilter(kind.id),
+                      onClick: () => onFilter(KIND_CHANNEL[kind.id] ?? kind.id),
                     },
                     labels[kind.id] ?? t(kind.id),
                     h('b', null, token(kind.tokens)),
@@ -1384,13 +1403,24 @@ body[data-ds-dark-theme] .ci-root{
         const totals = snapshot.totals
         const policy = snapshot.policy
         const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
+        // Two facts, two names: `next` is what a newly created session receives
+        // under the saved policy, `session` is what this conversation is already
+        // injecting. They diverge exactly when a switch was flipped mid-session,
+        // which is when one label for both produced contradictory headers.
+        const numbers = snapshot.numbers !== undefined && snapshot.numbers !== null ? snapshot.numbers : null
+        const sessionTokens = numbers !== null && Number.isFinite(numbers.session) ? numbers.session : totals.tokens
+        const nextTokens = numbers !== null && Number.isFinite(numbers.next) ? numbers.next : view.tokens
         const context = snapshot.context || null
         const windowKnown = context !== null && context.window !== null && context.used !== null
         const rows = [
           {
-            key: 'total',
-            value: token(view.tokens),
-            sub: `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}`,
+            key: 'nextTurn',
+            value: token(nextTokens),
+            sub:
+              sessionTokens !== nextTokens
+                ? `${t('sessionNow')} ${token(sessionTokens)} · ${digits(view.chars)} ${t('chars')}`
+                : `${digits(view.chars)} ${t('chars')} · ${view.count === undefined ? snapshot.items.length : view.count} ${t('items')}`,
+            title: t('nextTurnHint'),
           },
           {
             key: 'window',
@@ -1685,6 +1715,21 @@ body[data-ds-dark-theme] .ci-root{
         return Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
       }
 
+      // The host names both numbers once (`numbers.session` / `numbers.next`);
+      // every surface reads them here so a header, a footer and the composer
+      // badge cannot drift apart again. Older hosts fall back to the raw totals.
+      function tokenNumbersOf(snapshot) {
+        const numbers = snapshot.numbers !== undefined && snapshot.numbers !== null ? snapshot.numbers : null
+        const session = numbers !== null && Number.isFinite(numbers.session) ? numbers.session : snapshot.totals.tokens
+        const next =
+          numbers !== null && Number.isFinite(numbers.next)
+            ? numbers.next
+            : snapshot.effective && snapshot.effective.totals
+              ? snapshot.effective.totals.tokens
+              : session
+        return { session, next }
+      }
+
       function ItemRow({ item, t, snapshot, isOn, onToggle, busy, nested, needle, previewOpen, onPreview }) {
         const label = nameOf(t, item)
         const locked = item.locked === true
@@ -1714,7 +1759,7 @@ body[data-ds-dark-theme] .ci-root{
                   '▸',
                 ),
             h(HitMark, { text: label, needle }),
-            !on && !locked ? h('span', { className: 'ci-tag' }, t('turnedOff')) : null,
+            !on && !locked && item.offClosed !== true ? h('span', { className: 'ci-tag' }, t('offNextSession')) : null,
             item.offClosed === true ? h('span', { className: 'ci-tag ci-tag-closed', title: t('closedRestoreHint') }, t('closedBadge')) : null,
             showRaw && label !== item.name ? h('span', { className: 'id' }, item.name) : null,
           ),
@@ -2004,7 +2049,7 @@ body[data-ds-dark-theme] .ci-root{
               { className: 'ci-fused-head' },
               h('h2', null, `${t('v2.overviewComposition')} · ${t('v2.heaviestTitle')}`),
               h('span', { className: 'sp' }),
-              h('span', { className: 'hint' }, `${t('total')} ${token(effectiveTotal)} · ${t('topSuites')} · ${t('v2.closedLight')}`),
+              h('span', { className: 'hint' }, `${t('nextTurn')} ${token(effectiveTotal)} · ${t('topSuites')} · ${t('v2.closedLight')}`),
             ),
             h(
               'div',
@@ -2346,9 +2391,11 @@ body[data-ds-dark-theme] .ci-root{
               null,
               (() => {
                 const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
+                const numbers = tokenNumbersOf(snapshot)
                 const shown = groups.length
                 const totalGroups = snapshot.groups.length
-                return `${t('total')} ${digits(view.tokens)} · ${t('savable')} ${digits(view.savableTokens)} (${view.savablePercent}%) · ${shown !== totalGroups ? `${shown}/${totalGroups}` : String(shown)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`
+                const sessionPart = numbers.session !== numbers.next ? ` · ${t('sessionNow')} ${digits(numbers.session)}` : ''
+                return `${t('nextTurn')} ${digits(numbers.next)}${sessionPart} · ${t('savable')} ${digits(view.savableTokens)} (${view.savablePercent}%) · ${shown !== totalGroups ? `${shown}/${totalGroups}` : String(shown)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`
               })(),
             ),
             snapshot.undo && snapshot.undo.available
@@ -4480,7 +4527,11 @@ body[data-ds-dark-theme] .ci-root{
                   )
                 }),
               ),
-              h('div', { className: 'ci-foot' }, `${t('total')} ${digits(snapshot.totals.tokens)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`),
+              h(
+                'div',
+                { className: 'ci-foot' },
+                `${t('nextTurn')} ${digits(tokenNumbersOf(snapshot).next)} · ${t('sessionNow')} ${digits(tokenNumbersOf(snapshot).session)} · ${t('savable')} ${digits(snapshot.totals.savableTokens)} (${snapshot.totals.savablePercent}%)`,
+              ),
               h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
             ),
           )
@@ -4601,7 +4652,13 @@ body[data-ds-dark-theme] .ci-root{
         if (data && data.settings && data.settings.dock === false) return null
         if (hidden) return null
 
-        const tokens = data ? data.totals.tokens : null
+        // Same pair of numbers as the panel header: `next` is what the policy
+        // gives a new session, `session` stays in the tooltip. The badge used to
+        // read the all-on total, so closing a 66k suite moved nothing while the
+        // panel dropped by three quarters.
+        const nums = data ? tokenNumbersOf(data) : null
+        const nextTokens = nums === null ? null : nums.next
+        const sessionTokens = nums === null ? null : nums.session
         const context = data ? data.context : null
         const windowKnown = context !== null && context !== undefined && context.window !== null && context.used !== null
         const open = () => {
@@ -4619,9 +4676,15 @@ body[data-ds-dark-theme] .ci-root{
         // The ambient number is the one that decides when a session gets
         // compacted: how much of the window the next request will take. The
         // injected total stays first because it is what this plugin controls.
-        const hint = windowKnown
-          ? `${t('dockHint')} · ${t('windowUsedOf', { used: token(context.used), window: token(context.window) })}`
-          : t('dockHint')
+        // The ambient number is next session's first turn — the one the switches
+        // just changed. The conversation's own figure only appears when it
+        // differs, so the badge never implies the live turn was rewritten.
+        const hint =
+          windowKnown && sessionTokens !== null && sessionTokens !== nextTokens
+            ? `${t('dockHint')} · ${t('sessionNow')} ${token(sessionTokens)} · ${t('windowUsedOf', { used: token(context.used), window: token(context.window) })}`
+            : windowKnown
+              ? `${t('dockHint')} · ${t('windowUsedOf', { used: token(context.used), window: token(context.window) })}`
+              : t('dockHint')
 
         return h(
           'span',
@@ -4631,7 +4694,7 @@ body[data-ds-dark-theme] .ci-root{
             'button',
             { type: 'button', className: 'ci-dock' + (windowKnown && context.tone === 'danger' ? ' warn' : ''), onClick: open, title: hint },
             h('i', null),
-            h('b', null, tokens === null ? '…' : token(tokens)),
+            h('b', null, nextTokens === null ? '…' : token(nextTokens)),
             windowKnown ? h('em', null, `${context.occupancy}%`) : data && data.totals.savableTokens > 0 ? h('em', null, `${data.totals.savablePercent}%`) : null,
           ),
           h(

@@ -1,6 +1,6 @@
 {
   "name": "dsh-injection-manager",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "type": "module",
   "description": "See and control everything a DeepSeek Harness session injects before its first request — prompt sections, runtime contexts, skills, tool schemas and workspace rules — with a content browser that opens each item's source, cross-session injection trends, an injection event log, health checks, suite switches, presets and a token budget.",
   "keywords": [
@@ -32,7 +32,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "audit": "node scripts/self-audit.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -59,6 +60,7 @@
     "cordis.patch.yml",
     "locale/*.json",
     "docs",
+    "scripts",
     "icon.svg",
     "README.md",
     "README.zh.md",
