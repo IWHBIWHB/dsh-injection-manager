@@ -147,6 +147,8 @@
     "noMatch": "一致する項目がありません",
     "clearFilters": "フィルターを解除",
     "presetOverwrite": "{count} 件が手動で無効です。プリセットを切り替えると再計算され、これらの選択は上書きされます。",
+    "confirmOverwrite": "上書き確認",
+    "historyMore": "全 {count} 件",
     "hideDock": "チップを隠す",
     "showDock": "入力欄の下にチップを表示",
     "dockHint": "次に作成するセッションの初回注入の推定値。クリックでパネルを開きます",

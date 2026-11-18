@@ -147,6 +147,8 @@
     "noMatch": "No matching items",
     "clearFilters": "Clear filters",
     "presetOverwrite": "{count} items are switched off by hand; switching presets recomputes and replaces those choices.",
+    "confirmOverwrite": "Overwrite?",
+    "historyMore": "All {count} steps",
     "hideDock": "Hide chip",
     "showDock": "Show chip under the composer",
     "dockHint": "Estimated first turn of the next new session; click to open the panel",

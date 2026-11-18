@@ -147,6 +147,8 @@
     "noMatch": "Aucun élément correspondant",
     "clearFilters": "Effacer les filtres",
     "presetOverwrite": "{count} éléments sont désactivés à la main ; changer de préréglage recalcule et remplace ces choix.",
+    "confirmOverwrite": "Écraser ?",
+    "historyMore": "Voir les {count} étapes",
     "hideDock": "Masquer la puce",
     "showDock": "Afficher la puce sous le compositeur",
     "dockHint": "Estimation du premier tour de la prochaine session ; cliquez pour ouvrir le panneau",

@@ -147,6 +147,8 @@
     "noMatch": "没有匹配的条目",
     "clearFilters": "清除筛选",
     "presetOverwrite": "当前有 {count} 项手动关闭；切换预设会重算并覆盖这些选择。",
+    "confirmOverwrite": "确认覆盖",
+    "historyMore": "查看全部 {count} 步",
     "hideDock": "隐藏摘要",
     "showDock": "在输入框下方显示摘要",
     "dockHint": "下一个新会话的首轮注入估算；点击打开面板",

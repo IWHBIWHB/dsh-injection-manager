@@ -529,6 +529,9 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-tag-closed{border-color:var(--ci-warn);color:var(--ci-warn)}
 .ci-seg button{border:0;background:transparent;color:var(--ci-fg2);padding:4px 10px;font-size:11px;cursor:pointer}
 .ci-seg button.on{background:var(--ci-fg);color:var(--ci-bg)}
+/* Second click of a destructive preset swap: the button itself says what it will
+   do, so no paragraph has to sit on the page forever. */
+.ci-seg button.ci-confirm{background:var(--ci-danger);color:#fff}
 .ci-empty{padding:26px 12px;text-align:center;color:var(--ci-fg3);font-size:12px}
 .ci-skel{height:56px;border-radius:10px;background:var(--ci-card);border:1px solid var(--ci-line2)}
 .ci-foot{color:var(--ci-fg3);font-size:11px;padding-bottom:4px;word-break:break-all}
@@ -583,6 +586,16 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-health-notes .hint{color:var(--ci-fg3);opacity:.85}
 .ci-health-row-note{opacity:.82}
 .ci-health-row-note .ci-health-text{font-size:11.5px}
+/* Closed suites: one line by default. The list of what is no longer injected is
+   a receipt, not a workspace — opening it is how you put one back. */
+.ci-closed{border-top:1px solid var(--ci-line2);margin-top:6px;padding-top:2px}
+.ci-closed-head{display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;background:transparent;color:var(--ci-fg3);font:inherit;font-size:11.5px;text-align:left;cursor:pointer;border-radius:6px}
+.ci-closed-head:hover{background:var(--ci-line2)}
+.ci-closed-head:focus-visible{outline:2px solid var(--ci-blue);outline-offset:1px}
+.ci-closed-head .lbl{color:var(--ci-fg2);font-weight:600}
+.ci-closed-head .n{font-variant-numeric:tabular-nums}
+.ci-closed-head .hint{margin-left:auto;color:var(--ci-fg3);font-weight:400}
+.ci-closed .ci-list{padding:2px 0 6px}
 .ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:center;padding:2px 0 0;margin-top:2px;border-top:1px solid var(--ci-line2)}
 .ci-health-row .sev{width:8px;height:8px;border-radius:50%;display:block;background:var(--ci-fg3)}
 .ci-health-row .sev.high{background:var(--ci-danger)}
@@ -1853,6 +1866,7 @@ body[data-ds-dark-theme] .ci-root{
         const [expanded, setExpanded] = useState({})
         const [peek, setPeek] = useState({})
         const [suite, setSuite] = useState(null)
+        const [closedOpen, setClosedOpen] = useState(false)
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
         const clearAllFilters = () => {
@@ -2396,36 +2410,53 @@ body[data-ds-dark-theme] .ci-root{
           snapshot.closedGroups && snapshot.closedGroups.length > 0
             ? h(
                 'div',
-                { className: 'ci-card' },
-                h('h2', null, `${t('closedTitle')} · ${snapshot.closed.length} ${t('items')}`),
-                h('div', { className: 'hint' }, t('closedHint')),
+                { className: 'ci-closed' },
                 h(
-                  'div',
-                  { className: 'ci-list' },
-                  snapshot.closedGroups.map((group) =>
-                    h(
-                      'div',
-                      { className: 'ci-mini', key: group.id },
-                      h(Dot, { channel: group.channel }),
-                      h('span', { className: 'n', title: group.label }, group.label),
-                      h('span', { className: 't' }, `${group.items.length} ${t('items')}`),
-                      h('span', { className: 't' }, group.tokens > 0 ? digits(group.tokens) : '—'),
-                      h(
-                        'button',
-                        {
-                          type: 'button',
-                          className: 'ci-btn',
-                          onClick: () =>
-                            act(
-                              { kind: 'names', channel: group.channel, names: group.items.map((item) => item.name), enabled: true },
-                              `${t('restoreGroup')} ${group.label}`,
-                            ),
-                        },
-                        t('restoreGroup'),
-                      ),
-                    ),
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'ci-closed-head',
+                    'aria-expanded': closedOpen ? 'true' : 'false',
+                    onClick: () => setClosedOpen(!closedOpen),
+                  },
+                  h('span', { className: 'ci-caret' + (closedOpen ? ' open' : '') }, closedOpen ? '▾' : '▸'),
+                  h('span', { className: 'lbl' }, `${t('closedTitle')} · ${snapshot.closed.length} ${t('items')}`),
+                  h(
+                    'span',
+                    { className: 'n' },
+                    digits((snapshot.closedGroups || []).reduce((sum, group) => sum + (Number(group.tokens) || 0), 0)),
                   ),
+                  h('span', { className: 'hint' }, t('closedHint')),
                 ),
+                closedOpen
+                  ? h(
+                      'div',
+                      { className: 'ci-list' },
+                      snapshot.closedGroups.map((group) =>
+                        h(
+                          'div',
+                          { className: 'ci-mini', key: group.id },
+                          h(Dot, { channel: group.channel }),
+                          h('span', { className: 'n', title: group.label }, group.label),
+                          h('span', { className: 't' }, `${group.items.length} ${t('items')}`),
+                          h('span', { className: 't' }, group.tokens > 0 ? digits(group.tokens) : '—'),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'ci-btn',
+                              onClick: () =>
+                                act(
+                                  { kind: 'names', channel: group.channel, names: group.items.map((item) => item.name), enabled: true },
+                                  `${t('restoreGroup')} ${group.label}`,
+                                ),
+                            },
+                            t('restoreGroup'),
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
               )
             : null,
           h(
@@ -3918,13 +3949,19 @@ body[data-ds-dark-theme] .ci-root{
         const [suffix, setSuffix] = useState(policy.prompt.suffix)
         const [saving, setSaving] = useState(false)
         const [confirmRestore, setConfirmRestore] = useState(null)
+        const [pendingPreset, setPendingPreset] = useState(null)
+        const [historyOpen, setHistoryOpen] = useState(false)
         const timer = useRef(null)
+        const presetTimer = useRef(null)
 
         useEffect(() => {
           setPrefix(policy.prompt.prefix)
           setSuffix(policy.prompt.suffix)
         }, [policy.prompt.prefix, policy.prompt.suffix])
-        useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+        useEffect(() => () => {
+          if (timer.current !== null) clearTimeout(timer.current)
+          if (presetTimer.current !== null) clearTimeout(presetTimer.current)
+        }, [])
 
         const fileInput = useRef(null)
 
@@ -3999,62 +4036,89 @@ body[data-ds-dark-theme] .ci-root{
                   ['all', t('presetAll')],
                   ['minimal', t('presetMinimal')],
                 ].map(([name, label]) =>
-                  h('button', {
-                    key: name,
-                    type: 'button',
-                    className: policy.preset === name ? 'on' : '',
-                    onClick: () => act({ kind: 'preset', name }, `${t('preset')}: ${label}`),
-                  }, label),
+                  h(
+                    'button',
+                    {
+                      key: name,
+                      type: 'button',
+                      className: (policy.preset === name ? 'on' : '') + (pendingPreset === name ? ' ci-confirm' : ''),
+                      title: pendingPreset === name ? t('presetOverwrite', { count: excludedCountOf(snapshot) }) : '',
+                      onClick: () => {
+                        // The old static warning ("当前有 230 项手动关闭…") was a
+                        // paragraph that appeared forever. Ask at the moment the
+                        // click would overwrite those choices instead.
+                        if (pendingPreset === name) {
+                          setPendingPreset(null)
+                          act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
+                          return
+                        }
+                        if (excludedCountOf(snapshot) > 0) {
+                          setPendingPreset(name)
+                          if (presetTimer.current !== null) clearTimeout(presetTimer.current)
+                          presetTimer.current = setTimeout(() => setPendingPreset(null), 4000)
+                          return
+                        }
+                        act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
+                      },
+                    },
+                    pendingPreset === name ? t('confirmOverwrite') : label,
+                  ),
                 ),
               ),
               h('span', { className: 'hint' }, policy.preset === 'custom' ? t('custom') : ''),
             ),
-            excludedCountOf(snapshot) > 0
-              ? h('div', { className: 'ci-note warn' }, t('presetOverwrite', { count: excludedCountOf(snapshot) }))
-              : null,
-            h('div', { className: 'ci-note' }, t('saveHint')),
           ),
-          h('div', { className: 'ci-card' }, h('h2', null, t('aboutManageable')), h(ChannelSwitches, { snapshot, t, act })),
           h(
             'div',
             { className: 'ci-card' },
-            h('h2', null, t('historyTitle')),
-            (snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries : []).length === 0
-              ? h('div', { className: 'ci-note' }, t('historyEmpty'))
-              : h(
-                  'div',
-                  { className: 'ci-list' },
-                  snapshot.undo.entries
-                    .slice()
-                    .reverse()
-                    .map((entry) =>
-                      h(
-                        'div',
-                        { className: 'ci-mini', key: entry.index },
-                        h('span', { className: 'n', title: entry.label }, entry.label),
-                        h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
-                        h(
-                          'button',
-                          {
-                            type: 'button',
-                            className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
-                            onClick: () => {
-                              if (confirmRestore === entry.index) {
-                                setConfirmRestore(null)
-                                act({ kind: 'restore', index: entry.index }, t('restored'))
-                              } else {
-                                setConfirmRestore(entry.index)
-                              }
-                            },
-                          },
-                          confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
-                        ),
-                        confirmRestore === entry.index
-                          ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
-                          : null,
-                      ),
+            h(
+              'div',
+              { className: 'ci-rowline' },
+              h('h2', null, t('historyTitle')),
+              (snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries : []).length > 3
+                ? h(
+                    'button',
+                    { type: 'button', className: 'ci-btn ci-sm', onClick: () => setHistoryOpen(!historyOpen) },
+                    historyOpen ? t('collapseAll') : t('historyMore', { count: snapshot.undo.entries.length }),
+                  )
+                : null,
+            ),
+            (() => {
+              const entries = snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries.slice().reverse() : []
+              if (entries.length === 0) return h('div', { className: 'ci-note' }, t('historyEmpty'))
+              const shown = historyOpen ? entries : entries.slice(0, 3)
+              return h(
+                'div',
+                { className: 'ci-list' },
+                shown.map((entry) =>
+                  h(
+                    'div',
+                    { className: 'ci-mini', key: entry.index },
+                    h('span', { className: 'n', title: entry.label }, entry.label),
+                    h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
+                        onClick: () => {
+                          if (confirmRestore === entry.index) {
+                            setConfirmRestore(null)
+                            act({ kind: 'restore', index: entry.index }, t('restored'))
+                          } else {
+                            setConfirmRestore(entry.index)
+                          }
+                        },
+                      },
+                      confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
                     ),
+                    confirmRestore === entry.index
+                      ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
+                      : null,
+                  ),
                 ),
+              )
+            })(),
           ),
           h(
             'div',
@@ -4694,7 +4758,9 @@ body[data-ds-dark-theme] .ci-root{
                     ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                     : null,
                   v2 !== true ? h(V2Gate, { snapshot, t }) : null,
-                  h(Kpis, { snapshot, t }),
+                  // The three KPI cards said the same two numbers as the
+                  // composition card below and the footer, and cost a third of
+                  // the first screen. The window number lives in the strip.
                   h(RequestStrip, { snapshot, t }),
                   h(ManageHealth, { snapshot, t, sessionId, v2, act, onOpenContent: openContent, onOpenTab: openTab }),
                   snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0

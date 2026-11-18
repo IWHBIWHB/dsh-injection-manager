@@ -147,6 +147,8 @@
     "noMatch": "Keine passenden Einträge",
     "clearFilters": "Filter zurücksetzen",
     "presetOverwrite": "{count} Einträge sind manuell deaktiviert; ein Preset-Wechsel berechnet neu und ersetzt diese Auswahl.",
+    "confirmOverwrite": "Überschreiben?",
+    "historyMore": "Alle {count} Schritte",
     "hideDock": "Chip ausblenden",
     "showDock": "Chip unter dem Eingabefeld anzeigen",
     "dockHint": "Geschätzter erster Turn der nächsten Sitzung; klicken öffnet das Panel",

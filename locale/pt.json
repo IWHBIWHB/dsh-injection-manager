@@ -147,6 +147,8 @@
     "noMatch": "Nenhum item correspondente",
     "clearFilters": "Limpar filtros",
     "presetOverwrite": "{count} itens estão desligados à mão; trocar de preset recalcula e substitui essas escolhas.",
+    "confirmOverwrite": "Sobrescrever?",
+    "historyMore": "Ver os {count} passos",
     "hideDock": "Ocultar chip",
     "showDock": "Mostrar chip sob o compositor",
     "dockHint": "Injeção estimada do primeiro turno da próxima sessão; clique para abrir o painel",

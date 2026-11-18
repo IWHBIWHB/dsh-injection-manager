@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.2.2 — 2026-11-18
+
+Subtraction pass. Three regions that repeated an existing number or offered nothing to press are
+gone; nothing they did was removed, only moved to where it belongs.
+
+### Changed
+
+- **The three KPI cards are gone from the panel.** "首轮" is the composition card's headline,
+  "可关闭" is in the footer, and the only number those cards held alone — window occupancy — is in
+  the request strip right below. The manage page now opens on the strip and the list instead of a
+  third of a screen repeating two figures.
+- **"已关闭 229 条" is one line, not a card.** It shows the count, the remembered tokens and the
+  restore hint; clicking opens the per-suite restore rows. The closed list is a receipt, not a
+  workspace.
+- **Settings no longer carries three long blocks.** The permanent "当前有 230 项手动关闭…" warning
+  became a second click: pressing a preset turns the button into 确认覆盖 for four seconds, and only
+  the second press overwrites manual choices. The channel master switches card is removed (suite and
+  per-item switches in the list, plus `/inject minimal`, still cover it). Undo history shows the
+  latest three steps and a `查看全部 12 步` toggle instead of twelve near-identical rows.
+
+### Verification
+
+- `node --test` 223/223.
+- Fixture screenshots 26/26, including the collapsed closed line, the three-step history, the
+  expanded history and the 确认覆盖 state.
+
 ## 2.2.1 — 2026-11-18
 
 ### Changed
