@@ -37,7 +37,7 @@ record the model adapter used.
 | --- | --- |
 | Manage (管理) | A switchboard: one line of numbers (next-session first turn, switchable share) plus the suite-clustered list (split into Other plugins & MCP and DeepSeek official, the latter foldable to one line) with switches; every row can expand a preview or open its content. No charts, no health checks. |
 | Insights (洞察) | One fixed order: this request's composition → injection ring and heaviest-suite ranking (a bar jumps back to Manage already filtered) → health checks → cross-session trend → session detail. |
-| Settings (设置) | Four cards: this browser's preferences, presets with undo history, the policy file (export/import, prefix/suffix, verification), and about (versions, read-only items, folded details). |
+| Settings (设置) | One card of five rows: the policy file (path, export/import), the presets (two-click confirmation), a folded custom prefix/suffix, the composer-chip switch, and about (host/API plus folded details). |
 | Composer chip | Next session's first-turn total and window occupancy (switchable share when the window is unknown), one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
 
@@ -104,11 +104,10 @@ inventing a finding would be a lie.
   saved.
 - **Session cards** — search by id/title/directory; sort by recent / heaviest / most saved; the
   current session is marked; a card opens that session in the manage list or its content.
-- **Cross-session composition** — the five-channel ring averaged over sessions that have a split.
 - **Heaviest suites** — the current session's suites by size, with the policy-removed part drawn
-  lighter.
+  lighter; clicking a bar jumps back to Manage already filtered.
 - **Event log** — still written to `events.json` (capped at 300) and readable through `/events`, but
-  no longer rendered; the panel's change history is the undo list in Settings.
+  no longer rendered; the panel's change history is 撤销上一步 on the manage page.
 - **Coverage footnote** — recorded N of M sessions; the trend only contains what this plugin
   measured plus a bounded log backfill.
 

@@ -81,7 +81,7 @@ Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 | --- | --- | --- |
 | **Manage** | Panel → 管理 | A switchboard: what the next new session costs, how much of it is switchable, one row per suite, one switch per row. Numbers and switches only — no charts. |
 | **Insights** | Panel → 洞察 | One fixed order: this request's composition → injection composition and heaviest suites → health checks → trend → changes and session detail. |
-| **Settings** | Panel → 设置 | Four cards: this browser's preferences, presets and undo, the policy file (export/import, prefix/suffix, verification), and about (versions, read-only items, folded details). |
+| **Settings** | Panel → 设置 | One card of five rows: the policy file (path, export Markdown/JSON, import), the presets, a folded custom prefix/suffix, the composer-chip switch, and about (host, API, language, folded details). |
 | **Commands & tools** | Composer / model | `/inject` (+ `health｜all｜minimal｜undo`) for a text report, `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for the next-session number. |
 
 ## Screens
@@ -105,8 +105,8 @@ Insights has one fixed order: this request's composition, the injection ring wit
 
 ![Insights tab](docs/images/panel-insights.png)
 
-Settings is four cards: this browser's preferences, presets with undo history, the policy file, and
-about (versions, read-only items, folded details):
+Settings is one card of five rows — the policy file, the presets, the folded prefix/suffix, the
+composer-chip switch, and about:
 
 ![Settings tab](docs/images/panel-settings.png)
 
@@ -228,13 +228,11 @@ flags `backfilling: true` while a pass fills in more.
   tokens, cumulative saved.
 - **Per-session cards** — search by id/title/directory, sort by recent / heaviest / most saved,
   current session marked; every card opens that session's row in the manage list or its content.
-- **Cross-session composition** — the five-channel ring averaged over sessions that have a channel
-  split.
 - **Heaviest suites** — the current session's suites by size, with the part the policy already
-  switched off drawn lighter.
+  switched off drawn lighter; a bar jumps back to Manage already filtered.
 - **Event log** (no longer surfaced in the panel) — policy saves, presets, imports, undos,
   compactions and prunes are still recorded in `events.json` (capped at 300) and stay readable
-  through the `/events` route; the panel's own change history is the undo list in Settings.
+  through the `/events` route; in the panel, the change history is 撤销上一步 on the manage page.
 - **Coverage footnote** — "recorded N of M sessions on this machine; the trend only contains what
   this plugin measured and a bounded log backfill."
 
@@ -343,9 +341,9 @@ Plugins → dsh-injection-manager → Configuration exposes three presentation o
 | `refreshOnFocus` | on | Refresh the panel when the window regains focus |
 | `showRawNames` | on | Show the raw key (`harness:identity`) next to the readable label |
 
-In-panel preferences (Settings tab) are browser-local: content-drawer line numbers and the default
-insights range. They are never written to the policy file, so there is exactly one source of truth
-for switches.
+Two panel preferences are browser-local and live where they apply: the content drawer's line-number
+toggle sits in the drawer's own toolbar, and the default insights range is the range pills on 洞察.
+Neither is written to the policy file, so there is exactly one source of truth for switches.
 
 ## Data & privacy
 

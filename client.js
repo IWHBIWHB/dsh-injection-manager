@@ -520,6 +520,8 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-sourceline-toggle .lbl{color:var(--ci-fg)}
 .ci-sourceline-toggle .hint{margin-left:auto;color:var(--ci-fg3);font-weight:400}
 .ci-caret{display:inline-block;width:14px;color:var(--ci-fg3);font-size:10px;transform:translateY(-1px)}
+/* a disclosure row needs a caret you can see at 12px labels */
+.ci-disclose .ci-caret{width:12px;font-size:12px;color:var(--ci-fg2)}
 .ci-row-nested{background:var(--ci-card);padding-left:34px;box-shadow:inset 2px 0 0 var(--ci-line2)}
 .ci-row-nested .n{font-weight:400}
 .ci-note{color:var(--ci-fg2);font-size:12px}
@@ -833,6 +835,17 @@ body[data-ds-dark-theme] .ci-root{
 .ci-disclose:hover{color:var(--ci-fg);background:var(--ci-line2)}
 .ci-disclose:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
 .ci-details{display:flex;flex-direction:column;gap:5px;font-size:var(--ci-fs-micro);color:var(--ci-fg3);line-height:1.55}
+/* 设置 is a list of rows in one card, not a stack of cards */
+.ci-set{gap:0;padding:2px 14px}
+.ci-setrow{display:grid;grid-template-columns:140px minmax(0,1fr);gap:6px 14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ci-line2);min-width:0}
+.ci-setrow:last-of-type{border-bottom:0}
+.ci-setrow>.k{font-size:var(--ci-fs-label);color:var(--ci-fg2)}
+.ci-setrow>.v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ci-setrow-full{grid-template-columns:minmax(0,1fr)}
+.ci-setfold{display:flex;flex-direction:column;gap:6px;padding:0 0 10px}
+.ci-setrow .ci-path{flex:1 1 220px}
+.ci-setrow .sp{flex:1 1 auto}
+.ci-set .ci-details{max-width:760px;padding:2px 0 12px}
 .ci-barrow-btn{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:var(--ci-radius-chip);cursor:pointer;text-align:left;width:100%}
 .ci-barrow-btn:hover{background:var(--ci-card)}
 .ci-barrow-btn:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
@@ -3757,16 +3770,57 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      // 设置 answers four questions and nothing else: what this browser
-      // remembers, which preset is on, where the policy file lives, and which
-      // versions are in play. Each card is one question; the long explanations
-      // moved behind 说明 instead of sitting under the controls forever.
+      function excludedCountOf(snapshot) {
+        return CHANNELS.reduce((sum, channel) => {
+          const state = snapshot.policy.channels[channel]
+          if (state === undefined || state.mode === 'all') return sum
+          const row = snapshot.channels.find((entry) => entry.id === channel)
+          const total = row === undefined ? 0 : row.count
+          if (state.mode === 'except') return sum + state.names.length
+          return sum + Math.max(0, total - state.names.length)
+        }, 0)
+      }
 
-      function PrefsCard({ t }) {
-        const [linesOn, setLinesOn] = useStoredState('contentLines', true)
-        const [range, setRange] = useStoredState('trendRange', 'all')
+      // ------------------------------------------------------------ panel
+
+
+      function shortId(id) {
+        const text = String(id ?? '')
+        const match = /([0-9a-f]{8})-[0-9a-f]{4}/.exec(text)
+        return match === null ? text.slice(0, 12) : match[1]
+      }
+
+      // 设置 is one card of five rows. Everything that used to have a card of
+      // its own — the undo list, the copy-report button, the verify button, the
+      // last-apply line, eight paragraphs about how the numbers are estimated —
+      // either duplicates another surface or was read once and never again.
+      function SettingsPage({ snapshot, t, act, sessionId, notify }) {
+        const policy = snapshot.policy
         const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
+        const [pendingPreset, setPendingPreset] = useState(null)
+        const [open, setOpen] = useState('')
+        const [prefix, setPrefix] = useState(policy.prompt.prefix)
+        const [suffix, setSuffix] = useState(policy.prompt.suffix)
+        const [saving, setSaving] = useState(false)
+        const presetTimer = useRef(null)
+        const saveTimer = useRef(null)
+        const fileInput = useRef(null)
+        const host = snapshot.host !== null && snapshot.host !== undefined ? snapshot.host : {}
+        const api = Number(snapshot.apiVersion) || 1
+        const locked = Array.isArray(snapshot.locks) ? snapshot.locks : []
+        const loadedFiles = snapshot.instructions.files.filter((file) => file.status !== 'missing').length
 
+        useEffect(() => {
+          setPrefix(policy.prompt.prefix)
+          setSuffix(policy.prompt.suffix)
+        }, [policy.prompt.prefix, policy.prompt.suffix])
+        useEffect(
+          () => () => {
+            if (presetTimer.current !== null) clearTimeout(presetTimer.current)
+            if (saveTimer.current !== null) clearTimeout(saveTimer.current)
+          },
+          [],
+        )
         // The dock chip lives outside this tree and can close itself; it
         // announces that so this switch never disagrees with what is on screen.
         useEffect(() => {
@@ -3783,60 +3837,7 @@ body[data-ds-dark-theme] .ci-root{
           window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: !visible } }))
         }
 
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h('h2', null, t('v2.prefs')),
-          h(
-            'div',
-            { className: 'ci-prefs' },
-            h(
-              'div',
-              { className: 'ci-prefrow' },
-              h('span', { className: 'lbl' }, t('v2.prefLines')),
-              h(Switch, { on: linesOn, onChange: (next) => setLinesOn(next), title: t('v2.prefLines') }),
-            ),
-            h(
-              'div',
-              { className: 'ci-prefrow' },
-              h('span', { className: 'lbl' }, t('v2.prefRange')),
-              h(RangePills, {
-                value: range,
-                label: t('v2.prefRange'),
-                options: [
-                  ['7d', t('trend.range7')],
-                  ['30d', t('trend.range30')],
-                  ['all', t('trend.rangeAll')],
-                ],
-                onChange: setRange,
-              }),
-            ),
-            h(
-              'div',
-              { className: 'ci-prefrow' },
-              h('span', { className: 'lbl' }, t('showDock')),
-              h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') }),
-            ),
-          ),
-          h('div', { className: 'hint' }, t('v2.prefNote')),
-        )
-      }
-
-      function PresetCard({ snapshot, t, act }) {
-        const policy = snapshot.policy
-        const [pendingPreset, setPendingPreset] = useState(null)
-        const [confirmRestore, setConfirmRestore] = useState(null)
-        const [historyOpen, setHistoryOpen] = useState(false)
-        const presetTimer = useRef(null)
-
-        useEffect(
-          () => () => {
-            if (presetTimer.current !== null) clearTimeout(presetTimer.current)
-          },
-          [],
-        )
-
-        const choose = (name, label) => {
+        const choosePreset = (name, label) => {
           // Overwriting the hand-made choices deserves a second click at the
           // moment of the click, not a paragraph that stays on screen forever.
           if (pendingPreset === name) {
@@ -3853,134 +3854,15 @@ body[data-ds-dark-theme] .ci-root{
           act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
         }
 
-        const entries = snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries.slice().reverse() : []
-        const shown = historyOpen ? entries : entries.slice(0, 3)
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h(
-            'div',
-            { className: 'ci-rowline' },
-            h('h2', null, t('preset')),
-            policy.preset === 'custom' ? h('span', { className: 'hint' }, t('custom')) : null,
-          ),
-          h(
-            'div',
-            { className: 'ci-seg' },
-            [
-              ['all', t('presetAll')],
-              ['minimal', t('presetMinimal')],
-            ].map(([name, label]) =>
-              h(
-                'button',
-                {
-                  key: name,
-                  type: 'button',
-                  className: (policy.preset === name ? 'on' : '') + (pendingPreset === name ? ' ci-confirm' : ''),
-                  title: pendingPreset === name ? t('presetOverwrite', { count: excludedCountOf(snapshot) }) : '',
-                  onClick: () => choose(name, label),
-                },
-                pendingPreset === name ? t('confirmOverwrite') : label,
-              ),
-            ),
-          ),
-          h('div', { className: 'ci-rule' }),
-          h(
-            'div',
-            { className: 'ci-rowline' },
-            h('span', { className: 'ci-sub' }, t('historyTitle')),
-            entries.length > 3
-              ? h(
-                  'button',
-                  { type: 'button', className: 'ci-btn ci-sm', onClick: () => setHistoryOpen(!historyOpen) },
-                  historyOpen ? t('collapseAll') : t('historyMore', { count: entries.length }),
-                )
-              : null,
-          ),
-          entries.length === 0
-            ? h('div', { className: 'ci-note' }, t('historyEmpty'))
-            : h(
-                'div',
-                { className: 'ci-list' },
-                shown.map((entry) =>
-                  h(
-                    'div',
-                    { className: 'ci-mini', key: entry.index },
-                    h('span', { className: 'n', title: entry.label }, entry.label),
-                    h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
-                    h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
-                        onClick: () => {
-                          if (confirmRestore === entry.index) {
-                            setConfirmRestore(null)
-                            act({ kind: 'restore', index: entry.index }, t('restored'))
-                          } else {
-                            setConfirmRestore(entry.index)
-                          }
-                        },
-                      },
-                      confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
-                    ),
-                    confirmRestore === entry.index
-                      ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
-                      : null,
-                  ),
-                ),
-              ),
-        )
-      }
-
-      function PolicyCard({ snapshot, t, act, sessionId, notify }) {
-        const policy = snapshot.policy
-        const [prefix, setPrefix] = useState(policy.prompt.prefix)
-        const [suffix, setSuffix] = useState(policy.prompt.suffix)
-        const [saving, setSaving] = useState(false)
-        const [verification, setVerification] = useState(null)
-        const [verifying, setVerifying] = useState(false)
-        const timer = useRef(null)
-        const fileInput = useRef(null)
-
-        useEffect(() => {
-          setPrefix(policy.prompt.prefix)
-          setSuffix(policy.prompt.suffix)
-        }, [policy.prompt.prefix, policy.prompt.suffix])
-        useEffect(
-          () => () => {
-            if (timer.current !== null) clearTimeout(timer.current)
-          },
-          [],
-        )
-
-        const copyReport = async () => {
-          try {
-            const text = typeof snapshot.text === 'string' ? snapshot.text : ''
-            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-              throw new Error('clipboard-unavailable')
-            }
-            await navigator.clipboard.writeText(text)
-            notify({ kind: 'ok', text: t('copied') }, 1800)
-          } catch (error) {
-            notify({ kind: 'error', text: `${t('copyFailed')}：${String((error && error.message) || error)}` })
-          }
+        const persistPrompt = (nextPrefix, nextSuffix) => {
+          if (saveTimer.current !== null) clearTimeout(saveTimer.current)
+          saveTimer.current = setTimeout(() => {
+            setSaving(true)
+            act({ kind: 'prompt', prefix: nextPrefix, suffix: nextSuffix }).finally(() => setSaving(false))
+          }, 500)
         }
 
-        const importPolicy = async (event) => {
-          const file = event.target.files && event.target.files[0]
-          event.target.value = ''
-          if (!file) return
-          try {
-            const text = await file.text()
-            const parsed = JSON.parse(text)
-            await act({ kind: 'import', policy: parsed })
-          } catch (error) {
-            notify({ kind: 'error', text: `${t('importInvalid')}：${String((error && error.message) || error)}` })
-          }
-        }
-
-        const downloadManifest = async (format) => {
+        const exportManifest = async (format) => {
           try {
             const query = `format=${format}` + (sessionId ? `&session=${encodeURIComponent(sessionId)}` : '')
             const response = await fetch(`${ROUTES.export}?${query}`, { credentials: 'same-origin' })
@@ -4000,224 +3882,172 @@ body[data-ds-dark-theme] .ci-root{
           }
         }
 
-        const persist = (nextPrefix, nextSuffix) => {
-          if (timer.current !== null) clearTimeout(timer.current)
-          timer.current = setTimeout(() => {
-            setSaving(true)
-            act({ kind: 'prompt', prefix: nextPrefix, suffix: nextSuffix }).finally(() => setSaving(false))
-          }, 500)
-        }
-
-        const runVerify = async () => {
-          setVerifying(true)
+        const importPolicy = async (event) => {
+          const file = event.target.files && event.target.files[0]
+          event.target.value = ''
+          if (!file) return
           try {
-            const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''
-            const response = await fetch(ROUTES.verify + query, { credentials: 'same-origin' })
-            if (!response.ok) {
-              const body = await response.json().catch(() => null)
-              throw new Error((body && (body.error || body.message)) || `HTTP ${response.status}`)
-            }
-            setVerification(await response.json())
+            const text = await file.text()
+            const parsed = JSON.parse(text)
+            await act({ kind: 'import', policy: parsed })
           } catch (error) {
-            setVerification({ error: String((error && error.message) || error) })
-          } finally {
-            setVerifying(false)
+            notify({ kind: 'error', text: `${t('importInvalid')}：${String((error && error.message) || error)}` })
           }
         }
 
-        const last = policy.lastApplication && policy.lastApplication.report ? policy.lastApplication.report : null
+        const toggle = (key) => setOpen((current) => (current === key ? '' : key))
+        const caret = (key) => h('span', { className: 'ci-caret' + (open === key ? ' open' : '') }, open === key ? '▾' : '▸')
+
         return h(
           'div',
-          { className: 'ci-card' },
+          { className: 'ci-card ci-set' },
           h(
             'div',
-            { className: 'ci-rowline' },
-            h('h2', null, t('policyPath')),
-            h('span', { className: 'hint' }, policy.updatedAt ? `${t('updatedAt')} ${whenText(policy.updatedAt)}` : '—'),
-          ),
-          h('div', { className: 'ci-path', title: policy.path }, policy.path),
-          h(
-            'div',
-            { className: 'ci-toolbar' },
-            h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
-            h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
-            h('button', { type: 'button', className: 'ci-btn', onClick: copyReport }, t('copyReport')),
-            h('input', {
-              ref: fileInput,
-              type: 'file',
-              accept: 'application/json,.json',
-              style: { display: 'none' },
-              onChange: importPolicy,
-              'aria-hidden': 'true',
-              tabIndex: -1,
-            }),
-            h('button', { type: 'button', className: 'ci-btn', onClick: () => fileInput.current && fileInput.current.click() }, t('importPolicy')),
-            h(
-              'button',
-              { type: 'button', className: 'ci-btn', disabled: verifying, title: t('verifyHint'), onClick: runVerify },
-              verifying ? t('loading') : t('verifyNow'),
-            ),
-          ),
-          verification && verification.error ? h('div', { className: 'ci-note warn' }, `${t('verifyFailed')}：${verification.error}`) : null,
-          verification && !verification.error
-            ? h(
-                'div',
-                { className: 'hint' },
-                `${verification.applied ? t('verifyApplied') : t('verifyNotApplied')} · ` +
-                  t('verifyCounts', {
-                    sections: (verification.sections || []).length,
-                    contexts: (verification.contexts || []).length,
-                    tools: (verification.tools || []).length,
-                  }),
-              )
-            : null,
-          h('div', { className: 'ci-rule' }),
-          h('span', { className: 'ci-sub' }, t('promptPrefix')),
-          h('textarea', {
-            className: 'ci-input',
-            rows: 2,
-            style: { resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
-            value: prefix,
-            onChange: (event) => {
-              setPrefix(event.target.value)
-              persist(event.target.value, suffix)
-            },
-            'aria-label': t('promptPrefix'),
-          }),
-          h('span', { className: 'ci-sub' }, t('promptSuffix')),
-          h('textarea', {
-            className: 'ci-input',
-            rows: 2,
-            style: { resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
-            value: suffix,
-            onChange: (event) => {
-              setSuffix(event.target.value)
-              persist(prefix, event.target.value)
-            },
-            'aria-label': t('promptSuffix'),
-          }),
-          saving ? h('div', { className: 'hint' }, t('applied')) : null,
-          h(
-            'div',
-            { className: 'ci-foot' },
-            `${t('lastApply')}：` +
-              (last
-                ? `${shortId(last.sessionId || '')} · ${last.error ? last.error : `OK · −${token(last.savedTokens || 0)}`}`
-                : '—'),
-          ),
-          policy.error ? h('div', { className: 'ci-note warn' }, policy.error) : null,
-        )
-      }
-
-      function excludedCountOf(snapshot) {
-        return CHANNELS.reduce((sum, channel) => {
-          const state = snapshot.policy.channels[channel]
-          if (state === undefined || state.mode === 'all') return sum
-          const row = snapshot.channels.find((entry) => entry.id === channel)
-          const total = row === undefined ? 0 : row.count
-          if (state.mode === 'except') return sum + state.names.length
-          return sum + Math.max(0, total - state.names.length)
-        }, 0)
-      }
-
-      function AboutCard({ snapshot, t }) {
-        const [detailsOpen, setDetailsOpen] = useState(false)
-        const [locksOpen, setLocksOpen] = useState(false)
-        const host = snapshot.host !== null && snapshot.host !== undefined ? snapshot.host : {}
-        const api = Number(snapshot.apiVersion) || 1
-        const locked = Array.isArray(snapshot.locks) ? snapshot.locks : []
-        const loadedFiles = snapshot.instructions.files.filter((file) => file.status !== 'missing').length
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h('h2', null, t('about')),
-          h(
-            'div',
-            { className: 'ci-about-facts' },
+            { className: 'ci-setrow' },
+            h('span', { className: 'k' }, t('policyPath')),
             h(
               'span',
-              null,
-              t('v2.versionHost'),
-              ' ',
-              h('b', null, host.version ? t('v2.versionLine', { version: host.version, tested: host.tested }) : t('v2.versionUnknown')),
+              { className: 'v' },
+              h('span', { className: 'ci-path', title: policy.path }, policy.path),
+              h('span', { className: 'sp' }),
+              h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => exportManifest('md') }, t('exportMd')),
+              h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => exportManifest('json') }, t('exportJson')),
+              h('input', {
+                ref: fileInput,
+                type: 'file',
+                accept: 'application/json,.json',
+                style: { display: 'none' },
+                onChange: importPolicy,
+                'aria-hidden': 'true',
+                tabIndex: -1,
+              }),
+              h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => fileInput.current && fileInput.current.click() }, t('importPolicy')),
             ),
-            h('span', { className: 'sep' }, '·'),
-            h('span', null, t('v2.apiVersionLabel'), ' ', h('b', null, `v${api}`)),
-            h('span', { className: 'sep' }, '·'),
-            h('span', null, t('v2.languageLabel'), ' ', h('b', null, t.language || '—')),
           ),
-          host.supported === false ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: host.version, tested: host.tested })) : null,
-          locked.length === 0
-            ? null
-            : h(
-                'div',
-                null,
-                h(
-                  'button',
-                  { type: 'button', className: 'ci-disclose', 'aria-expanded': locksOpen ? 'true' : 'false', onClick: () => setLocksOpen(!locksOpen) },
-                  h('span', { className: 'ci-caret' + (locksOpen ? ' open' : '') }, locksOpen ? '▾' : '▸'),
-                  `${t('aboutLocked')} ${locked.length}`,
-                ),
-                locksOpen
-                  ? h(
-                      'div',
-                      { className: 'ci-list' },
-                      locked.slice(0, 20).map((lock) =>
-                        h(
-                          'div',
-                          { className: 'ci-mini', key: `${lock.channel}:${lock.name}` },
-                          h(Dot, { channel: lock.channel }),
-                          h('span', { className: 'n', title: lock.name }, (t.names || {})[lock.name] || NAMES_ZH[lock.name] || lock.name),
-                          h('span', { className: 't' }, lock.reason === 'required-context' ? t('required') : t('locked')),
-                        ),
-                      ),
-                    )
-                  : null,
-              ),
           h(
-            'button',
-            { type: 'button', className: 'ci-disclose', 'aria-expanded': detailsOpen ? 'true' : 'false', onClick: () => setDetailsOpen(!detailsOpen) },
-            h('span', { className: 'ci-caret' + (detailsOpen ? ' open' : '') }, detailsOpen ? '▾' : '▸'),
-            t('v2.details'),
+            'div',
+            { className: 'ci-setrow' },
+            h('span', { className: 'k' }, t('preset')),
+            h(
+              'span',
+              { className: 'v' },
+              h(
+                'div',
+                { className: 'ci-seg' },
+                [
+                  ['all', t('presetAll')],
+                  ['minimal', t('presetMinimal')],
+                ].map(([name, label]) =>
+                  h(
+                    'button',
+                    {
+                      key: name,
+                      type: 'button',
+                      className: (policy.preset === name ? 'on' : '') + (pendingPreset === name ? ' ci-confirm' : ''),
+                      title: pendingPreset === name ? t('presetOverwrite', { count: excludedCountOf(snapshot) }) : '',
+                      onClick: () => choosePreset(name, label),
+                    },
+                    pendingPreset === name ? t('confirmOverwrite') : label,
+                  ),
+                ),
+              ),
+              policy.preset === 'custom' ? h('span', { className: 'hint' }, t('custom')) : null,
+            ),
           ),
-          detailsOpen
+          h(
+            'div',
+            { className: 'ci-setrow ci-setrow-full' },
+            h(
+              'button',
+              { type: 'button', className: 'ci-disclose', 'aria-expanded': open === 'prompt' ? 'true' : 'false', onClick: () => toggle('prompt') },
+              caret('prompt'),
+              t('promptPrefix'),
+              '/',
+              t('promptSuffix'),
+            ),
+          ),
+          open === 'prompt'
+            ? h(
+                'div',
+                { className: 'ci-setfold' },
+                h('div', { className: 'hint' }, t('promptPrefixHint')),
+                h('textarea', {
+                  className: 'ci-input',
+                  rows: 2,
+                  style: { resize: 'vertical', fontFamily: 'inherit' },
+                  value: prefix,
+                  onChange: (event) => {
+                    setPrefix(event.target.value)
+                    persistPrompt(event.target.value, suffix)
+                  },
+                  'aria-label': t('promptPrefix'),
+                }),
+                h('textarea', {
+                  className: 'ci-input',
+                  rows: 2,
+                  style: { resize: 'vertical', fontFamily: 'inherit' },
+                  value: suffix,
+                  onChange: (event) => {
+                    setSuffix(event.target.value)
+                    persistPrompt(prefix, event.target.value)
+                  },
+                  'aria-label': t('promptSuffix'),
+                }),
+                saving ? h('div', { className: 'hint' }, t('applied')) : null,
+              )
+            : null,
+          h(
+            'div',
+            { className: 'ci-setrow' },
+            h('span', { className: 'k' }, t('showDock')),
+            h('span', { className: 'v' }, h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') })),
+          ),
+          h(
+            'div',
+            { className: 'ci-setrow' },
+            h('span', { className: 'k' }, t('about')),
+            h(
+              'span',
+              { className: 'v' },
+              h(
+                'span',
+                { className: 'ci-about-facts' },
+                h(
+                  'span',
+                  null,
+                  t('v2.versionHost'),
+                  ' ',
+                  h('b', null, host.version ? t('v2.versionLine', { version: host.version, tested: host.tested }) : t('v2.versionUnknown')),
+                ),
+                h('span', { className: 'sep' }, '·'),
+                h('span', null, t('v2.apiVersionLabel'), ' ', h('b', null, `v${api}`)),
+                h('span', { className: 'sep' }, '·'),
+                h('span', null, t('v2.languageLabel'), ' ', h('b', null, t.language || '—')),
+              ),
+              h(
+                'button',
+                { type: 'button', className: 'ci-disclose', 'aria-expanded': open === 'details' ? 'true' : 'false', onClick: () => toggle('details') },
+                caret('details'),
+                t('v2.details'),
+              ),
+            ),
+          ),
+          open === 'details'
             ? h(
                 'div',
                 { className: 'ci-details' },
+                host.supported === false ? h('span', null, t('hostOld', { version: host.version, tested: host.tested })) : null,
                 h('span', null, t('aboutTokens')),
                 h('span', null, t('aboutFiles')),
                 h('span', null, t('aboutNew')),
                 h('span', null, t('aboutTool')),
-                h('span', null, t('v2.aboutV2')),
                 h('span', null, t('v2.aboutData')),
                 h('span', null, t('v2.aboutHonesty')),
                 h('span', null, t('rulesLine', { loaded: loadedFiles, budget: digits(snapshot.instructions.budgetBytes) })),
+                locked.length === 0 ? null : h('span', null, `${t('aboutLocked')} ${locked.length}：${locked.slice(0, 8).map((lock) => (t.names || {})[lock.name] || lock.name).join('、')}`),
                 h('span', null, t('v2.docsHint')),
               )
             : null,
-        )
-      }
-
-      // ------------------------------------------------------------ panel
-
-
-      function shortId(id) {
-        const text = String(id ?? '')
-        const match = /([0-9a-f]{8})-[0-9a-f]{4}/.exec(text)
-        return match === null ? text.slice(0, 12) : match[1]
-      }
-
-      // Four cards, four questions, in the order a user asks them: what this
-      // browser remembers, which preset is on, where the policy lives, what
-      // version is underneath. No warning paragraphs, no second tab level.
-      function SettingsPage({ snapshot, t, act, sessionId, notify }) {
-        return h(
-          'div',
-          { className: 'ci-list' },
-          h(PrefsCard, { t }),
-          h(PresetCard, { snapshot, t, act }),
-          h(PolicyCard, { snapshot, t, act, sessionId, notify }),
-          h(AboutCard, { snapshot, t }),
         )
       }
 

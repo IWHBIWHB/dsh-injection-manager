@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.2.5 — 2026-11-18
+
+The settings page was four cards of eleven rows and eight paragraphs, and almost none of it was a
+setting. It is now one card of five rows, about a fifth of its former height.
+
+### Changed
+
+- **设置 is one card**: 策略文件 (path + export Markdown/JSON + import), 预设 (全开/极简 with the
+  two-click overwrite confirmation), a folded 自定义前言/后记, 输入框摘要 (the composer chip), and
+  说明 (host/API/language plus a folded 详细说明).
+- **Removed**: the undo-history card (the manage page's 撤销上一步 walks the same stack), the
+  copy-report button (the `/inject` command and the tool print the same text), the 核对本会话 button
+  (the health strip and `/inject health` cover diagnostics), the last-apply line, the update time, and
+  the separate 偏好 card.
+- **Two preferences lost their switches because they have better homes**: the drawer's line-number
+  default is a toggle inside the drawer itself, and the default trend range is the range pills on
+  洞察. Their stored values are unchanged, so nothing resets.
+
+### Verification
+
+- `node --test` 223/223; `node scripts/self-audit.mjs --strict` 7/7, 0 warnings.
+- The settings card measures 215px at 1360px wide; it was about 900px.
+
 ## 2.2.4 — 2026-11-18
 
 Spacing and width, from a screenshot of the live panel: the tab row sat 7px under the subtitle, and
