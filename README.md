@@ -164,10 +164,11 @@ The list groups by suite by default instead of showing hundreds of rows:
 - A group row shows item count, tokens, share and a tri-state switch; a partially disabled group
   shows the mixed state, and a suite that is off for the next session stays in the list with its
   remembered size so it can be reopened.
-- The grouped list is split by origin: **Plugins / MCP** (installed plugins and MCP servers) first,
-  then **DSH built-in** (host prompt sections, runtime contexts, workspace rules, built-in tool
-  families and instruction files). A profile with only one origin keeps the plain list without
-  headers.
+- The grouped list splits by origin: **DeepSeek official** (host prompt sections, runtime contexts,
+  workspace rules, core tool families) folds into one line and stays folded until you open it;
+  **Other plugins & MCP** (MCP namespaces, provider-backed skills, plugin sections and tools) stays
+  open below it. The classification is a maintained list in `lib/origin.js`, because the host does
+  not tag a tool or a section with its owner — an unlisted plugin must never hide inside "official".
 
 ## The content drawer
 

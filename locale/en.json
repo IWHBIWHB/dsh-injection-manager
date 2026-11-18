@@ -397,9 +397,11 @@
     "v2.closedLight": "Faded = switched off",
     "v2.scopeUnknown": "Unknown source",
     "trend.backfilling": "Backfilling history…",
-    "v2.originPlugin": "Plugins / MCP",
-    "v2.originBuiltin": "DSH built-in",
-    "v2.originHint": "MCP namespaces and provider-backed skills count as plugins; host prompt sections, runtime contexts, workspace rules and built-in tools count as DSH built-in.",
+    "v2.originPlugin": "Other plugins & MCP",
+    "v2.originBuiltin": "DeepSeek official",
+    "v2.originHint": "The official list lives in lib/origin.js: host sections, runtime contexts and core tools are official; MCP namespaces, provider-backed skills and unlisted plugin entries are not.",
+    "v2.notesHint": "click to view",
+    "v2.officialHint": "Ships with the harness; close per item if needed",
     "health.builtin-heavy": "\"{label}\" is {share}% of the first turn (DSH built-in suite — not recommended to switch off)"
   }
 }

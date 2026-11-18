@@ -397,9 +397,11 @@
     "v2.closedLight": "Tenue = desactivado",
     "v2.scopeUnknown": "Origen desconocido",
     "trend.backfilling": "Rellenando historial…",
-    "v2.originPlugin": "Plugins / MCP",
-    "v2.originBuiltin": "Integrado en DSH",
-    "v2.originHint": "Los espacios de nombres MCP y las skills con proveedor cuentan como plugins; las secciones del host, contextos de ejecución, reglas del espacio de trabajo y herramientas integradas cuentan como DSH.",
+    "v2.originPlugin": "Otros plugins y MCP",
+    "v2.originBuiltin": "Oficial de DeepSeek",
+    "v2.originHint": "La lista oficial está en lib/origin.js: secciones del host, contextos de ejecución y herramientas núcleo son oficiales; los espacios MCP, las skills con provider y los plugins sin listar no lo son.",
+    "v2.notesHint": "pulsa para ver",
+    "v2.officialHint": "Viene con el harness; cierra por elemento si hace falta",
     "health.builtin-heavy": "«{label}» es el {share}% del primer turno (suite integrada de DSH; no se recomienda desactivarla)"
   }
 }

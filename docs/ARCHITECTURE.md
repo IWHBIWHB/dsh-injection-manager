@@ -45,13 +45,15 @@ Config ───────┤
 
 ## 来源分类
 
-2.1.0 起，快照给每个条目与分组打上 `origin: "plugin" | "builtin"`，回答「这条注入来自装进来的插件，还是宿主自带」。分类是 `lib/snapshot.js` 里 `itemOrigin()` 的启发式，不是宿主给的元数据：
+2.1.0 起，快照给每个条目与分组打上 `origin: "plugin" | "builtin"`，回答「这条注入来自装进来的插件，还是 DeepSeek 官方」。宿主不给归属：`ToolSchema` 只有 name/description/parameters，段落只有 name/text，所以 2.2.1 起分类由一份维护名单决定（`lib/origin.js`），不再是「名字里带 mcp 才算插件」的启发式：
 
-- 名字匹配 `mcp__`、`mcp:` 或 `tool:mcp__` 的段落、上下文与工具算 `plugin`——一个 MCP server 的命名空间就是「装进来的东西」最诚实的信号；
-- 技能带 `provider` 或 `source: 'user'` 算 `plugin`，没有 provider 的技能算 `builtin`；
-- 其余全部算 `builtin`：宿主提示词段落、运行时上下文、工作区规则、内置工具族、指令文件。
+- **官方**：`OFFICIAL_TOOL_NAMES`（read / pwsh / todo_write / schedule_* / job_* / subagent* / goal* / web_* 等核心工具）与 `OFFICIAL_TOOL_FAMILIES`（core / schedule / job / subagent / workflow / team / web / plugin …）；段落前缀（`harness:` `deployment:` `tools:` `plan:` `team:` `context:` `ui:` `app:` `session:` `runtime:` `tool:` `subagent:`）与少数无前缀名字（`mcp-resource-servers`、`tool-guidance`）；上下文前缀（`working-directory:` `sandbox:` `approval:` `subagent:` `tool:` …）。
+- **其他**：`mcp__` / `mcp:` / `plugin:` 开头的一律算其他；带 `provider` 或 `source: 'user'` 的技能算其他；**没列名的工具、段落、上下文一律算其他**——宁可让一个宿主新段落暂时落到「其他」，也不能把一个第三方插件藏进「官方」。
+- 组归属按多数票：组内官方条目多于其他条目才是官方，一个插件条目不会把整个 `core` 工具族翻成插件。
 
-`/summary` 的每个 item 带这个字段；`lib/group.js` 的 `summarizeGroups()` 为每个 group 打同样的 `origin`（组内只要有一条 plugin 就是 plugin）。同一函数还顺带算出策略生效后的计数：`onCount` / `offCount` / `onTokens` / `offTokens` / `onSavableTokens`，而 `count` / `tokens` 仍是测量时全开的体积。健康检查读 `on*`，所以关掉一套后它自己的告警会消失。面板的套件清单按 `origin` 分成「插件 / MCP」与「DSH 自带」两段，只有一种来源时不分段。
+`/summary` 的每个 item 带这个字段；`lib/group.js` 的 `summarizeGroups()` 为每个 group 打同样的 `origin`（组内多数票，另附 `pluginCount` / `officialCount`）。同一函数还顺带算出策略生效后的计数：`onCount` / `offCount` / `onTokens` / `offTokens` / `onSavableTokens`，而 `count` / `tokens` 仍是测量时全开的体积。健康检查读 `on*`，所以关掉一套后它自己的告警会消失。
+
+面板的套件清单分两段：**DeepSeek 官方**折成一行、默认收起（展开状态存 localStorage）；**其他插件与 MCP** 默认展开。健康检查条只保留有动作的项，只读提示折成一行。
 
 ## 生效时序
 

@@ -508,6 +508,13 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-sourceline{display:flex;align-items:center;gap:8px;padding:9px 2px 5px;font-size:11px;color:var(--ci-fg3);border-bottom:1px solid var(--ci-line2);margin-top:2px}
 .ci-sourceline .lbl{font-weight:600;color:var(--ci-fg2);letter-spacing:.01em}
 .ci-sourceline .n{font-variant-numeric:tabular-nums}
+/* The official bucket folds into one line: its 24 suites are not what the panel
+   was opened for, and unfolded they push the plugin rows below the fold. */
+.ci-sourceline-toggle{cursor:pointer;user-select:none;border-radius:6px;padding-right:6px}
+.ci-sourceline-toggle:hover{background:var(--ci-line2)}
+.ci-sourceline-toggle:focus-visible{outline:2px solid var(--ci-blue);outline-offset:1px}
+.ci-sourceline-toggle .lbl{color:var(--ci-fg)}
+.ci-sourceline-toggle .hint{margin-left:auto;color:var(--ci-fg3);font-weight:400}
 .ci-caret{display:inline-block;width:14px;color:var(--ci-fg3);font-size:10px;transform:translateY(-1px)}
 .ci-row-nested{background:var(--ci-card);padding-left:34px;box-shadow:inset 2px 0 0 var(--ci-line2)}
 .ci-row-nested .n{font-weight:400}
@@ -569,6 +576,13 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-health-counts .warn b{color:var(--ci-warn)}
 .ci-health-counts .sep{color:var(--ci-line);padding:0 1px}
 .ci-health-more{color:var(--ci-fg3)}
+/* Notes are collapsed into one line: they answer "why", not "what do I press". */
+.ci-health-notes{display:flex;align-items:center;gap:6px;width:100%;margin-top:2px;padding:4px 0 0;border:0;border-top:1px solid var(--ci-line2);background:transparent;color:var(--ci-fg3);font:inherit;font-size:11.5px;text-align:left;cursor:pointer}
+.ci-health-notes:hover{color:var(--ci-fg2)}
+.ci-health-notes:focus-visible{outline:2px solid var(--ci-blue);outline-offset:1px;border-radius:4px}
+.ci-health-notes .hint{color:var(--ci-fg3);opacity:.85}
+.ci-health-row-note{opacity:.82}
+.ci-health-row-note .ci-health-text{font-size:11.5px}
 .ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:center;padding:2px 0 0;margin-top:2px;border-top:1px solid var(--ci-line2)}
 .ci-health-row .sev{width:8px;height:8px;border-radius:50%;display:block;background:var(--ci-fg3)}
 .ci-health-row .sev.high{background:var(--ci-danger)}
@@ -2010,27 +2024,58 @@ body[data-ds-dark-theme] .ci-root{
         })()
         const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
 
-        // Suites are split by origin: what an installed plugin / MCP server
-        // injects first, then what the host itself injects. A single-origin list
-        // keeps the plain form, so a clean profile never shows a lonely header.
+        // Two buckets, one question: is this DeepSeek's harness or something I
+        // installed? The official side folds into a single line — its 24 suites
+        // are not what the user came to switch off, and unfolded they push the
+        // plugin rows below the fold. The third-party side stays open.
+        const [officialOpen, setOfficialOpen] = useStoredState('officialOpen', false)
         const groupSections = () => {
-          const plugin = groups.filter((group) => group.origin === 'plugin')
-          const builtin = groups.filter((group) => group.origin !== 'plugin')
-          const list = [
-            { key: 'plugin', label: t('v2.originPlugin'), groups: plugin },
-            { key: 'builtin', label: t('v2.originBuiltin'), groups: builtin },
-          ].filter((section) => section.groups.length > 0)
-          if (list.length < 2) return [{ key: 'all', header: null, groups }]
-          return list.map((section) => ({
-            key: section.key,
-            header: h(
-              'div',
-              { className: 'ci-sourceline', key: 'src:' + section.key, role: 'group', 'aria-label': section.label, title: t('v2.originHint') },
-              h('span', { className: 'lbl' }, section.label),
-              h('span', { className: 'n' }, `${section.groups.length} ${t('groups')}`),
-            ),
-            groups: section.groups,
-          }))
+          const official = groups.filter((group) => group.origin !== 'plugin')
+          const thirdParty = groups.filter((group) => group.origin === 'plugin')
+          const sections = []
+          if (official.length > 0) {
+            const effectiveOf = (group) => (Number.isFinite(group.onTokens) ? group.onTokens : group.tokens)
+            const tokens = official.reduce((sum, group) => sum + effectiveOf(group), 0)
+            sections.push({
+              key: 'official',
+              groups: officialOpen ? official : [],
+              header: h(
+                'div',
+                {
+                  key: 'src:official',
+                  className: 'ci-sourceline ci-sourceline-toggle',
+                  role: 'button',
+                  tabIndex: 0,
+                  'aria-expanded': officialOpen ? 'true' : 'false',
+                  'aria-label': t('v2.originBuiltin'),
+                  title: t('v2.officialHint'),
+                  onClick: () => setOfficialOpen(!officialOpen),
+                  onKeyDown: (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    setOfficialOpen(!officialOpen)
+                  },
+                },
+                h('span', { className: 'ci-caret' + (officialOpen ? ' open' : '') }, officialOpen ? '▾' : '▸'),
+                h('span', { className: 'lbl' }, t('v2.originBuiltin')),
+                h('span', { className: 'n' }, `${official.length} ${t('groups')} · ${token(tokens)} token`),
+                h('span', { className: 'hint' }, t('v2.officialHint')),
+              ),
+            })
+          }
+          if (thirdParty.length > 0) {
+            sections.push({
+              key: 'third',
+              groups: thirdParty,
+              header: h(
+                'div',
+                { key: 'src:third', className: 'ci-sourceline', role: 'group', 'aria-label': t('v2.originPlugin'), title: t('v2.originHint') },
+                h('span', { className: 'lbl' }, t('v2.originPlugin')),
+                h('span', { className: 'n' }, `${thirdParty.length} ${t('groups')}`),
+              ),
+            })
+          }
+          return sections.length === 0 ? [{ key: 'all', header: null, groups: [] }] : sections
         }
 
 
@@ -2451,8 +2496,30 @@ body[data-ds-dark-theme] .ci-root{
         }
         const failed = health !== null && health.status === 'failed'
         const loading = (health === null || health.status === 'loading' || health.status === 'refreshing') && data === null
-        const visible = checks.filter((check) => check !== null && typeof check === 'object').slice(0, 6)
-        const rest = checks.length - visible.length
+
+        // A health row earns its line only when there is something to press.
+        // "3 items cannot be closed" and "window unknown" used to occupy two
+        // rows without offering a move; they are notes now, folded into one line.
+        // A suite the host itself owns is never offered as "close this suite",
+        // even when an older host sends the action anyway.
+        const [notesOpen, setNotesOpen] = useState(false)
+        const usable = checks.filter((check) => check !== null && typeof check === 'object')
+        const groupOfCheck = (check) => {
+          const payload = check && check.action && check.action.payload ? check.action.payload : {}
+          const label = String(payload.label !== undefined ? payload.label : payload.key !== undefined ? payload.key : payload.group !== undefined ? payload.group : '')
+          const groups = snapshot && Array.isArray(snapshot.groups) ? snapshot.groups : []
+          return groups.find((group) => group.id === payload.group || String(group.label) === label)
+        }
+        const isActionable = (check) => {
+          if (check === null || check === undefined || check.action === null || check.action === undefined) return false
+          if (check.action.kind !== 'switch-group') return false
+          const group = groupOfCheck(check)
+          return group === undefined || group.origin === 'plugin'
+        }
+        const actionable = usable.filter(isActionable).slice(0, 3)
+        const notes = usable.filter((check) => !isActionable(check))
+        const shownNotes = notesOpen ? notes.slice(0, 8) : []
+        const countOnly = notes.length > shownNotes.length && notesOpen ? notes.length - shownNotes.length : 0
 
         const runAction = (check) => {
           const action = check.action
@@ -2496,6 +2563,43 @@ body[data-ds-dark-theme] .ci-root{
           return known ? t('health.action.' + action.kind) : t('v2.openContent')
         }
 
+        const healthTextOf = (check) => {
+          const params = check !== null && check.params !== null && typeof check.params === 'object' ? check.params : {}
+          // Different codes carry different params; fill the placeholders the
+          // copy expects so a missing field reads as "—" and never as `{count}`.
+          return t('health.' + String(check.code || ''), {
+            label: params.label !== undefined ? params.label : '—',
+            count: params.count !== undefined ? params.count : '—',
+            share: params.share !== undefined ? params.share : '—',
+            tokens: Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0 ? token(params.tokens) : '—',
+          })
+        }
+
+        // One health row. `withAction` is false for notes: those exist to be
+        // read, and a button on them would be the "close a suite the host owns"
+        // mistake this strip is supposed to stop making.
+        const checkRow = (check, key, withAction) => {
+          const severity = check.severity === 'high' ? 'high' : check.severity === 'warn' ? 'warn' : 'info'
+          const params = check.params !== null && typeof check.params === 'object' ? check.params : {}
+          const text = healthTextOf(check)
+          return h(
+            'div',
+            { className: 'ci-health-row' + (withAction ? '' : ' ci-health-row-note'), key },
+            h('span', { className: 'sev ' + severity, 'aria-hidden': 'true' }),
+            h(
+              'span',
+              { className: 'ci-health-text', title: text },
+              text,
+              withAction && severity !== 'info' && Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0
+                ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(params.tokens) }) }, '−' + token(params.tokens))
+                : null,
+            ),
+            withAction && check.action !== null && check.action !== undefined && typeof check.action === 'object'
+              ? h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => runAction(check) }, actionLabel(check.action))
+              : null,
+          )
+        }
+
         return h(
           'div',
           { className: 'ci-health', role: 'group', 'aria-label': t('v2.health') },
@@ -2519,7 +2623,6 @@ body[data-ds-dark-theme] .ci-root{
                   h('span', { key, className }, h('b', null, String(value)), key === 'high' ? t('v2.sevHigh') : key === 'warn' ? t('v2.sevWarn') : t('v2.sevInfo')),
                 ])
                 .flat(),
-              rest > 0 ? h('span', { className: 'ci-health-more' }, t('v2.moreChecks', { count: rest })) : null,
             ),
             data !== null && Number.isFinite(Number(data.checkedAt))
               ? h('span', { className: 'ci-inline-meta', style: { marginLeft: 'auto' } }, t('v2.healthChecked', { time: fullTime(data.checkedAt) }))
@@ -2539,34 +2642,24 @@ body[data-ds-dark-theme] .ci-root{
           !loading && data !== null && checks.length === 0
             ? h('div', { className: 'ci-health-allclear' }, t('v2.healthAllClear'))
             : null,
-          visible.map((check, index) => {
-            const severity = check.severity === 'high' ? 'high' : check.severity === 'warn' ? 'warn' : 'info'
-            const params = check.params !== null && typeof check.params === 'object' ? check.params : {}
-            // Different codes carry different params; fill the placeholders the
-            // copy expects so a missing field reads as "—" and never as `{count}`.
-            const text = t('health.' + String(check.code || ''), {
-              label: params.label !== undefined ? params.label : '—',
-              count: params.count !== undefined ? params.count : '—',
-              share: params.share !== undefined ? params.share : '—',
-              tokens: Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0 ? token(params.tokens) : '—',
-            })
-            return h(
-              'div',
-              { className: 'ci-health-row', key: `${check.code || 'check'}:${index}` },
-              h('span', { className: 'sev ' + severity, 'aria-hidden': 'true' }),
-              h(
-                'span',
-                { className: 'ci-health-text', title: text },
-                text,
-                severity !== 'info' && Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0
-                  ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(params.tokens) }) }, '−' + token(params.tokens))
-                  : null,
-              ),
-              check.action !== null && check.action !== undefined && typeof check.action === 'object'
-                ? h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => runAction(check) }, actionLabel(check.action))
-                : null,
-            )
-          }),
+          actionable.map((check, index) => checkRow(check, `action:${index}`, true)),
+          notes.length > 0
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'ci-health-notes',
+                  'aria-expanded': notesOpen ? 'true' : 'false',
+                  title: notes.map((check) => healthTextOf(check)).join(' · '),
+                  onClick: () => setNotesOpen(!notesOpen),
+                },
+                h('span', { className: 'ci-caret' + (notesOpen ? ' open' : '') }, notesOpen ? '▾' : '▸'),
+                h('span', null, t('v2.moreChecks', { count: notes.length })),
+                h('span', { className: 'hint' }, t('v2.notesHint')),
+              )
+            : null,
+          shownNotes.map((check, index) => checkRow(check, `note:${index}`, false)),
+          countOnly > 0 ? h('div', { className: 'ci-health-more' }, t('v2.moreChecks', { count: countOnly })) : null,
         )
       }
 

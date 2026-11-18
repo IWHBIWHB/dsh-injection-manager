@@ -397,9 +397,11 @@
     "v2.closedLight": "淡色 = オフ",
     "v2.scopeUnknown": "不明なソース",
     "trend.backfilling": "履歴を補完中…",
-    "v2.originPlugin": "プラグイン / MCP",
-    "v2.originBuiltin": "DSH 標準",
-    "v2.originHint": "MCP 名前空間とプロバイダー付きスキルは「プラグイン」、ホストのプロンプトセクション・実行時コンテキスト・ワークスペースルール・組み込みツールは「DSH 標準」です。",
+    "v2.originPlugin": "その他のプラグインと MCP",
+    "v2.originBuiltin": "DeepSeek 公式",
+    "v2.originHint": "公式リストは lib/origin.js。本体の段落・ランタイムコンテキスト・コアツールが公式、MCP 名前空間・provider 付きスキル・未登録のプラグイン項目はその他です。",
+    "v2.notesHint": "クリックで表示",
+    "v2.officialHint": "本体同梱。必要な項目だけ個別にオフ",
     "health.builtin-heavy": "「{label}」は初回の {share}%（DSH 標準スイートのため、オフ推奨ではありません）"
   }
 }

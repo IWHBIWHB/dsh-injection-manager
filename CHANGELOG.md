@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.2.1 — 2026-11-18
+
+### Changed
+
+- **The list asks one question: is this DeepSeek's, or mine?** The grouped list now has two
+  sections. **DeepSeek 官方** folds into a single line (`24 组 · 15.4k token`) and stays folded until
+  clicked; **其他插件与 MCP** stays open below it. The official side is not what the panel was
+  opened for, and unfolded it pushed the plugin rows below the fold on a laptop.
+- **The classification is a maintained list, not a name heuristic.** `lib/origin.js` holds the
+  official tool names, tool families, section prefixes, context prefixes and the explicit
+  third-party prefixes; anything unlisted counts as *other*. The old rule ("only `mcp__` names are
+  plugins") put `agentero`, `dsh-office`, `dsh-context` and every other non-MCP plugin inside
+  "DSH built-in", where a user looking for what to switch off would never find them. A suite's
+  origin is now a majority vote, so one plugin item cannot re-label the whole `core` family.
+- **The health strip only keeps rows with a button.** "3 items cannot be closed" and "window
+  unknown" occupied two rows without offering a move; they collapse into one line (`还有 3 条提示 ·
+  点开查看`) that opens on click. A suite the host owns is never offered as "关掉这一套" — even when
+  an older host still sends that action, the panel checks the suite's origin and demotes it to a
+  note.
+
+### Verification
+
+- `node --test` 223/223 (three new: official names stay official, a plugin is never hidden in the
+  official bucket, a suite is official only when most of its items are).
+- Fixture screenshots 24/24 across the three surfaces, both themes, three locales and five policy
+  states; the added states are "official bucket expanded" and "notes expanded".
+- Host restart required for the new classification; the client-side action guard takes effect on a
+  panel refresh even against a 2.1.x host.
+
 ## 2.2.0 — 2026-11-18
 
 The consistency release. Every surface now quotes the same two numbers, "off" has one meaning,

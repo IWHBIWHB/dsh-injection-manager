@@ -397,9 +397,11 @@
     "v2.closedLight": "Blass = abgeschaltet",
     "v2.scopeUnknown": "Unbekannte Quelle",
     "trend.backfilling": "Verlauf wird nachgefüllt…",
-    "v2.originPlugin": "Plugins / MCP",
-    "v2.originBuiltin": "DSH-integriert",
-    "v2.originHint": "MCP-Namespaces und Skills mit Provider zählen als Plugins; Prompt-Abschnitte, Laufzeitkontexte, Workspace-Regeln und integrierte Werkzeuge zählen als DSH.",
+    "v2.originPlugin": "Andere Plugins & MCP",
+    "v2.originBuiltin": "DeepSeek-offiziell",
+    "v2.originHint": "Die offizielle Liste steht in lib/origin.js: Harness-Abschnitte, Laufzeit-Kontexte und Kernwerkzeuge sind offiziell; MCP-Namensräume, provider-gestützte Skills und nicht gelistete Plugins sind es nicht.",
+    "v2.notesHint": "zum Ansehen klicken",
+    "v2.officialHint": "Teil des Harness; bei Bedarf einzeln schließen",
     "health.builtin-heavy": "„{label}“ sind {share} % des ersten Aufrufs (DSH-integrierte Suite — Ausschalten nicht empfohlen)"
   }
 }

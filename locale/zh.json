@@ -397,9 +397,11 @@
     "v2.closedLight": "浅色 = 已关闭",
     "v2.scopeUnknown": "未知来源",
     "trend.backfilling": "正在补齐历史记录…",
-    "v2.originPlugin": "插件 / MCP",
-    "v2.originBuiltin": "DSH 自带",
-    "v2.originHint": "MCP 命名空间与带 provider 的技能算「插件」；宿主提示词段落、运行时上下文、工作区规则与内置工具算「DSH 自带」。",
+    "v2.originPlugin": "其他插件与 MCP",
+    "v2.originBuiltin": "DeepSeek 官方",
+    "v2.originHint": "官方名单在 lib/origin.js：宿主段落、运行时上下文与核心工具算官方；MCP 命名空间、带 provider 的技能、未列名的插件条目算其他。",
+    "v2.notesHint": "点开查看",
+    "v2.officialHint": "宿主自带，逐条可关；整套关通常不建议",
     "health.builtin-heavy": "「{label}」占首轮 {share}%（DSH 自带套件，不建议关闭）"
   }
 }

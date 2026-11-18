@@ -397,9 +397,11 @@
     "v2.closedLight": "Pâle = désactivé",
     "v2.scopeUnknown": "Source inconnue",
     "trend.backfilling": "Complément de l’historique…",
-    "v2.originPlugin": "Extensions / MCP",
-    "v2.originBuiltin": "Intégré à DSH",
-    "v2.originHint": "Les espaces de noms MCP et les skills fournies par un fournisseur comptent comme extensions ; les sections d’invite, contextes d’exécution, règles d’espace de travail et outils intégrés comptent comme DSH.",
+    "v2.originPlugin": "Autres plugins et MCP",
+    "v2.originBuiltin": "Officiel DeepSeek",
+    "v2.originHint": "La liste officielle est dans lib/origin.js : sections du harness, contextes d'exécution et outils du noyau sont officiels ; les espaces MCP, les skills avec provider et les plugins non listés ne le sont pas.",
+    "v2.notesHint": "cliquez pour voir",
+    "v2.officialHint": "Fourni avec le harness ; fermez au cas par cas",
     "health.builtin-heavy": "« {label} » représente {share} % du premier tour (suite intégrée à DSH, non recommandée à désactiver)"
   }
 }
