@@ -682,7 +682,7 @@ body[data-ds-dark-theme] .ci-content-hit{background:rgba(124,141,255,.34)}
 .ci-trend-note .hatch{display:inline-block;width:16px;height:8px;border-radius:2px;vertical-align:-1px;margin-right:3px;background:repeating-linear-gradient(45deg,var(--ci-fg3) 0 1.5px,transparent 1.5px 4px);border:1px solid var(--ci-line2)}
 /* sessions */
 .ci-session-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
-.ci-session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:8px;min-width:0}
+.ci-session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;min-width:0}
 .ci-session{border:1px solid var(--ci-line2);border-radius:10px;background:var(--ci-bg);padding:8px 10px 9px;display:flex;flex-direction:column;gap:5px;min-width:0}
 .ci-session.live{border-color:var(--ci-accent)}
 .ci-session .top{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:var(--ci-fg3)}
@@ -833,8 +833,6 @@ body[data-ds-dark-theme] .ci-root{
 .ci-disclose:hover{color:var(--ci-fg);background:var(--ci-line2)}
 .ci-disclose:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
 .ci-details{display:flex;flex-direction:column;gap:5px;font-size:var(--ci-fs-micro);color:var(--ci-fg3);line-height:1.55}
-.ci-grid2-log{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
-@container (max-width:900px){.ci-grid2-log{grid-template-columns:minmax(0,1fr)}}
 .ci-barrow-btn{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:var(--ci-radius-chip);cursor:pointer;text-align:left;width:100%}
 .ci-barrow-btn:hover{background:var(--ci-card)}
 .ci-barrow-btn:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
@@ -1060,11 +1058,6 @@ body[data-ds-dark-theme] .ci-root{
 
       function useTrend(range, enabled) {
         const url = ROUTES.trend + `?range=${encodeURIComponent(range || 'all')}&limit=120`
-        return useResource(url, { enabled })
-      }
-
-      function useEvents(sessionId, enabled) {
-        const url = ROUTES.events + `?limit=60` + (sessionId ? `&session=${encodeURIComponent(sessionId)}` : '')
         return useResource(url, { enabled })
       }
 
@@ -3084,100 +3077,6 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      function EventsFeed({ events, t, limit, initial, bare }) {
-        const [showAll, setShowAll] = useState(false)
-        const data = events !== null && events.data !== null && events.data !== undefined ? events.data : null
-        const list = data !== null && Array.isArray(data.events) ? data.events : []
-        const coverage = data !== null && data.coverage !== null && typeof data.coverage === 'object' ? data.coverage : null
-        const max = limit || 60
-        const first = initial || 12
-        const sliced = showAll ? list.slice(0, max) : list.slice(0, first)
-        const failed = events !== null && events.status === 'failed'
-        const loading = events !== null && (events.status === 'loading' || events.status === 'refreshing') && data === null
-
-        const paramsOf = (event) => {
-          const params = event.params !== null && typeof event.params === 'object' ? event.params : {}
-          const chips = []
-          for (const key of ['group', 'name', 'scope', 'mode', 'preset', 'detail']) {
-            const value = params[key]
-            if (typeof value === 'string' && value.length > 0) chips.push(value.length > 60 ? value.slice(0, 60) + '…' : value)
-          }
-          if (typeof params.channel === 'string' && params.channel.length > 0) chips.push(t(params.channel))
-          if (typeof params.op === 'string' && params.op.length > 0) {
-            if (typeof params.channel === 'string') chips.push(params.op === 'off' ? t('turnedOff') : t('turnedOn'))
-            else chips.push(params.op)
-          }
-          if (Number.isFinite(Number(params.count)) && Number(params.count) > 0) chips.push(`${params.count} ${t('items')}`)
-          return chips
-        }
-
-        return h(
-          'div',
-          { className: (bare === true ? '' : 'ci-card ') + 'ci-events' },
-          h(
-            'div',
-            { className: 'ci-cardhead' },
-            h('h2', null, t('v2.eventsTitle')),
-            h('span', { className: 'sp' }),
-            coverage !== null && Number.isFinite(Number(coverage.count))
-              ? h('span', { className: 'hint' }, t('v2.eventsCoverage', { count: coverage.count, limit: coverage.limit || max }))
-              : null,
-            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: events.reload, title: t('refresh') }, t('refresh')),
-          ),
-          failed
-            ? h(
-                'div',
-                { className: 'ci-errorbar' },
-                h('span', null, `${t('v2.eventsFailed')}：${errorText(events)}`),
-                h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: events.reload }, t('v2.retry')),
-              )
-            : null,
-          loading
-            ? h(
-                'div',
-                { className: 'ci-skel-lines', 'aria-hidden': 'true' },
-                [0, 1, 2, 3, 4, 5].map((index) => h('div', { className: 'line', key: index })),
-              )
-            : null,
-          !loading && list.length === 0 && !failed ? h('div', { className: 'ci-note' }, t('v2.eventsEmpty')) : null,
-          sliced.length === 0
-            ? null
-            : h(
-                'div',
-                { className: 'ci-events-list', role: 'list', 'aria-label': t('v2.eventsTitle') },
-                sliced.map((event, index) => {
-                  const kind = typeof event.kind === 'string' ? event.kind : 'unknown'
-                  const known = ['session-created', 'policy-saved', 'preset', 'budget', 'switch', 'undo', 'import', 'compaction', 'prune', 'model-switch', 'mode-toggle', 'diagnostic']
-                  const label = known.indexOf(kind) >= 0 ? t('ev.' + kind) : t('ev.unknown')
-                  const delta = Number(event.tokensDelta)
-                  const chips = paramsOf(event)
-                  return h(
-                    'div',
-                    { className: 'ci-event', key: event.id || 'e' + index, role: 'listitem' },
-                    h('span', { className: 'dot k-' + kind, 'aria-hidden': 'true' }),
-                    h(
-                      'div',
-                      { className: 'body' },
-                      h(
-                        'div',
-                        { className: 'lbl' },
-                        label,
-                        Number.isFinite(delta) && delta !== 0
-                          ? h('span', { className: 'delta' }, ` ${delta < 0 ? '−' : '+'}${token(Math.abs(delta))}`)
-                          : null,
-                      ),
-                      chips.length === 0 ? null : h('div', { className: 'prm' }, chips.map((chip, chipIndex) => h('span', { key: chipIndex }, chip))),
-                    ),
-                    h('time', { className: 'when', dateTime: Number(event.at) > 0 ? new Date(event.at).toISOString() : undefined, title: fullTime(event.at) }, ago(event.at)),
-                  )
-                }),
-              ),
-          !showAll && list.length > first
-            ? h('button', { type: 'button', className: 'ci-btn ci-sm', style: { alignSelf: 'flex-start' }, onClick: () => setShowAll(true) }, t('v2.eventsMore', { count: Math.min(list.length, max) - first }))
-            : null,
-        )
-      }
-
       function SessionCards({ trend, t, sessionId, onRangeAll }) {
         const [query, setQuery] = useState('')
         const [sort, setSort] = useStoredState('insightsSort', 'recent')
@@ -3299,7 +3198,6 @@ body[data-ds-dark-theme] .ci-root{
       function InsightsTab({ snapshot, t, sessionId, onOpenContent, onOpenTab, onPickSuite, act }) {
         const [range, setRange] = useStoredState('trendRange', 'all')
         const trend = useTrend(range, true)
-        const events = useEvents(sessionId, true)
         const health = useHealth(sessionId, true)
         const data = trend.data !== null && trend.data !== undefined ? trend.data : null
         const aggregate = data !== null && data.aggregate !== null && typeof data.aggregate === 'object' ? data.aggregate : null
@@ -3319,7 +3217,7 @@ body[data-ds-dark-theme] .ci-root{
                 { key: 'trend.max', value: token(aggregate.maxTotal), label: t('trend.max') },
                 { key: 'trend.saved', value: token(aggregate.totalSaved), label: t('trend.saved') },
               ]
-        const refreshAll = () => Promise.all([trend.reload(), events.reload(), health.reload()]).catch(() => {})
+        const refreshAll = () => Promise.all([trend.reload(), health.reload()]).catch(() => {})
 
         return h(
           'div',
@@ -3431,13 +3329,10 @@ body[data-ds-dark-theme] .ci-root{
             coverage !== null ? h('div', { className: 'ci-trend-note' }, t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' })) : null,
             backfilling ? h('div', { className: 'ci-trend-note' }, t('trend.backfilling')) : null,
           ),
-          // 5 — 变更与明细
-          h(
-            'div',
-            { className: 'ci-grid2 ci-grid2-log' },
-            h('div', { className: 'ci-card ci-events-card' }, h(EventsFeed, { events, t, limit: 60, initial: 4, bare: true })),
-            h(SessionCards, { trend, t, sessionId, onRangeAll: () => setRange('all') }),
-          ),
+          // 5 — 明细。The event timeline used to sit beside this card; a session
+          // usually has one or two events, so it was a mostly empty box, and the
+          // undo history in 设置 already lists what changed.
+          h(SessionCards, { trend, t, sessionId, onRangeAll: () => setRange('all') }),
         )
       }
 

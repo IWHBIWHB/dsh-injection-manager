@@ -232,8 +232,9 @@ flags `backfilling: true` while a pass fills in more.
   split.
 - **Heaviest suites** — the current session's suites by size, with the part the policy already
   switched off drawn lighter.
-- **Event timeline** — the current session's policy changes, presets, imports, undos, compactions
-  and prunes (`events.json`, capped at 300, oldest first in the window).
+- **Event log** (no longer surfaced in the panel) — policy saves, presets, imports, undos,
+  compactions and prunes are still recorded in `events.json` (capped at 300) and stay readable
+  through the `/events` route; the panel's own change history is the undo list in Settings.
 - **Coverage footnote** — "recorded N of M sessions on this machine; the trend only contains what
   this plugin measured and a bounded log backfill."
 

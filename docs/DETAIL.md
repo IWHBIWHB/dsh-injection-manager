@@ -36,7 +36,7 @@ record the model adapter used.
 | Surface | What it is for |
 | --- | --- |
 | Manage (管理) | A switchboard: one line of numbers (next-session first turn, switchable share) plus the suite-clustered list (split into Other plugins & MCP and DeepSeek official, the latter foldable to one line) with switches; every row can expand a preview or open its content. No charts, no health checks. |
-| Insights (洞察) | One fixed order: this request's composition → injection ring and heaviest-suite ranking (a bar jumps back to Manage already filtered) → health checks → cross-session trend → changes and session cards. |
+| Insights (洞察) | One fixed order: this request's composition → injection ring and heaviest-suite ranking (a bar jumps back to Manage already filtered) → health checks → cross-session trend → session detail. |
 | Settings (设置) | Four cards: this browser's preferences, presets with undo history, the policy file (export/import, prefix/suffix, verification), and about (versions, read-only items, folded details). |
 | Composer chip | Next session's first-turn total and window occupancy (switchable share when the window is unknown), one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
@@ -107,8 +107,8 @@ inventing a finding would be a lie.
 - **Cross-session composition** — the five-channel ring averaged over sessions that have a split.
 - **Heaviest suites** — the current session's suites by size, with the policy-removed part drawn
   lighter.
-- **Event timeline** — policy saves, presets, imports, undos, compactions and prunes
-  for this session (`events.json`, capped at 300, up to 60 shown).
+- **Event log** — still written to `events.json` (capped at 300) and readable through `/events`, but
+  no longer rendered; the panel's change history is the undo list in Settings.
 - **Coverage footnote** — recorded N of M sessions; the trend only contains what this plugin
   measured plus a bounded log backfill.
 

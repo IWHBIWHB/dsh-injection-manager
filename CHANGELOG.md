@@ -7,6 +7,11 @@ the table ran to the window edge with a 669px empty description column in the mi
 
 ### Changed
 
+- **The event timeline card is gone from 洞察.** A session usually has one or two events ("新会话"
+  and little else), so the card was a mostly empty box taking a third of the row beside the session
+  cards. What it showed — presets, switches, undo steps — is already the undo history in 设置, with a
+  button to go back. The `/events` route and the writer stay; compaction and policy events are still
+  recorded for scripts and the tool.
 - **The tab row breathes.** 7px above it became 16px, and the header, the tabs and the page body now
   start on the same 20px edge (the header was at 14px).
 - **One reading column.** Header, tabs and body are wrapped in a shell capped at 1240px and centred,
