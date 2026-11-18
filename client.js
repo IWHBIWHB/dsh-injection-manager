@@ -337,7 +337,7 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-scroll{overflow:auto;min-height:0}
 .ci-scroll::-webkit-scrollbar{width:8px;height:8px}
 .ci-scroll::-webkit-scrollbar-thumb{background:var(--ci-line);border-radius:8px}
-.ci-head{display:flex;align-items:flex-start;gap:10px;padding:8px 14px 6px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
+.ci-head{display:flex;align-items:flex-start;gap:10px;padding:8px 20px 6px;border-bottom:1px solid var(--ci-line2);flex:0 0 auto}
 .ci-head h1{font-size:14px;font-weight:600;margin:0;letter-spacing:.01em}
 .ci-head p{margin:1px 0 0;color:var(--ci-fg3);font-size:11.5px}
 .ci-head .ci-spacer{flex:1}
@@ -455,7 +455,11 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-legend button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--ci-fg2);font-size:11px;cursor:pointer;padding:2px 0}
 .ci-legend i{width:8px;height:8px;border-radius:3px;display:block}
 .ci-legend b{color:var(--ci-fg);font-weight:600}
-.ci-tabs{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;align-self:flex-start;margin:0 20px 10px;flex:0 0 auto}
+.ci-tabs{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;align-self:flex-start;margin:9px 20px 12px;flex:0 0 auto}
+/* one reading column: header, tabs and body share the same width and the same
+   20px edge, and stop growing at 1240px so a wide window does not stretch the
+   table into the window corners */
+.ci-shell{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;width:100%;max-width:1240px;margin:0 auto}
 .ci-tabs button{border:0;background:transparent;color:var(--ci-fg2);padding:5px 13px;font-size:12px;cursor:pointer;border-radius:6px;line-height:1.6}
 .ci-tabs button:hover{color:var(--ci-fg)}
 .ci-tabs button.on{background:var(--ci-bg);color:var(--ci-fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.07)}
@@ -851,10 +855,12 @@ body[data-ds-dark-theme] .ci-root{
 .ci-kpi .v{display:flex;align-items:baseline;gap:var(--ci-space-1);min-width:0}
 .ci-kpi .v .u{font-size:var(--ci-fs-micro);font-weight:500;color:var(--ci-fg3);letter-spacing:0}
 .ci-kpi-num{display:inline-flex;align-items:baseline;gap:var(--ci-space-1)}
-/* Items table gains a description column only when the panel is wide (#5) */
+/* Items table gains a description column only when the panel is wide (#5).
+   The description is capped: an uncapped fr column grew into a 500px empty
+   band on a wide window, which read as "the table is too wide". */
 .ci-about{display:none}
 @container (min-width:1100px){
-  .ci-thead,.ci-row{grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 96px 72px 58px 52px}
+  .ci-thead,.ci-row{grid-template-columns:minmax(0,1fr) 250px 110px 84px 64px 56px}
   .ci-about{display:block;font-size:12px;color:var(--ci-fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .ci-row:hover .ci-about{color:var(--ci-fg2)}
 }
@@ -4608,78 +4614,82 @@ body[data-ds-dark-theme] .ci-root{
           'div',
           { className: 'ci-root' },
           h('style', null, STYLE),
-          head,
-          h(
-            'div',
-            { className: 'ci-tabs', role: 'tablist', 'aria-label': t('v2.tabsLabel') },
-            (v2 === true
-              ? [
-                  ['manage', t('tabManage'), t('v2.tabManageHint')],
-                  ['insights', t('v2.tabInsights'), t('v2.tabInsightsHint')],
-                  ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
-                ]
-              : [
-                  ['manage', t('tabManage'), t('v2.tabManageHint')],
-                  ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
-                ]
-            ).map(([key, label, hint]) =>
-              h(
-                'button',
-                {
-                  key,
-                  type: 'button',
-                  role: 'tab',
-                  id: 'ci-tab-' + key,
-                  'aria-selected': activeTab === key ? 'true' : 'false',
-                  'aria-controls': 'ci-tabpanel-' + key,
-                  tabIndex: activeTab === key ? 0 : -1,
-                  className: activeTab === key ? 'on' : '',
-                  title: hint,
-                  onClick: () => setTab(key),
-                  onKeyDown: (event) => {
-                    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
-                    const keys = v2 === true ? ['manage', 'insights', 'settings'] : ['manage', 'settings']
-                    const index = keys.indexOf(activeTab)
-                    const next = keys[(index + (event.key === 'ArrowRight' ? 1 : keys.length - 1)) % keys.length]
-                    event.preventDefault()
-                    setTab(next)
-                    const node = document.getElementById('ci-tab-' + next)
-                    if (node && typeof node.focus === 'function') node.focus()
+          // Everything that shares the reading column lives in one shell:
+          // header, tabs, page body. Capped so a very wide window does not
+          // stretch the table to the window edge.
+          h('div', { className: 'ci-shell' },
+            head,
+            h(
+              'div',
+              { className: 'ci-tabs', role: 'tablist', 'aria-label': t('v2.tabsLabel') },
+              (v2 === true
+                ? [
+                    ['manage', t('tabManage'), t('v2.tabManageHint')],
+                    ['insights', t('v2.tabInsights'), t('v2.tabInsightsHint')],
+                    ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
+                  ]
+                : [
+                    ['manage', t('tabManage'), t('v2.tabManageHint')],
+                    ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
+                  ]
+              ).map(([key, label, hint]) =>
+                h(
+                  'button',
+                  {
+                    key,
+                    type: 'button',
+                    role: 'tab',
+                    id: 'ci-tab-' + key,
+                    'aria-selected': activeTab === key ? 'true' : 'false',
+                    'aria-controls': 'ci-tabpanel-' + key,
+                    tabIndex: activeTab === key ? 0 : -1,
+                    className: activeTab === key ? 'on' : '',
+                    title: hint,
+                    onClick: () => setTab(key),
+                    onKeyDown: (event) => {
+                      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+                      const keys = v2 === true ? ['manage', 'insights', 'settings'] : ['manage', 'settings']
+                      const index = keys.indexOf(activeTab)
+                      const next = keys[(index + (event.key === 'ArrowRight' ? 1 : keys.length - 1)) % keys.length]
+                      event.preventDefault()
+                      setTab(next)
+                      const node = document.getElementById('ci-tab-' + next)
+                      if (node && typeof node.focus === 'function') node.focus()
+                    },
                   },
-                },
-                label,
+                  label,
+                ),
               ),
             ),
-          ),
-          h(
-            'div',
-            {
-              className: 'ci-body grow',
-              role: 'tabpanel',
-              id: 'ci-tabpanel-' + activeTab,
-              'aria-labelledby': 'ci-tab-' + activeTab,
-              tabIndex: -1,
-            },
-            activeTab === 'manage'
-              ? h(
-                  'div',
-                  { className: 'ci-manage' },
-                  snapshot.host && snapshot.host.supported === false
-                    ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
-                    : null,
-                  v2 !== true ? h(V2Gate, { snapshot, t }) : null,
-                  v2 !== true ? h(V2Gate, { snapshot, t }) : null,
-                  // 管理 is switches and one line of numbers. The ring, the
-                  // ranking and the health list all moved to 洞察.
-                  h(ManageSum, { snapshot, t, busy, onUndo }),
-                  snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
-                    ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
-                    : null,
-                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, busy, act, v2, onOpenContent: openContent, focusSuite }),
-                )
-              : activeTab === 'insights'
-                ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, onPickSuite: openSuite, act })
-                : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
+            h(
+              'div',
+              {
+                className: 'ci-body grow',
+                role: 'tabpanel',
+                id: 'ci-tabpanel-' + activeTab,
+                'aria-labelledby': 'ci-tab-' + activeTab,
+                tabIndex: -1,
+              },
+              activeTab === 'manage'
+                ? h(
+                    'div',
+                    { className: 'ci-manage' },
+                    snapshot.host && snapshot.host.supported === false
+                      ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
+                      : null,
+                    v2 !== true ? h(V2Gate, { snapshot, t }) : null,
+                    // 管理 is switches and one line of numbers. The ring, the
+                    // ranking and the health list all moved to 洞察.
+                    h(ManageSum, { snapshot, t, busy, onUndo }),
+                    snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
+                      ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
+                      : null,
+                    h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, busy, act, v2, onOpenContent: openContent, focusSuite }),
+                  )
+                : activeTab === 'insights'
+                  ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, onPickSuite: openSuite, act })
+                  : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
+            ),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),
           h(ContentDrawer, { target: drawer, sessionId, t, onClose: closeDrawer }),

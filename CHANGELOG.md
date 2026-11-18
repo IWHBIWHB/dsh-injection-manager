@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.2.4 — 2026-11-18
+
+Spacing and width, from a screenshot of the live panel: the tab row sat 7px under the subtitle, and
+the table ran to the window edge with a 669px empty description column in the middle of it.
+
+### Changed
+
+- **The tab row breathes.** 7px above it became 16px, and the header, the tabs and the page body now
+  start on the same 20px edge (the header was at 14px).
+- **One reading column.** Header, tabs and body are wrapped in a shell capped at 1240px and centred,
+  so a 1900px window shows a 1200px table instead of an 1880px one. The composer chip, the sidebar
+  and the drawer are unaffected.
+- **The description column is capped at 250px** instead of taking 1.2fr of the row (669px at 1920).
+  Channel, tokens, share and switch got a little more room (110 / 84 / 64 / 56px).
+
+### Fixed
+
+- **2.2.3 rendered the v2 gate twice on a v1 host.** The old line survived the tab rewrite next to
+  the new one.
+
+### Verification
+
+- `node --test` 223/223; `node scripts/self-audit.mjs --strict` 7/7, 0 warnings.
+- Layout measured at 1360 / 1600 / 1920: the table is 1200px wide in all three, every row's left edge
+  is at 80px, and the subtitle-to-tabs gap is 16px.
+
 ## 2.2.3 — 2026-11-18
 
 Each panel has one job now. 管理 is a switchboard, 洞察 is an ordered diagnosis, 设置 is four

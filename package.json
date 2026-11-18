@@ -1,6 +1,6 @@
 {
   "name": "dsh-injection-manager",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "type": "module",
   "description": "See and control everything a DeepSeek Harness session injects before its first request — prompt sections, runtime contexts, skills, tool schemas and workspace rules — with a content browser that opens each item's source, cross-session injection trends, an injection event log, health checks, suite switches, presets and a token budget.",
   "keywords": [
