@@ -594,14 +594,6 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-health-row-note .ci-health-text{font-size:11.5px}
 /* Closed suites: one line by default. The list of what is no longer injected is
    a receipt, not a workspace — opening it is how you put one back. */
-.ci-closed{border-top:1px solid var(--ci-line2);margin-top:6px;padding-top:2px}
-.ci-closed-head{display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;background:transparent;color:var(--ci-fg3);font:inherit;font-size:11.5px;text-align:left;cursor:pointer;border-radius:6px}
-.ci-closed-head:hover{background:var(--ci-line2)}
-.ci-closed-head:focus-visible{outline:2px solid var(--ci-blue);outline-offset:1px}
-.ci-closed-head .lbl{color:var(--ci-fg2);font-weight:600}
-.ci-closed-head .n{font-variant-numeric:tabular-nums}
-.ci-closed-head .hint{margin-left:auto;color:var(--ci-fg3);font-weight:400}
-.ci-closed .ci-list{padding:2px 0 6px}
 .ci-health-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:center;padding:2px 0 0;margin-top:2px;border-top:1px solid var(--ci-line2)}
 .ci-health-row .sev{width:8px;height:8px;border-radius:50%;display:block;background:var(--ci-fg3)}
 .ci-health-row .sev.high{background:var(--ci-danger)}
@@ -1923,7 +1915,6 @@ body[data-ds-dark-theme] .ci-root{
           if (focusSuite && typeof focusSuite.label === 'string') setSuite(focusSuite.label)
         }, [focusSuite])
 
-        const [closedOpen, setClosedOpen] = useState(false)
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
         const clearAllFilters = () => {
@@ -2372,58 +2363,6 @@ body[data-ds-dark-theme] .ci-root{
                     return rows
                   }),
           ),
-          snapshot.closedGroups && snapshot.closedGroups.length > 0
-            ? h(
-                'div',
-                { className: 'ci-closed' },
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'ci-closed-head',
-                    'aria-expanded': closedOpen ? 'true' : 'false',
-                    onClick: () => setClosedOpen(!closedOpen),
-                  },
-                  h('span', { className: 'ci-caret' + (closedOpen ? ' open' : '') }, closedOpen ? '▾' : '▸'),
-                  h('span', { className: 'lbl' }, `${t('closedTitle')} · ${snapshot.closed.length} ${t('items')}`),
-                  h(
-                    'span',
-                    { className: 'n' },
-                    digits((snapshot.closedGroups || []).reduce((sum, group) => sum + (Number(group.tokens) || 0), 0)),
-                  ),
-                  h('span', { className: 'hint' }, t('closedHint')),
-                ),
-                closedOpen
-                  ? h(
-                      'div',
-                      { className: 'ci-list' },
-                      snapshot.closedGroups.map((group) =>
-                        h(
-                          'div',
-                          { className: 'ci-mini', key: group.id },
-                          h(Dot, { channel: group.channel }),
-                          h('span', { className: 'n', title: group.label }, group.label),
-                          h('span', { className: 't' }, `${group.items.length} ${t('items')}`),
-                          h('span', { className: 't' }, group.tokens > 0 ? digits(group.tokens) : '—'),
-                          h(
-                            'button',
-                            {
-                              type: 'button',
-                              className: 'ci-btn',
-                              onClick: () =>
-                                act(
-                                  { kind: 'names', channel: group.channel, names: group.items.map((item) => item.name), enabled: true },
-                                  `${t('restoreGroup')} ${group.label}`,
-                                ),
-                            },
-                            t('restoreGroup'),
-                          ),
-                        ),
-                      ),
-                    )
-                  : null,
-              )
-            : null,
         )
       }
 

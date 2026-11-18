@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.2.6 — 2026-11-18
+
+### Changed
+
+- **The closed-items block under the list is gone.** It listed the same suites the list already
+  renders with a 已关闭 tag and a switch to turn them back on, and when one suite spanned two
+  channels it printed that suite twice (REA 229 条目, then REA 1 条目). Restoring is the switch on
+  the row itself; nothing was lost but a duplicate listing.
+
+### Verification
+
+- `node --test` 223/223; `node scripts/self-audit.mjs --strict` 7/7, 0 warnings.
+- Fixture screenshots 26/26; the manage page now ends at the last suite row.
+
 ## 2.2.5 — 2026-11-18
 
 The settings page was four cards of eleven rows and eight paragraphs, and almost none of it was a
