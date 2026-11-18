@@ -359,6 +359,7 @@
     "v2.aboutData": "趋势来自 stats.json（实测行 + 有限日志回填），事件来自 events.json（最多 300 条）；不采集对话正文，不上传。",
     "v2.aboutHonesty": "通道分解只有新快照才会写；旧记录显示为未知（斜纹），不会补 0 假装知道。",
     "v2.docsHint": "完整说明见 docs/DETAIL.zh.md",
+    "v2.details": "详细说明",
     "v2.retry": "重试",
     "v2.gateTitle": "新面板需要 v2 宿主",
     "v2.gateBody": "宿主返回的接口还是 v1：新版洞察、内容透视和健康检查需要 v2 宿主插件。升级后自动出现；管理、设置和开关不受影响。",

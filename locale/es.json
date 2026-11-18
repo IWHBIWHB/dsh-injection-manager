@@ -359,6 +359,7 @@
     "v2.aboutData": "La tendencia viene de stats.json (mediciones y relleno limitado), los eventos de events.json (máximo 300); nunca se recoge ni se sube el texto de la conversación.",
     "v2.aboutHonesty": "El desglose por canal solo lo escriben las instantáneas nuevas; los registros antiguos aparecen como desconocidos (rayado), no como cero.",
     "v2.docsHint": "Detalles completos en docs/DETAIL.zh.md",
+    "v2.details": "Detalles",
     "v2.retry": "Reintentar",
     "v2.gateTitle": "Este panel necesita el host v2",
     "v2.gateBody": "El host sigue devolviendo la API v1: las nuevas perspectivas, el contenido y la salud necesitan el plugin host v2. Aparecen al actualizar; gestión, ajustes e interruptores siguen funcionando.",

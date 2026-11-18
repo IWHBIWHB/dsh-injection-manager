@@ -391,8 +391,6 @@ body[data-ds-dark-theme] .ci-root{--ci-fg:#ececf1;--ci-fg2:#b9b9c3;--ci-fg3:#8b8
 .ci-spark{display:block;width:100%;height:18px;margin:4px 0 2px;opacity:.9}
 .ci-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @container (max-width:560px){.ci-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ci-kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-@container (max-width:760px){.ci-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ci-kpi{border:1px solid var(--ci-line2);background:var(--ci-card);border-radius:8px;padding:4px 9px;min-width:0}
 .ci-kpi .k{font-size:10.5px;color:var(--ci-fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-kpi .v{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-top:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
@@ -466,8 +464,10 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-select{border:1px solid var(--ci-line);border-radius:8px;background:var(--ci-bg);color:var(--ci-fg);font:inherit;font-size:12px;padding:4px 8px;cursor:pointer;max-width:150px}
 .ci-select:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
 .ci-viewopts button{font-size:11px;padding:4px 9px}
-@media (max-width:1220px){.ci-select{display:none}}
-@media (max-width:1040px){.ci-viewopts{display:none}}
+/* the toolbar wraps instead of overflowing, so the channel filter survives
+   until there is genuinely no room for it */
+@media (max-width:900px){.ci-select{display:none}}
+@media (max-width:820px){.ci-viewopts{display:none}}
 .ci-activefilters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--ci-fg3);flex:0 0 auto}
 .ci-activefilters .lbl{white-space:nowrap}
 .ci-input{flex:1;min-width:120px;border:1px solid var(--ci-line);border-radius:8px;padding:5px 10px;font-size:12px;background:var(--ci-bg);color:var(--ci-fg);outline:none}
@@ -810,31 +810,33 @@ body[data-ds-dark-theme] .ci-root{
 .ci-trend-tip-hint{font-size:var(--ci-fs-micro);color:var(--ci-fg3);border-top:1px solid var(--ci-line2);padding-top:3px;margin-top:2px}
 @keyframes ci-tip-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.ci-trend-tip{animation:none}}
-/* manage overview: two peer cards instead of one mixed card */
-.ci-overview-fused{padding:6px 11px 7px;gap:4px}
-.ci-fused-head{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:nowrap}
-.ci-fused-head h2{font-size:12px;margin:0}
-.ci-fused-head .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.ci-fused-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start;min-width:0}
-@container (max-width:700px){.ci-fused-body{grid-template-columns:minmax(0,1fr)}}
+/* manage opens with one line, not a row of tiles */
+.ci-manage-head{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;font-size:var(--ci-fs-label);color:var(--ci-fg2);min-width:0}
+.ci-manage-head b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
+.ci-manage-head .sep{color:var(--ci-fg3)}
+.ci-manage-head .sp{flex:1 1 auto}
 .ci-donut-compact{gap:10px}
-.ci-donut-legend-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
-.ci-bars-compact{gap:3px}
-.ci-bars-compact .ci-barrow{font-size:10.5px;gap:7px;padding:0}
-.ci-bars-compact .ci-bar-track{height:7px}
-.ci-overview-card .ci-cardhead .hint{font-variant-numeric:tabular-nums}
+.ci-donut-legend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
+/* settings: one hairline splits two questions inside a card */
+.ci-card>.ci-seg{align-self:flex-start}
+.ci-rule{height:1px;background:var(--ci-line2);margin:2px 0 4px}
+.ci-sub{font-size:var(--ci-fs-label);font-weight:600;color:var(--ci-fg2)}
+.ci-path{font-size:var(--ci-fs-micro);color:var(--ci-fg3);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ci-about-facts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;font-size:var(--ci-fs-micro);color:var(--ci-fg3);min-width:0}
+.ci-about-facts b{color:var(--ci-fg2);font-weight:600}
+.ci-about-facts .sep{color:var(--ci-fg3)}
+.ci-disclose{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;font:inherit;font-size:var(--ci-fs-label);color:var(--ci-fg2);cursor:pointer;padding:2px 4px;margin-left:-4px;align-self:flex-start;border-radius:var(--ci-radius-chip)}
+.ci-disclose:hover{color:var(--ci-fg);background:var(--ci-line2)}
+.ci-disclose:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
+.ci-details{display:flex;flex-direction:column;gap:5px;font-size:var(--ci-fs-micro);color:var(--ci-fg3);line-height:1.55}
+.ci-grid2-log{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+@container (max-width:900px){.ci-grid2-log{grid-template-columns:minmax(0,1fr)}}
 .ci-barrow-btn{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:var(--ci-radius-chip);cursor:pointer;text-align:left;width:100%}
 .ci-barrow-btn:hover{background:var(--ci-card)}
 .ci-barrow-btn:focus-visible{outline:2px solid var(--ci-accent);outline-offset:1px}
-/* insights first screen: trend 2fr + events 1fr */
-.ci-insight-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px;align-items:stretch}
-@container (max-width:1000px){.ci-insight-top{grid-template-columns:minmax(0,1fr)}}
 .ci-events-card{display:flex;flex-direction:column;min-height:0}
 .ci-events-card .ci-events{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-height:0}
 .ci-events-card .ci-events-list{flex:1 1 auto;max-height:none}
-.ci-insight-current{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:var(--ci-fs-label);color:var(--ci-fg3);min-width:0}
-.ci-insight-current b{color:var(--ci-fg);font-weight:600;font-variant-numeric:tabular-nums}
-.ci-insight-current .ci-btn{margin-left:auto}
 .ci-events.ci-card{padding:10px 12px}
 /* density pass: KPI 10-12px padding, 20/700 numbers, 10px units */
 .ci-kpi{padding:10px 12px;gap:1px}
@@ -863,8 +865,11 @@ body[data-ds-dark-theme] .ci-root{
     return function t(key, vars) {
       let value = dict[key]
       // Degraded first paint (no /summary locale yet) still shows readable
-      // Chinese chrome instead of raw keys such as `pageTitle`.
-      if (typeof value !== 'string' || value === key) value = FALLBACK[key]
+      // Chinese chrome instead of raw keys such as `pageTitle`. Only a missing
+      // value counts as degraded: an English word that happens to equal its own
+      // key ("items", "groups") is translated text, not a stub — treating it as
+      // one printed 条目 inside the English panel.
+      if (typeof value !== 'string' || value.length === 0) value = FALLBACK[key]
       if (typeof value !== 'string') return key
       if (vars === undefined) return value
       return value.replace(/\{(\w+)\}/g, (match, name) => (vars[name] === undefined ? match : String(vars[name])))
@@ -1134,6 +1139,14 @@ body[data-ds-dark-theme] .ci-root{
         } catch {
           return '—'
         }
+      }
+
+      // Timestamps arrive as epoch milliseconds or as an ISO string depending on
+      // who wrote them; neither may be printed raw.
+      function whenText(value) {
+        if (value === null || value === undefined || value === '') return '—'
+        const ms = typeof value === 'number' ? value : Date.parse(String(value))
+        return Number.isFinite(ms) && ms > 0 ? fullTime(ms) : String(value)
       }
 
       function useElementWidth(ref, fallback) {
@@ -1489,7 +1502,7 @@ body[data-ds-dark-theme] .ci-root{
       // model's window, split the way the host splits it. One line, not a card:
       // the headline percentage already lives in the KPI above it, and a nearly
       // empty bar inside a tall card read as wasted space.
-      function RequestStrip({ snapshot, t }) {
+      function RequestStrip({ snapshot, t, bare }) {
         const context = snapshot.context
         if (context === undefined || context === null) return null
         const windowKnown = context.window !== null && context.used !== null
@@ -1530,7 +1543,9 @@ body[data-ds-dark-theme] .ci-root{
         return h(
           'div',
           { className: 'ci-strip' + (context.tone && context.tone !== 'ok' && context.tone !== 'unknown' ? ` tone-${context.tone}` : '') },
-          h('span', { className: 'k' }, t('requestComposition')),
+          // The card that holds the strip already names it; repeating the label
+          // inside the strip was the same words twice on one line.
+          bare === true ? null : h('span', { className: 'k' }, t('requestComposition')),
           segments.length > 1
             ? h(
                 'span',
@@ -1856,7 +1871,31 @@ body[data-ds-dark-theme] .ci-root{
         return rows.filter((item) => filter === 'all' || item.channel === filter)
       }
 
-      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, onUndo, busy, act, v2, onOpenContent }) {
+      // One line, not a row of tiles: the manage page answers "what does the next
+      // first turn cost, and how much of it is optional". Everything else is
+      // insight, and lives on the other tab.
+      function ManageSum({ snapshot, t, busy, onUndo }) {
+        const numbers = tokenNumbersOf(snapshot)
+        const totals = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
+        const undo = snapshot.undo !== null && snapshot.undo !== undefined && snapshot.undo.available === true ? snapshot.undo : null
+        return h(
+          'div',
+          { className: 'ci-manage-head' },
+          h('span', null, t('nextTurn'), ' ', h('b', null, token(numbers.next))),
+          h('span', { className: 'sep' }, '·'),
+          h('span', null, t('savable'), ' ', h('b', null, token(totals.savableTokens)), ` (${totals.savablePercent}%)`),
+          h('span', { className: 'sp' }),
+          undo === null
+            ? null
+            : h(
+                'button',
+                { type: 'button', className: 'ci-btn ci-sm', disabled: busy === true, title: undo.last || '', onClick: onUndo },
+                t('undo'),
+              ),
+        )
+      }
+
+      function ItemsTable({ snapshot, t, filter, setFilter, onToggle, onGroup, busy, act, v2, onOpenContent, focusSuite }) {
         const [query, setQuery] = useState('')
         const [view, setView] = useStoredState('view', 'group')
         const [scope, setScope] = useStoredState('scope', 'global')
@@ -1865,7 +1904,13 @@ body[data-ds-dark-theme] .ci-root{
         const [sortKey, sortDir] = String(sort).split(':')
         const [expanded, setExpanded] = useState({})
         const [peek, setPeek] = useState({})
-        const [suite, setSuite] = useState(null)
+        const [suite, setSuite] = useState(focusSuite !== null && focusSuite !== undefined && typeof focusSuite.label === 'string' ? focusSuite.label : null)
+        // A ranking bar on 洞察 lands here already filtered. The object identity
+        // changes per click, so picking the same suite twice still re-applies it.
+        useEffect(() => {
+          if (focusSuite && typeof focusSuite.label === 'string') setSuite(focusSuite.label)
+        }, [focusSuite])
+
         const [closedOpen, setClosedOpen] = useState(false)
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
@@ -1894,12 +1939,21 @@ body[data-ds-dark-theme] .ci-root{
           return () => window.removeEventListener('keydown', onKeyDown)
         }, [])
         const needle = deferredQuery.trim().toLowerCase()
+        // A suite chip carries the label the user reads ("基础工具"), while an
+        // item carries the raw group id ("core"). Matching only one side is why
+        // clicking a suite used to empty the table, so both sides are compared.
+        const suiteOf = (item) => String(item.groupLabel !== undefined && item.groupLabel !== null ? item.groupLabel : item.group)
+        const matchesSuite = (item) => {
+          if (suite === null) return true
+          const raw = suiteOf(item)
+          return raw === suite || groupLabelOf(t, { label: raw }) === suite
+        }
         const items = useMemo(() => {
           const needle = deferredQuery.trim().toLowerCase()
           const names = t.names || {}
           return buildItems(snapshot, filter, scope)
             .filter((item) => (onlySwitchable ? item.locked !== true : true))
-            .filter((item) => (suite === null ? true : String(item.groupLabel !== undefined && item.groupLabel !== null ? item.groupLabel : item.group) === suite))
+            .filter(matchesSuite)
             .filter((item) => {
               if (needle.length === 0) return true
               const label = names[item.name] || NAMES_ZH[item.name] || ''
@@ -2011,32 +2065,7 @@ body[data-ds-dark-theme] .ci-root{
           )
         }
 
-        const effective = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
         const effectiveTotal = Math.max(1, (snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.tokens : snapshot.totals.tokens) || 1)
-        const viewSavablePercent = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals.savablePercent : snapshot.totals.savablePercent
-        // The ranking above the list is about the whole snapshot, never about
-        // the current filter: filtering the table must not hide the big suites.
-        const topSuites = (() => {
-          const map = new Map()
-          for (const group of snapshot.groups) {
-            const label = String(group.label !== undefined && group.label !== null ? group.label : group.id)
-            const key = label.toLowerCase()
-            const entry = map.get(key) || { id: key, label, channel: group.channel, tokens: 0, effectiveTokens: 0, items: [] }
-            entry.tokens += Number(group.tokens) || 0
-            map.set(key, entry)
-          }
-          for (const item of snapshot.items) {
-            const key = String(item.groupLabel !== undefined && item.groupLabel !== null ? item.groupLabel : item.group).toLowerCase()
-            const entry = map.get(key)
-            if (entry === undefined) continue
-            // Prefer the host's stamped on; fall back to the policy projection so
-            // the ranking still works on a v1 snapshot without the field.
-            const on = typeof item.on === 'boolean' ? item.on : policyItemOn(snapshot, item)
-            if (on) entry.effectiveTokens += item.tokens
-          }
-          return [...map.values()].sort((left, right) => right.tokens - left.tokens).slice(0, 6)
-        })()
-        const suiteMax = topSuites.reduce((max, group) => Math.max(max, group.tokens), 1)
 
         // Two buckets, one question: is this DeepSeek's harness or something I
         // installed? The official side folds into a single line — its 24 suites
@@ -2052,7 +2081,10 @@ body[data-ds-dark-theme] .ci-root{
             const tokens = official.reduce((sum, group) => sum + effectiveOf(group), 0)
             sections.push({
               key: 'official',
-              groups: officialOpen ? official : [],
+              // Filtering by a suite implies wanting to see it: without this,
+              // jumping to an official suite landed on a folded bucket and the
+              // table looked empty.
+              groups: officialOpen || suite !== null ? official : [],
               header: h(
                 'div',
                 {
@@ -2096,83 +2128,6 @@ body[data-ds-dark-theme] .ci-root{
         return h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, flex: '1 1 auto' } },
-          // One fused card: the ring and the ranking answer the same question
-          // ("where does the next first turn go?") and used to take two tall
-          // cards, pushing the suite list below the fold on laptop heights.
-          // They share one compact row now; the list gets that space back.
-          h(
-            'div',
-            { className: 'ci-card ci-overview-fused' },
-            h(
-              'div',
-              { className: 'ci-fused-head' },
-              h('h2', null, `${t('v2.overviewComposition')} · ${t('v2.heaviestTitle')}`),
-              h('span', { className: 'sp' }),
-              h('span', { className: 'hint' }, `${t('nextTurn')} ${token(effectiveTotal)} · ${t('topSuites')} · ${t('v2.closedLight')}`),
-            ),
-            h(
-              'div',
-              { className: 'ci-fused-body' },
-              h(
-                'div',
-                { className: 'ci-donut ci-donut-compact' },
-                h(Donut, { rows: effective, t, size: 92, centerSub: `${viewSavablePercent}% ${t('savable')}` }),
-                h(
-                  'div',
-                  { className: 'ci-donut-legend ci-donut-legend-grid' },
-                  effective
-                    .filter((channel) => channel.tokens > 0)
-                    .map((channel) =>
-                      h(
-                        'div',
-                        { className: 'ci-donut-row', key: channel.id },
-                        h(Dot, { channel: channel.id }),
-                        h('span', { className: 'n' }, t(channel.id)),
-                        h('b', null, token(channel.tokens)),
-                        h('span', { className: 'p' }, `${pctText(channel.tokens, effectiveTotal)}`),
-                      ),
-                    ),
-                ),
-              ),
-              h(
-                'div',
-                { className: 'ci-bars ci-bars-compact' },
-                topSuites.slice(0, 5).map((group) => {
-                  const closedTokens = Math.max(0, group.tokens - group.effectiveTokens)
-                  const onPercent = group.tokens > 0 ? Math.max(0, Math.min(100, (group.effectiveTokens / group.tokens) * 100)) : 0
-                  return h(
-                    'button',
-                    {
-                      type: 'button',
-                      className: 'ci-barrow ci-barrow-btn' + (group.effectiveTokens === 0 ? ' off' : ''),
-                      key: group.id,
-                      title: `${groupLabelOf(t, group)} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effectiveTokens)} · ${t('v2.closedLight')}`,
-                      onClick: () => setSuite(groupLabelOf(t, group)),
-                    },
-                    h('span', { className: 'n' }, groupLabelOf(t, group)),
-                    h(
-                      'span',
-                      { className: 'ci-bar-track', style: { width: `${Math.max(2, (group.tokens / suiteMax) * 100)}%`, minWidth: 3 } },
-                      onPercent > 0
-                        ? h('span', { className: 'ci-bar-fill', style: { width: `${onPercent}%`, background: COLOR[group.channel] } })
-                        : null,
-                      closedTokens > 0
-                        ? h('span', { className: 'ci-bar-closed', style: { width: `${Math.max(3, 100 - onPercent)}%`, background: COLOR[group.channel] } })
-                        : null,
-                    ),
-                    h(
-                      'span',
-                      { className: 't' },
-                      group.effectiveTokens === 0
-                        ? `${token(group.tokens)} · ${t('turnedOff')}`
-                        : `${token(group.effectiveTokens)} · ${pctText(group.effectiveTokens, effectiveTotal)}`,
-                    ),
-                  )
-                }),
-              ),
-            ),
-          ),
-
           // Two rows, not one: scope + search + view + the filter menu on top,
           // the active filters (when any) on a second line. Eight chips in a row
           // was the densest thing in the panel and none of them was the primary
@@ -2345,11 +2300,9 @@ body[data-ds-dark-theme] .ci-root{
                           groupSaved > 0 ? h('span', { className: 'ci-delta', title: t('v2.savedHint', { tokens: digits(groupSaved) }) }, '−' + token(groupSaved)) : null,
                           state.on ? null : h('span', { className: 'ci-tag' }, state.mixed ? t('mixedOff') : t('turnedOff')),
                         ),
-                        h(
-                          'div',
-                          { className: 'ci-about', title: `${group.items.length} ${t('items')} · ${(group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel)}` },
-                          `${group.items.length} ${t('items')} · ${(group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel)}`,
-                        ),
+                        // The count and the channel both already sit in this row;
+                        // repeating them here was the same three words twice.
+                        h('div', { className: 'ci-about' }),
                         h(
                           'div',
                           { className: 'badge' },
@@ -2459,36 +2412,6 @@ body[data-ds-dark-theme] .ci-root{
                   : null,
               )
             : null,
-          h(
-            'div',
-            { className: 'ci-note', style: { display: 'flex', alignItems: 'center', gap: 10 } },
-            h(
-              'span',
-              null,
-              (() => {
-                const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
-                const numbers = tokenNumbersOf(snapshot)
-                const shown = groups.length
-                const totalGroups = snapshot.groups.length
-                const sessionPart = numbers.session !== numbers.next ? ` · ${t('sessionNow')} ${digits(numbers.session)}` : ''
-                return `${t('nextTurn')} ${digits(numbers.next)}${sessionPart} · ${t('savable')} ${digits(view.savableTokens)} (${view.savablePercent}%) · ${shown !== totalGroups ? `${shown}/${totalGroups}` : String(shown)} ${t('groups')} · ${t('locked')} ${snapshot.locks.length}`
-              })(),
-            ),
-            snapshot.undo && snapshot.undo.available
-              ? h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'ci-btn',
-                    disabled: busy,
-                    title: snapshot.undo.last || '',
-                    style: { maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-                    onClick: () => onUndo(),
-                  },
-                  `${t('undo')}${snapshot.undo.last ? ` · ${snapshot.undo.last}` : ''}`,
-                )
-              : null,
-          ),
         )
       }
 
@@ -2549,8 +2472,12 @@ body[data-ds-dark-theme] .ci-root{
         }
         const actionable = usable.filter(isActionable).slice(0, 3)
         const notes = usable.filter((check) => !isActionable(check))
-        const shownNotes = notesOpen ? notes.slice(0, 8) : []
-        const countOnly = notes.length > shownNotes.length && notesOpen ? notes.length - shownNotes.length : 0
+        // A strip with nothing to press must still say something. When every
+        // check is a note, the first three read as plain rows instead of an
+        // empty box with one folded line; the fold stays for the rest.
+        const quiet = actionable.length === 0
+        const shownNotes = notesOpen || quiet ? notes.slice(0, quiet && !notesOpen ? 3 : 8) : []
+        const countOnly = shownNotes.length > 0 ? notes.length - shownNotes.length : 0
 
         const runAction = (check) => {
           const action = check.action
@@ -2599,7 +2526,7 @@ body[data-ds-dark-theme] .ci-root{
           // Different codes carry different params; fill the placeholders the
           // copy expects so a missing field reads as "—" and never as `{count}`.
           return t('health.' + String(check.code || ''), {
-            label: params.label !== undefined ? params.label : '—',
+            label: params.label !== undefined ? (t.groupNames || {})[String(params.label)] || NAMES_ZH[String(params.label)] || params.label : '—',
             count: params.count !== undefined ? params.count : '—',
             share: params.share !== undefined ? params.share : '—',
             tokens: Number.isFinite(Number(params.tokens)) && Number(params.tokens) > 0 ? token(params.tokens) : '—',
@@ -2674,7 +2601,7 @@ body[data-ds-dark-theme] .ci-root{
             ? h('div', { className: 'ci-health-allclear' }, t('v2.healthAllClear'))
             : null,
           actionable.map((check, index) => checkRow(check, `action:${index}`, true)),
-          notes.length > 0
+          !quiet || countOnly > 0
             ? h(
                 'button',
                 {
@@ -3077,49 +3004,16 @@ body[data-ds-dark-theme] .ci-root{
             unknown ? h('span', { className: 'unknown', title: t('trend.logHint'), style: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '1px 6px' } }, h('i', null), t('trend.unknown')) : null,
             hiddenCount > 0 ? h('button', { type: 'button', onClick: () => setHidden([]), title: t('trend.legendHint') }, '×') : null,
           ),
-          h('div', { className: 'ci-trend-note' }, h('span', { className: 'hatch' }), t('trend.striped'), ' · ', t('trend.keyboardHint')),
+          // Striped bars mean the channel split is missing; the note only
+          // appears when that is actually the case.
+          unknown ? h('div', { className: 'ci-trend-note' }, h('span', { className: 'hatch' }), t('trend.striped')) : null,
           overview
             ? h('div', { className: 'ci-trend-note' }, t('trend.overviewNote', { count: source.length, buckets: data.length }))
-            : range === 'all'
-              ? h('div', { className: 'ci-trend-note' }, t('trend.allHint'))
-              : null,
+            : null,
         )
       }
 
-      function CrossComposition({ aggregate, t }) {
-        const avg = aggregate !== null && aggregate !== undefined && aggregate.avgChannels !== null && typeof aggregate.avgChannels === 'object' ? aggregate.avgChannels : null
-        const rows = avg === null ? [] : CHANNELS.filter((channel) => Number(avg[channel]) > 0).map((channel) => ({ id: channel, tokens: Number(avg[channel]) }))
-        const total = rows.reduce((sum, row) => sum + row.tokens, 0)
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h('div', { className: 'ci-cardhead' }, h('h2', null, t('v2.crossTitle'))),
-          rows.length === 0
-            ? h('div', { className: 'ci-note' }, t('v2.crossEmpty'))
-            : h(
-                'div',
-                { className: 'ci-donut' },
-                h(Donut, { rows, t, size: 116, centerLabel: t('trend.avg'), ariaLabel: t('v2.crossTitle') }),
-                h(
-                  'div',
-                  { className: 'ci-donut-legend' },
-                  rows.map((row) =>
-                    h(
-                      'div',
-                      { className: 'ci-donut-row', key: row.id },
-                      h(Dot, { channel: row.id }),
-                      h('span', { className: 'n' }, t(row.id)),
-                      h('b', null, token(row.tokens)),
-                      h('span', { className: 'p' }, `${pctText(row.tokens, total)}`),
-                    ),
-                  ),
-                ),
-              ),
-          h('div', { className: 'ci-trend-note' }, t('v2.crossNote')),
-        )
-      }
-
-      function HeaviestSuites({ snapshot, t }) {
+      function HeaviestSuites({ snapshot, t, onPickSuite }) {
         const groups = Array.isArray(snapshot.groups) ? snapshot.groups : []
         const itemsByGroup = new Map()
         for (const item of snapshot.items) {
@@ -3157,10 +3051,12 @@ body[data-ds-dark-theme] .ci-root{
                 { className: 'ci-bars' },
                 rows.map((group) =>
                   h(
-                    'div',
+                    'button',
                     {
-                      className: 'ci-barrow' + (group.effective === 0 ? ' off' : ''),
+                      type: 'button',
+                      className: 'ci-barrow ci-barrow-btn' + (group.effective === 0 ? ' off' : ''),
                       key: group.id,
+                      onClick: onPickSuite ? () => onPickSuite(groupLabelOf(t, group)) : undefined,
                       title: `${group.label} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effective)}`,
                     },
                     h('span', { className: 'n' }, groupLabelOf(t, group)),
@@ -3390,135 +3286,152 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      // Cross-session KPI row: the insights page answers "how big has this been
-      // over time", not "what is on screen". The current session's numbers move
-      // to one compact line so the trend card owns the first screen.
-      function InsightKpis({ aggregate, coverage, t }) {
-        const rows = [
-          {
-            key: 'v2.kpiMeasured',
-            value: aggregate === null ? '—' : `${aggregate.measured ?? '—'}/${aggregate.sessions ?? '—'}`,
-            sub: t('v2.kpiMeasuredSub'),
-            title: coverage === null ? '' : t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' }),
-          },
-          { key: 'trend.avg', value: aggregate === null ? '—' : token(aggregate.avgTotal), sub: t('trend.avgSub'), title: t('trend.avgSub') },
-          { key: 'trend.max', value: aggregate === null ? '—' : token(aggregate.maxTotal), sub: t('trend.maxSub'), title: t('trend.maxSub') },
-          { key: 'trend.saved', value: aggregate === null ? '—' : token(aggregate.totalSaved), sub: t('trend.savedSub'), title: t('trend.savedSub') },
-        ]
-        return h(
-          'div',
-          { className: 'ci-kpis ci-kpis-4' },
-          rows.map((row) =>
-            h(
-              'div',
-              { className: 'ci-kpi', key: row.key, title: row.title || null },
-              h('div', { className: 'k' }, t(row.key)),
-              h('div', { className: 'v' }, row.value),
-              h('div', { className: 's' }, row.sub),
-            ),
-          ),
-        )
-      }
-
-      function InsightsTab({ snapshot, t, sessionId, onOpenContent, onOpenTab, act }) {
+      // 洞察 has one order, always: what this request is made of, where the
+      // weight sits, what can be done about it, how it has moved, and what just
+      // changed. The channel ring used to sit on the manage page too; it lives
+      // here now, because the manage page is switches only.
+      function InsightsTab({ snapshot, t, sessionId, onOpenContent, onOpenTab, onPickSuite, act }) {
         const [range, setRange] = useStoredState('trendRange', 'all')
         const trend = useTrend(range, true)
         const events = useEvents(sessionId, true)
+        const health = useHealth(sessionId, true)
         const data = trend.data !== null && trend.data !== undefined ? trend.data : null
         const aggregate = data !== null && data.aggregate !== null && typeof data.aggregate === 'object' ? data.aggregate : null
         const coverage = data !== null && data.coverage !== null && typeof data.coverage === 'object' ? data.coverage : null
         const backfilling = data !== null && data.backfilling === true
         const points = data !== null && Array.isArray(data.points) ? data.points : []
-        const currentTotals = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
-        const context = snapshot.context !== null && snapshot.context !== undefined ? snapshot.context : null
-        const windowKnown = context !== null && context.window !== null && context.used !== null
-        const aggCells = aggregate === null ? [] : [
-          { key: 'v2.sessionsCount', value: aggregate.sessions, label: t('v2.sessionsCount', { count: aggregate.sessions }) },
-          { key: 'trend.measured', value: aggregate.measured, label: t('trend.measured', { count: aggregate.measured }) },
-          { key: 'trend.avg', value: token(aggregate.avgTotal), label: t('trend.avg') },
-          { key: 'trend.max', value: token(aggregate.maxTotal), label: t('trend.max') },
-          { key: 'trend.saved', value: token(aggregate.totalSaved), label: t('trend.saved') },
-        ]
+        const channels = snapshot.effective && snapshot.effective.channels ? snapshot.effective.channels : snapshot.channels
+        const totals = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : snapshot.totals
+        const shareOf = Math.max(1, totals.tokens)
+        const aggCells =
+          aggregate === null
+            ? []
+            : [
+                { key: 'v2.sessionsCount', value: aggregate.sessions, label: t('v2.sessionsCount', { count: aggregate.sessions }) },
+                { key: 'trend.measured', value: aggregate.measured, label: t('trend.measured', { count: aggregate.measured }) },
+                { key: 'trend.avg', value: token(aggregate.avgTotal), label: t('trend.avg') },
+                { key: 'trend.max', value: token(aggregate.maxTotal), label: t('trend.max') },
+                { key: 'trend.saved', value: token(aggregate.totalSaved), label: t('trend.saved') },
+              ]
+        const refreshAll = () => Promise.all([trend.reload(), events.reload(), health.reload()]).catch(() => {})
+
         return h(
           'div',
           { className: 'ci-insights' },
+          // 1 — 这一轮送了什么
           h(
             'div',
-            { className: 'ci-inline-meta' },
-            h('span', null, t('v2.insightsSub')),
-            h('span', { style: { flex: '1 1 auto' } }),
-            h(RangePills, {
-              value: range,
-              label: t('trend.rangeLabel'),
-              options: [
-                ['7d', t('trend.range7')],
-                ['30d', t('trend.range30')],
-                ['all', t('trend.rangeAll')],
-              ],
-              onChange: setRange,
-            }),
-            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => Promise.all([trend.reload(), events.reload()]).catch(() => {}) }, t('refresh')),
+            { className: 'ci-card' },
+            h(
+              'div',
+              { className: 'ci-cardhead' },
+              h('h2', null, t('requestComposition')),
+              h('span', { className: 'sp' }),
+              h('span', { className: 'hint' }, t('windowBreakdownHint')),
+            ),
+            h(RequestStrip, { snapshot, t, bare: true }),
           ),
-          h(InsightKpis, { aggregate, coverage, t }),
+          // 2 — 重量落在哪
           h(
             'div',
-            { className: 'ci-insight-current' },
-            h('span', null, t('v2.currentSession')),
-            h('span', null, `${t('total')} `, h('b', null, token(currentTotals.tokens))),
-            h('span', null, `${t('window')} `, h('b', null, windowKnown ? `${token(context.used)} / ${token(context.window)}` : t('noWindow'))),
-            h('span', null, `${t('savable')} `, h('b', null, token(currentTotals.savableTokens))),
-            h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: () => onOpenTab('manage') }, t('v2.goManage')),
-          ),
-          h(RequestStrip, { snapshot, t }),
-          h(
-            'div',
-            { className: 'ci-insight-top' },
+            { className: 'ci-grid2' },
             h(
               'div',
               { className: 'ci-card' },
               h(
                 'div',
                 { className: 'ci-cardhead' },
-                h('h2', null, t('trend.title')),
+                h('h2', null, t('injectionComposition')),
                 h('span', { className: 'sp' }),
-                h('span', { className: 'hint' }, t('trend.legendHint')),
+                h('span', { className: 'hint' }, `${totals.savablePercent}% ${t('savable')}`),
               ),
-              aggCells.length === 0
-                ? null
-                : h(
-                    'div',
-                    { className: 'ci-trend-agg' },
-                    aggCells.map((cell) =>
-                      h('span', { className: 'cell', key: cell.key }, cell.label, h('b', null, cell.value === undefined || cell.value === null ? '—' : String(cell.value))),
+              h(
+                'div',
+                { className: 'ci-donut' },
+                h(Donut, { rows: channels, t, size: 104 }),
+                h(
+                  'div',
+                  { className: 'ci-donut-legend ci-donut-legend-grid' },
+                  channels
+                    .filter((channel) => channel.tokens > 0)
+                    .map((channel) =>
+                      h(
+                        'div',
+                        { className: 'ci-donut-row', key: channel.id },
+                        h(Dot, { channel: channel.id }),
+                        h('span', { className: 'n' }, t(channel.id)),
+                        h('b', null, token(channel.tokens)),
+                        h('span', { className: 'p' }, `${pctText(channel.tokens, shareOf)}`),
+                      ),
                     ),
-                  ),
-              trend.status === 'failed'
-                ? h(
-                    'div',
-                    { className: 'ci-errorbar' },
-                    h('span', null, `${t('trend.loadFailed')}：${errorText(trend)}`),
-                    h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: trend.reload }, t('trend.retry')),
-                  )
-                : null,
-              trend.status === 'loading' && data === null
-                ? h(
-                    'div',
-                    { className: 'ci-skel-lines', 'aria-hidden': 'true' },
-                    h('div', { className: 'ci-skel-chart' }, [38, 62, 44, 71, 55, 83, 49, 66, 40, 74].map((height, index) => h('span', { key: index, style: { height: height + '%' } }))),
-                    h('div', { className: 'line' }),
-                    h('div', { className: 'line' }),
-                  )
-                : h(TrendChart, { points, t, range }),
-              coverage !== null
-                ? h('div', { className: 'ci-trend-note' }, t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' }), ' · ', t('trend.coverageFootnote'))
-                : null,
-              backfilling ? h('div', { className: 'ci-trend-note' }, t('trend.backfilling')) : null,
+                ),
+              ),
             ),
-            h('div', { className: 'ci-card ci-events-card' }, h(EventsFeed, { events, t, limit: 60, initial: 4, bare: true })),
+            h(HeaviestSuites, { snapshot, t, onPickSuite }),
           ),
-          h('div', { className: 'ci-grid2' }, h(CrossComposition, { aggregate, t }), h(HeaviestSuites, { snapshot, t })),
-          h(SessionCards, { trend, t, sessionId, onRangeAll: () => setRange('all') }),
-          h('div', { className: 'ci-foot' }, t('v2.aboutHonesty')),
+          // 3 — 能省什么 / 有没有问题
+          h(HealthStrip, { health, t, v2: true, snapshot, act, onOpenContent, onOpenTab }),
+          // 4 — 长期走势
+          h(
+            'div',
+            { className: 'ci-card' },
+            h(
+              'div',
+              { className: 'ci-cardhead' },
+              h('h2', null, t('trend.title')),
+              h('span', { className: 'sp' }),
+              h(RangePills, {
+                value: range,
+                label: t('trend.rangeLabel'),
+                options: [
+                  ['7d', t('trend.range7')],
+                  ['30d', t('trend.range30')],
+                  ['all', t('trend.rangeAll')],
+                ],
+                onChange: setRange,
+              }),
+              h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: refreshAll }, t('refresh')),
+            ),
+            aggCells.length === 0
+              ? null
+              : h(
+                  'div',
+                  { className: 'ci-trend-agg' },
+                  aggCells.map((cell) =>
+                    h('span', { className: 'cell', key: cell.key }, cell.label, h('b', null, cell.value === undefined || cell.value === null ? '—' : String(cell.value))),
+                  ),
+                ),
+            trend.status === 'failed'
+              ? h(
+                  'div',
+                  { className: 'ci-errorbar' },
+                  h('span', null, `${t('trend.loadFailed')}：${errorText(trend)}`),
+                  h('button', { type: 'button', className: 'ci-btn ci-sm', onClick: trend.reload }, t('trend.retry')),
+                )
+              : null,
+            trend.status === 'loading' && data === null
+              ? h(
+                  'div',
+                  { className: 'ci-skel-lines', 'aria-hidden': 'true' },
+                  h(
+                    'div',
+                    { className: 'ci-skel-chart' },
+                    [38, 62, 44, 71, 55, 83, 49, 66, 40, 74].map((height, index) => h('span', { key: index, style: { height: height + '%' } })),
+                  ),
+                  h('div', { className: 'line' }),
+                  h('div', { className: 'line' }),
+                )
+              : h(TrendChart, { points, t, range }),
+            coverage !== null ? h('div', { className: 'ci-trend-note' }, t('trend.coverage', { recorded: coverage.recorded ?? '—', known: coverage.known ?? '—' })) : null,
+            backfilling ? h('div', { className: 'ci-trend-note' }, t('trend.backfilling')) : null,
+          ),
+          // 5 — 变更与明细
+          h(
+            'div',
+            { className: 'ci-grid2 ci-grid2-log' },
+            h('div', { className: 'ci-card ci-events-card' }, h(EventsFeed, { events, t, limit: 60, initial: 4, bare: true })),
+            h(SessionCards, { trend, t, sessionId, onRangeAll: () => setRange('all') }),
+          ),
         )
       }
 
@@ -3943,27 +3856,202 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      function SettingsTab({ snapshot, t, act, sessionId, notify }) {
+      // 设置 answers four questions and nothing else: what this browser
+      // remembers, which preset is on, where the policy file lives, and which
+      // versions are in play. Each card is one question; the long explanations
+      // moved behind 说明 instead of sitting under the controls forever.
+
+      function PrefsCard({ t }) {
+        const [linesOn, setLinesOn] = useStoredState('contentLines', true)
+        const [range, setRange] = useStoredState('trendRange', 'all')
+        const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
+
+        // The dock chip lives outside this tree and can close itself; it
+        // announces that so this switch never disagrees with what is on screen.
+        useEffect(() => {
+          const onPref = (event) => {
+            const detail = event && event.detail
+            if (detail && typeof detail.hidden === 'boolean') setDockHidden(detail.hidden)
+          }
+          window.addEventListener('injection-manager:dock', onPref)
+          return () => window.removeEventListener('injection-manager:dock', onPref)
+        }, [setDockHidden])
+
+        const setDockVisible = (visible) => {
+          setDockHidden(!visible)
+          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: !visible } }))
+        }
+
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('h2', null, t('v2.prefs')),
+          h(
+            'div',
+            { className: 'ci-prefs' },
+            h(
+              'div',
+              { className: 'ci-prefrow' },
+              h('span', { className: 'lbl' }, t('v2.prefLines')),
+              h(Switch, { on: linesOn, onChange: (next) => setLinesOn(next), title: t('v2.prefLines') }),
+            ),
+            h(
+              'div',
+              { className: 'ci-prefrow' },
+              h('span', { className: 'lbl' }, t('v2.prefRange')),
+              h(RangePills, {
+                value: range,
+                label: t('v2.prefRange'),
+                options: [
+                  ['7d', t('trend.range7')],
+                  ['30d', t('trend.range30')],
+                  ['all', t('trend.rangeAll')],
+                ],
+                onChange: setRange,
+              }),
+            ),
+            h(
+              'div',
+              { className: 'ci-prefrow' },
+              h('span', { className: 'lbl' }, t('showDock')),
+              h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') }),
+            ),
+          ),
+          h('div', { className: 'hint' }, t('v2.prefNote')),
+        )
+      }
+
+      function PresetCard({ snapshot, t, act }) {
+        const policy = snapshot.policy
+        const [pendingPreset, setPendingPreset] = useState(null)
+        const [confirmRestore, setConfirmRestore] = useState(null)
+        const [historyOpen, setHistoryOpen] = useState(false)
+        const presetTimer = useRef(null)
+
+        useEffect(
+          () => () => {
+            if (presetTimer.current !== null) clearTimeout(presetTimer.current)
+          },
+          [],
+        )
+
+        const choose = (name, label) => {
+          // Overwriting the hand-made choices deserves a second click at the
+          // moment of the click, not a paragraph that stays on screen forever.
+          if (pendingPreset === name) {
+            setPendingPreset(null)
+            act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
+            return
+          }
+          if (excludedCountOf(snapshot) > 0) {
+            setPendingPreset(name)
+            if (presetTimer.current !== null) clearTimeout(presetTimer.current)
+            presetTimer.current = setTimeout(() => setPendingPreset(null), 4000)
+            return
+          }
+          act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
+        }
+
+        const entries = snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries.slice().reverse() : []
+        const shown = historyOpen ? entries : entries.slice(0, 3)
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h(
+            'div',
+            { className: 'ci-rowline' },
+            h('h2', null, t('preset')),
+            policy.preset === 'custom' ? h('span', { className: 'hint' }, t('custom')) : null,
+          ),
+          h(
+            'div',
+            { className: 'ci-seg' },
+            [
+              ['all', t('presetAll')],
+              ['minimal', t('presetMinimal')],
+            ].map(([name, label]) =>
+              h(
+                'button',
+                {
+                  key: name,
+                  type: 'button',
+                  className: (policy.preset === name ? 'on' : '') + (pendingPreset === name ? ' ci-confirm' : ''),
+                  title: pendingPreset === name ? t('presetOverwrite', { count: excludedCountOf(snapshot) }) : '',
+                  onClick: () => choose(name, label),
+                },
+                pendingPreset === name ? t('confirmOverwrite') : label,
+              ),
+            ),
+          ),
+          h('div', { className: 'ci-rule' }),
+          h(
+            'div',
+            { className: 'ci-rowline' },
+            h('span', { className: 'ci-sub' }, t('historyTitle')),
+            entries.length > 3
+              ? h(
+                  'button',
+                  { type: 'button', className: 'ci-btn ci-sm', onClick: () => setHistoryOpen(!historyOpen) },
+                  historyOpen ? t('collapseAll') : t('historyMore', { count: entries.length }),
+                )
+              : null,
+          ),
+          entries.length === 0
+            ? h('div', { className: 'ci-note' }, t('historyEmpty'))
+            : h(
+                'div',
+                { className: 'ci-list' },
+                shown.map((entry) =>
+                  h(
+                    'div',
+                    { className: 'ci-mini', key: entry.index },
+                    h('span', { className: 'n', title: entry.label }, entry.label),
+                    h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
+                        onClick: () => {
+                          if (confirmRestore === entry.index) {
+                            setConfirmRestore(null)
+                            act({ kind: 'restore', index: entry.index }, t('restored'))
+                          } else {
+                            setConfirmRestore(entry.index)
+                          }
+                        },
+                      },
+                      confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
+                    ),
+                    confirmRestore === entry.index
+                      ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
+                      : null,
+                  ),
+                ),
+              ),
+        )
+      }
+
+      function PolicyCard({ snapshot, t, act, sessionId, notify }) {
         const policy = snapshot.policy
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
         const [suffix, setSuffix] = useState(policy.prompt.suffix)
         const [saving, setSaving] = useState(false)
-        const [confirmRestore, setConfirmRestore] = useState(null)
-        const [pendingPreset, setPendingPreset] = useState(null)
-        const [historyOpen, setHistoryOpen] = useState(false)
+        const [verification, setVerification] = useState(null)
+        const [verifying, setVerifying] = useState(false)
         const timer = useRef(null)
-        const presetTimer = useRef(null)
+        const fileInput = useRef(null)
 
         useEffect(() => {
           setPrefix(policy.prompt.prefix)
           setSuffix(policy.prompt.suffix)
         }, [policy.prompt.prefix, policy.prompt.suffix])
-        useEffect(() => () => {
-          if (timer.current !== null) clearTimeout(timer.current)
-          if (presetTimer.current !== null) clearTimeout(presetTimer.current)
-        }, [])
-
-        const fileInput = useRef(null)
+        useEffect(
+          () => () => {
+            if (timer.current !== null) clearTimeout(timer.current)
+          },
+          [],
+        )
 
         const copyReport = async () => {
           try {
@@ -4019,225 +4107,6 @@ body[data-ds-dark-theme] .ci-root{
           }, 500)
         }
 
-        return h(
-          'div',
-          { className: 'ci-list' },
-          h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('preset')),
-            h(
-              'div',
-              { className: 'ci-rowline' },
-              h(
-                'div',
-                { className: 'ci-seg' },
-                [
-                  ['all', t('presetAll')],
-                  ['minimal', t('presetMinimal')],
-                ].map(([name, label]) =>
-                  h(
-                    'button',
-                    {
-                      key: name,
-                      type: 'button',
-                      className: (policy.preset === name ? 'on' : '') + (pendingPreset === name ? ' ci-confirm' : ''),
-                      title: pendingPreset === name ? t('presetOverwrite', { count: excludedCountOf(snapshot) }) : '',
-                      onClick: () => {
-                        // The old static warning ("当前有 230 项手动关闭…") was a
-                        // paragraph that appeared forever. Ask at the moment the
-                        // click would overwrite those choices instead.
-                        if (pendingPreset === name) {
-                          setPendingPreset(null)
-                          act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
-                          return
-                        }
-                        if (excludedCountOf(snapshot) > 0) {
-                          setPendingPreset(name)
-                          if (presetTimer.current !== null) clearTimeout(presetTimer.current)
-                          presetTimer.current = setTimeout(() => setPendingPreset(null), 4000)
-                          return
-                        }
-                        act({ kind: 'preset', name }, `${t('preset')}: ${label}`)
-                      },
-                    },
-                    pendingPreset === name ? t('confirmOverwrite') : label,
-                  ),
-                ),
-              ),
-              h('span', { className: 'hint' }, policy.preset === 'custom' ? t('custom') : ''),
-            ),
-          ),
-          h(
-            'div',
-            { className: 'ci-card' },
-            h(
-              'div',
-              { className: 'ci-rowline' },
-              h('h2', null, t('historyTitle')),
-              (snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries : []).length > 3
-                ? h(
-                    'button',
-                    { type: 'button', className: 'ci-btn ci-sm', onClick: () => setHistoryOpen(!historyOpen) },
-                    historyOpen ? t('collapseAll') : t('historyMore', { count: snapshot.undo.entries.length }),
-                  )
-                : null,
-            ),
-            (() => {
-              const entries = snapshot.undo && snapshot.undo.entries ? snapshot.undo.entries.slice().reverse() : []
-              if (entries.length === 0) return h('div', { className: 'ci-note' }, t('historyEmpty'))
-              const shown = historyOpen ? entries : entries.slice(0, 3)
-              return h(
-                'div',
-                { className: 'ci-list' },
-                shown.map((entry) =>
-                  h(
-                    'div',
-                    { className: 'ci-mini', key: entry.index },
-                    h('span', { className: 'n', title: entry.label }, entry.label),
-                    h('span', { className: 't' }, new Date(entry.at).toLocaleTimeString()),
-                    h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: 'ci-btn' + (confirmRestore === entry.index ? ' ci-primary' : ''),
-                        onClick: () => {
-                          if (confirmRestore === entry.index) {
-                            setConfirmRestore(null)
-                            act({ kind: 'restore', index: entry.index }, t('restored'))
-                          } else {
-                            setConfirmRestore(entry.index)
-                          }
-                        },
-                      },
-                      confirmRestore === entry.index ? t('confirmRestore') : t('restoreTo'),
-                    ),
-                    confirmRestore === entry.index
-                      ? h('button', { type: 'button', className: 'ci-btn', onClick: () => setConfirmRestore(null) }, t('cancel'))
-                      : null,
-                  ),
-                ),
-              )
-            })(),
-          ),
-          h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('promptPrefix')),
-            h('textarea', {
-              className: 'ci-input',
-              style: { height: 72, resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
-              value: prefix,
-              onChange: (event) => {
-                setPrefix(event.target.value)
-                persist(event.target.value, suffix)
-              },
-              'aria-label': t('promptPrefix'),
-            }),
-            h('div', { className: 'hint' }, t('promptPrefixHint')),
-            h('h2', { style: { marginTop: 6 } }, t('promptSuffix')),
-            h('textarea', {
-              className: 'ci-input',
-              style: { height: 56, resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
-              value: suffix,
-              onChange: (event) => {
-                setSuffix(event.target.value)
-                persist(prefix, event.target.value)
-              },
-              'aria-label': t('promptSuffix'),
-            }),
-            saving ? h('div', { className: 'hint' }, t('applied')) : null,
-          ),
-          h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('exportTitle')),
-            h('div', { className: 'ci-note' }, t('exportHint')),
-            h(
-              'div',
-              { className: 'ci-toolbar' },
-              h('button', { type: 'button', className: 'ci-btn', onClick: copyReport }, t('copyReport')),
-              h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
-              h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
-              h('input', {
-                ref: fileInput,
-                type: 'file',
-                accept: 'application/json,.json',
-                style: { display: 'none' },
-                onChange: importPolicy,
-                'aria-hidden': 'true',
-                tabIndex: -1,
-              }),
-              h('button', { type: 'button', className: 'ci-btn', onClick: () => fileInput.current && fileInput.current.click() }, t('importPolicy')),
-            ),
-            h('div', { className: 'hint' }, t('importHint')),
-          ),
-          h(
-            'div',
-            { className: 'ci-card' },
-            h(
-              'div',
-              { className: 'ci-rowline' },
-              h('h2', null, t('lastApply')),
-              h('span', { className: 'hint' }, policy.appliedToThisAgent ? t('appliedNow') : t('appliedNot')),
-            ),
-            h(
-              'div',
-              { className: 'ci-note' },
-              policy.lastApplication && policy.lastApplication.report
-                ? `${policy.lastApplication.report.sessionId || ''} · ${policy.lastApplication.report.error ? policy.lastApplication.report.error : `OK · −${token(policy.lastApplication.report.savedTokens || 0)}`}`
-                : '—',
-            ),
-            policy.lastApplication && policy.lastApplication.report && policy.lastApplication.report.counts
-              ? h(
-                  'div',
-                  { className: 'hint' },
-                  CHANNELS.map((channel) => {
-                    const state = policy.lastApplication.report.counts[channel]
-                    return state === undefined ? null : `${t(channel)} ${state.on}/${state.total}`
-                  })
-                    .filter((line) => line !== null)
-                    .join(' · '),
-                )
-              : null,
-            h('div', { className: 'ci-foot' }, `${t('policyPath')}：${policy.path}`),
-            policy.updatedAt ? h('div', { className: 'ci-foot' }, `${t('updatedAt')}：${policy.updatedAt}`) : null,
-            policy.error ? h('div', { className: 'ci-note warn' }, policy.error) : null,
-          ),
-        )
-      }
-
-      function excludedCountOf(snapshot) {
-        return CHANNELS.reduce((sum, channel) => {
-          const state = snapshot.policy.channels[channel]
-          if (state === undefined || state.mode === 'all') return sum
-          const row = snapshot.channels.find((entry) => entry.id === channel)
-          const total = row === undefined ? 0 : row.count
-          if (state.mode === 'except') return sum + state.names.length
-          return sum + Math.max(0, total - state.names.length)
-        }, 0)
-      }
-
-      function AboutTab({ snapshot, t, sessionId }) {
-        const locked = snapshot.locks
-        const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
-
-        useEffect(() => {
-          const onPref = (event) => {
-            const detail = event && event.detail
-            if (detail && typeof detail.hidden === 'boolean') setDockHidden(detail.hidden)
-          }
-          window.addEventListener('injection-manager:dock', onPref)
-          return () => window.removeEventListener('injection-manager:dock', onPref)
-        }, [setDockHidden])
-
-        const setDockVisible = (visible) => {
-          setDockHidden(!visible)
-          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: !visible } }))
-        }
-        const [verification, setVerification] = useState(null)
-        const [verifying, setVerifying] = useState(false)
-
         const runVerify = async () => {
           setVerifying(true)
           try {
@@ -4255,81 +4124,176 @@ body[data-ds-dark-theme] .ci-root{
           }
         }
 
+        const last = policy.lastApplication && policy.lastApplication.report ? policy.lastApplication.report : null
         return h(
           'div',
-          { className: 'ci-list' },
+          { className: 'ci-card' },
           h(
             'div',
-            { className: 'ci-card' },
-            h('h2', null, t('verifyTitle')),
-            h('div', { className: 'ci-note' }, t('verifyHint')),
-            h('button', { type: 'button', className: 'ci-btn', style: { alignSelf: 'flex-start' }, disabled: verifying, onClick: runVerify }, t('verifyNow')),
-            verification && verification.error
-              ? h('div', { className: 'ci-note warn' }, `${t('verifyFailed')}：${verification.error}`)
-              : null,
-            verification && !verification.error
-              ? h(
-                  'div',
-                  { className: 'ci-list' },
-                  h('div', { className: 'ci-note' }, verification.applied ? t('verifyApplied') : t('verifyNotApplied')),
-                  h(
-                    'div',
-                    { className: 'hint' },
-                    t('verifyCounts', {
-                      sections: (verification.sections || []).length,
-                      contexts: (verification.contexts || []).length,
-                      tools: (verification.tools || []).length,
-                    }),
-                  ),
-                )
-              : null,
+            { className: 'ci-rowline' },
+            h('h2', null, t('policyPath')),
+            h('span', { className: 'hint' }, policy.updatedAt ? `${t('updatedAt')} ${whenText(policy.updatedAt)}` : '—'),
           ),
+          h('div', { className: 'ci-path', title: policy.path }, policy.path),
           h(
             'div',
-            { className: 'ci-card' },
-            h('h2', null, t('dockCardTitle')),
-            h('div', { className: 'ci-note' }, t('dockCardHint')),
+            { className: 'ci-toolbar' },
+            h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('md') }, t('exportMd')),
+            h('button', { type: 'button', className: 'ci-btn', onClick: () => downloadManifest('json') }, t('exportJson')),
+            h('button', { type: 'button', className: 'ci-btn', onClick: copyReport }, t('copyReport')),
+            h('input', {
+              ref: fileInput,
+              type: 'file',
+              accept: 'application/json,.json',
+              style: { display: 'none' },
+              onChange: importPolicy,
+              'aria-hidden': 'true',
+              tabIndex: -1,
+            }),
+            h('button', { type: 'button', className: 'ci-btn', onClick: () => fileInput.current && fileInput.current.click() }, t('importPolicy')),
             h(
-              'div',
-              { className: 'ci-rowline' },
-              h('span', null, t('showDock')),
-              h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') }),
+              'button',
+              { type: 'button', className: 'ci-btn', disabled: verifying, title: t('verifyHint'), onClick: runVerify },
+              verifying ? t('loading') : t('verifyNow'),
             ),
           ),
+          verification && verification.error ? h('div', { className: 'ci-note warn' }, `${t('verifyFailed')}：${verification.error}`) : null,
+          verification && !verification.error
+            ? h(
+                'div',
+                { className: 'hint' },
+                `${verification.applied ? t('verifyApplied') : t('verifyNotApplied')} · ` +
+                  t('verifyCounts', {
+                    sections: (verification.sections || []).length,
+                    contexts: (verification.contexts || []).length,
+                    tools: (verification.tools || []).length,
+                  }),
+              )
+            : null,
+          h('div', { className: 'ci-rule' }),
+          h('span', { className: 'ci-sub' }, t('promptPrefix')),
+          h('textarea', {
+            className: 'ci-input',
+            rows: 2,
+            style: { resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
+            value: prefix,
+            onChange: (event) => {
+              setPrefix(event.target.value)
+              persist(event.target.value, suffix)
+            },
+            'aria-label': t('promptPrefix'),
+          }),
+          h('span', { className: 'ci-sub' }, t('promptSuffix')),
+          h('textarea', {
+            className: 'ci-input',
+            rows: 2,
+            style: { resize: 'vertical', fontFamily: 'inherit', maxWidth: 720 },
+            value: suffix,
+            onChange: (event) => {
+              setSuffix(event.target.value)
+              persist(prefix, event.target.value)
+            },
+            'aria-label': t('promptSuffix'),
+          }),
+          saving ? h('div', { className: 'hint' }, t('applied')) : null,
           h(
             'div',
-            { className: 'ci-card' },
-            h('h2', null, t('aboutLocked')),
-            locked.length === 0
-              ? h('div', { className: 'ci-note' }, '—')
-              : h(
-                  'div',
-                  { className: 'ci-list' },
-                  locked.slice(0, 20).map((lock) =>
-                    h(
-                      'div',
-                      { className: 'ci-mini', key: `${lock.channel}:${lock.name}` },
-                      h(Dot, { channel: lock.channel }),
-                      h('span', { className: 'n', title: lock.name }, (t.names || {})[lock.name] || NAMES_ZH[lock.name] || lock.name),
-                      h('span', { className: 't' }, lock.reason === 'required-context' ? t('required') : t('locked')),
-                    ),
-                  ),
+            { className: 'ci-foot' },
+            `${t('lastApply')}：` +
+              (last
+                ? `${shortId(last.sessionId || '')} · ${last.error ? last.error : `OK · −${token(last.savedTokens || 0)}`}`
+                : '—'),
+          ),
+          policy.error ? h('div', { className: 'ci-note warn' }, policy.error) : null,
+        )
+      }
+
+      function excludedCountOf(snapshot) {
+        return CHANNELS.reduce((sum, channel) => {
+          const state = snapshot.policy.channels[channel]
+          if (state === undefined || state.mode === 'all') return sum
+          const row = snapshot.channels.find((entry) => entry.id === channel)
+          const total = row === undefined ? 0 : row.count
+          if (state.mode === 'except') return sum + state.names.length
+          return sum + Math.max(0, total - state.names.length)
+        }, 0)
+      }
+
+      function AboutCard({ snapshot, t }) {
+        const [detailsOpen, setDetailsOpen] = useState(false)
+        const [locksOpen, setLocksOpen] = useState(false)
+        const host = snapshot.host !== null && snapshot.host !== undefined ? snapshot.host : {}
+        const api = Number(snapshot.apiVersion) || 1
+        const locked = Array.isArray(snapshot.locks) ? snapshot.locks : []
+        const loadedFiles = snapshot.instructions.files.filter((file) => file.status !== 'missing').length
+        return h(
+          'div',
+          { className: 'ci-card' },
+          h('h2', null, t('about')),
+          h(
+            'div',
+            { className: 'ci-about-facts' },
+            h(
+              'span',
+              null,
+              t('v2.versionHost'),
+              ' ',
+              h('b', null, host.version ? t('v2.versionLine', { version: host.version, tested: host.tested }) : t('v2.versionUnknown')),
+            ),
+            h('span', { className: 'sep' }, '·'),
+            h('span', null, t('v2.apiVersionLabel'), ' ', h('b', null, `v${api}`)),
+            h('span', { className: 'sep' }, '·'),
+            h('span', null, t('v2.languageLabel'), ' ', h('b', null, t.language || '—')),
+          ),
+          host.supported === false ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: host.version, tested: host.tested })) : null,
+          locked.length === 0
+            ? null
+            : h(
+                'div',
+                null,
+                h(
+                  'button',
+                  { type: 'button', className: 'ci-disclose', 'aria-expanded': locksOpen ? 'true' : 'false', onClick: () => setLocksOpen(!locksOpen) },
+                  h('span', { className: 'ci-caret' + (locksOpen ? ' open' : '') }, locksOpen ? '▾' : '▸'),
+                  `${t('aboutLocked')} ${locked.length}`,
                 ),
-          ),
+                locksOpen
+                  ? h(
+                      'div',
+                      { className: 'ci-list' },
+                      locked.slice(0, 20).map((lock) =>
+                        h(
+                          'div',
+                          { className: 'ci-mini', key: `${lock.channel}:${lock.name}` },
+                          h(Dot, { channel: lock.channel }),
+                          h('span', { className: 'n', title: lock.name }, (t.names || {})[lock.name] || NAMES_ZH[lock.name] || lock.name),
+                          h('span', { className: 't' }, lock.reason === 'required-context' ? t('required') : t('locked')),
+                        ),
+                      ),
+                    )
+                  : null,
+              ),
           h(
-            'div',
-            { className: 'ci-card' },
-            h('h2', null, t('about')),
-            h('div', { className: 'ci-note' }, t('aboutTokens')),
-            h('div', { className: 'ci-note' }, t('aboutFiles')),
-            h('div', { className: 'ci-note' }, t('aboutNew')),
-            h('div', { className: 'ci-note' }, t('aboutTool')),
-            h(
-              'div',
-              { className: 'ci-foot' },
-              t('rulesLine', { loaded: snapshot.instructions.files.filter((file) => file.status !== 'missing').length, budget: digits(snapshot.instructions.budgetBytes) }),
-            ),
+            'button',
+            { type: 'button', className: 'ci-disclose', 'aria-expanded': detailsOpen ? 'true' : 'false', onClick: () => setDetailsOpen(!detailsOpen) },
+            h('span', { className: 'ci-caret' + (detailsOpen ? ' open' : '') }, detailsOpen ? '▾' : '▸'),
+            t('v2.details'),
           ),
+          detailsOpen
+            ? h(
+                'div',
+                { className: 'ci-details' },
+                h('span', null, t('aboutTokens')),
+                h('span', null, t('aboutFiles')),
+                h('span', null, t('aboutNew')),
+                h('span', null, t('aboutTool')),
+                h('span', null, t('v2.aboutV2')),
+                h('span', null, t('v2.aboutData')),
+                h('span', null, t('v2.aboutHonesty')),
+                h('span', null, t('rulesLine', { loaded: loadedFiles, budget: digits(snapshot.instructions.budgetBytes) })),
+                h('span', null, t('v2.docsHint')),
+              )
+            : null,
         )
       }
 
@@ -4342,82 +4306,17 @@ body[data-ds-dark-theme] .ci-root{
         return match === null ? text.slice(0, 12) : match[1]
       }
 
-      // Browser-local preferences. They never touch policy.json — they only
-      // change how this panel renders for this user.
-      function PreferencesCard({ t }) {
-        const [linesOn, setLinesOn] = useStoredState('contentLines', true)
-        const [range, setRange] = useStoredState('trendRange', 'all')
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h('h2', null, t('v2.prefs')),
-          h(
-            'div',
-            { className: 'ci-prefs' },
-            h(
-              'div',
-              { className: 'ci-prefrow' },
-              h('span', { className: 'lbl' }, t('v2.prefLines'), h('span', { className: 'hint' }, t('v2.prefNote'))),
-              h(Switch, { on: linesOn, onChange: (next) => setLinesOn(next), title: t('v2.prefLines') }),
-            ),
-            h(
-              'div',
-              { className: 'ci-prefrow' },
-              h('span', { className: 'lbl' }, t('v2.prefRange')),
-              h(RangePills, {
-                value: range,
-                label: t('v2.prefRange'),
-                options: [
-                  ['7d', t('trend.range7')],
-                  ['30d', t('trend.range30')],
-                  ['all', t('trend.rangeAll')],
-                ],
-                onChange: setRange,
-              }),
-            ),
-          ),
-        )
-      }
-
-      // Everything the panel knows about versions, and the honest limits of the
-      // v2 data set. No plugin version is invented: the host snapshot does not
-      // carry one, so this card says what is actually known.
-      function VersionCard({ snapshot, t }) {
-        const host = snapshot.host !== null && snapshot.host !== undefined ? snapshot.host : {}
-        const api = Number(snapshot.apiVersion) || 1
-        return h(
-          'div',
-          { className: 'ci-card' },
-          h('h2', null, t('v2.version')),
-          host.supported === false ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: host.version, tested: host.tested })) : null,
-          h(
-            'div',
-            { className: 'ci-kv' },
-            h('span', { className: 'k' }, t('v2.versionHost')),
-            h('b', null, host.version ? t('v2.versionLine', { version: host.version, tested: host.tested }) : t('v2.versionUnknown')),
-            h('span', { className: 'k' }, t('v2.apiVersionLabel')),
-            h('b', null, `v${api}`),
-            h('span', { className: 'k' }, t('v2.languageLabel')),
-            h('b', null, t.language || '—'),
-          ),
-          h('div', { className: 'ci-note' }, t('v2.aboutV2')),
-          h('div', { className: 'ci-note' }, t('v2.aboutData')),
-          h('div', { className: 'ci-note' }, t('v2.aboutHonesty')),
-          h('div', { className: 'ci-foot' }, t('v2.docsHint')),
-        )
-      }
-
-      // 设置 is everything about the plugin itself and the policy document, so
-      // it stacks the three former tabs instead of hiding them behind another
-      // level of tabs.
+      // Four cards, four questions, in the order a user asks them: what this
+      // browser remembers, which preset is on, where the policy lives, what
+      // version is underneath. No warning paragraphs, no second tab level.
       function SettingsPage({ snapshot, t, act, sessionId, notify }) {
         return h(
           'div',
           { className: 'ci-list' },
-          h(SettingsTab, { snapshot, t, act, sessionId, notify }),
-          h(PreferencesCard, { t }),
-          h(AboutTab, { snapshot, t, sessionId }),
-          h(VersionCard, { snapshot, t }),
+          h(PrefsCard, { t }),
+          h(PresetCard, { snapshot, t, act }),
+          h(PolicyCard, { snapshot, t, act, sessionId, notify }),
+          h(AboutCard, { snapshot, t }),
         )
       }
 
@@ -4433,6 +4332,8 @@ body[data-ds-dark-theme] .ci-root{
         const [busy, setBusy] = useState(false)
         const [notice, setNotice] = useState(null)
         const [drawer, setDrawer] = useState(null)
+        // Set by a ranking click on 洞察; consumed by the manage table.
+        const [focusSuite, setFocusSuite] = useState(null)
         const v2 = isV2(data)
         // A v1 host hides the new tab; a stored 'insights' falls back instead of
         // rendering an empty body.
@@ -4535,6 +4436,15 @@ body[data-ds-dark-theme] .ci-root{
           (next, channel) => {
             if (typeof next === 'string' && next.length > 0) setTab(next === 'stats' ? 'insights' : next)
             if (typeof channel === 'string' && channel.length > 0) setFilter(channel)
+          },
+          [setFilter, setTab],
+        )
+        const openSuite = useCallback(
+          (label) => {
+            if (typeof label !== 'string' || label.length === 0) return
+            setFocusSuite({ label, at: Date.now() })
+            setFilter('all')
+            setTab('manage')
           },
           [setFilter, setTab],
         )
@@ -4758,18 +4668,17 @@ body[data-ds-dark-theme] .ci-root{
                     ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested }))
                     : null,
                   v2 !== true ? h(V2Gate, { snapshot, t }) : null,
-                  // The three KPI cards said the same two numbers as the
-                  // composition card below and the footer, and cost a third of
-                  // the first screen. The window number lives in the strip.
-                  h(RequestStrip, { snapshot, t }),
-                  h(ManageHealth, { snapshot, t, sessionId, v2, act, onOpenContent: openContent, onOpenTab: openTab }),
+                  v2 !== true ? h(V2Gate, { snapshot, t }) : null,
+                  // 管理 is switches and one line of numbers. The ring, the
+                  // ranking and the health list all moved to 洞察.
+                  h(ManageSum, { snapshot, t, busy, onUndo }),
                   snapshot.policy.appliedToThisAgent !== true && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                     ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
                     : null,
-                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, onUndo, busy, act, v2, onOpenContent: openContent }),
+                  h(ItemsTable, { snapshot, t, filter, setFilter, onToggle, onGroup: onGroupToggle, busy, act, v2, onOpenContent: openContent, focusSuite }),
                 )
               : activeTab === 'insights'
-                ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, act })
+                ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, onPickSuite: openSuite, act })
                 : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),

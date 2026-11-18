@@ -359,6 +359,7 @@
     "v2.aboutData": "Der Verlauf kommt aus stats.json (Messungen plus begrenztes Nachfüllen), Ereignisse aus events.json (max. 300); Gesprächstext wird nie erfasst oder hochgeladen.",
     "v2.aboutHonesty": "Kanalaufteilungen schreiben nur neue Messpunkte; ältere erscheinen als unbekannt (schraffiert), nicht als Null.",
     "v2.docsHint": "Vollständige Details in docs/DETAIL.zh.md",
+    "v2.details": "Details",
     "v2.retry": "Erneut versuchen",
     "v2.gateTitle": "Dieses Panel braucht den v2-Host",
     "v2.gateBody": "Der Host liefert noch API v1: die neuen Einblicke, Inhalte und Gesundheitsprüfungen brauchen das v2-Host-Plugin. Sie erscheinen nach dem Update; Verwalten, Einstellungen und Schalter funktionieren weiter.",

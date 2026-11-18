@@ -359,6 +359,7 @@
     "v2.aboutData": "A tendência vem de stats.json (medições e preenchimento limitado), os eventos de events.json (até 300); o texto da conversa nunca é coletado nem enviado.",
     "v2.aboutHonesty": "A divisão por canal só é gravada por novos instantâneos; registros antigos aparecem como desconhecidos (hachurado), nunca como zero.",
     "v2.docsHint": "Detalhes completos em docs/DETAIL.zh.md",
+    "v2.details": "Detalhes",
     "v2.retry": "Tentar de novo",
     "v2.gateTitle": "Este painel precisa do host v2",
     "v2.gateBody": "O host ainda retorna a API v1: os novos insights, conteúdo e saúde precisam do plugin host v2. Eles aparecem após atualizar; gestão, ajustes e interruptores continuam funcionando.",

@@ -359,6 +359,7 @@
     "v2.aboutData": "The trend comes from stats.json (measured rows plus a bounded log backfill), events from events.json (at most 300); conversation text is never collected or uploaded.",
     "v2.aboutHonesty": "Channel splits are only written by new snapshots; older records show as unknown (hatched) instead of pretending to be zero.",
     "v2.docsHint": "Full details in docs/DETAIL.zh.md",
+    "v2.details": "Details",
     "v2.retry": "Retry",
     "v2.gateTitle": "This panel needs the v2 host",
     "v2.gateBody": "The host still returns API v1: the new insights, content view and health checks need the v2 host plugin. They appear after upgrading; manage, settings and switches keep working.",

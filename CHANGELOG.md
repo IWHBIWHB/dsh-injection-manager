@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.2.3 — 2026-11-18
+
+Each panel has one job now. 管理 is a switchboard, 洞察 is an ordered diagnosis, 设置 is four
+questions. Everything that answered a different question was deleted rather than moved around, and
+the prose that explained what the screen already showed is gone.
+
+### Changed
+
+- **管理 is switches only.** The request strip, the health list and the fused "composition ring +
+  ranking" card are gone from this tab; what is left is one line of numbers (`新会话首轮 18k ·
+  可关闭 15.5k (86.2%)`), the toolbar, the suite list and the folded closed line. Undo moved from a
+  footer sentence to a button on that line.
+- **洞察 has one fixed order**, top to bottom: 本次请求构成 → 注入构成环 + 最重套件排行 → 健康检查 →
+  趋势 → 变更与会话卡. The four-KPI row, the "current session" line and the cross-session average ring
+  are deleted: the first two repeated the composition cards, the third was a second ring.
+- **A ranking bar is a link.** Clicking a bar on 洞察 opens 管理 with that suite already filtered —
+  including suites in the folded DeepSeek 官方 bucket, which now unfolds itself when a suite filter is
+  active (before, the jump landed on a folded line and the table looked empty).
+- **设置 is four cards**: 偏好 (browser-local switches, including the composer chip), 预设 (with the
+  two-click overwrite confirmation and the latest three undo steps), 策略文件 (path, update time, four
+  export/import actions, verification, prefix/suffix), 关于 (host, API version, language, the
+  read-only items, and one folded 详细说明). The eight stacked explanation paragraphs are inside that
+  fold instead of under the controls.
+- **The health strip reads as rows when nothing is actionable.** With every check a note, the first
+  three are shown directly instead of an empty box with a single folded line; the group id inside
+  the text is translated (`「core」` → `「基础工具」`).
+- **The trend chart keeps only what the chart cannot show.** "斜纹 = 通道未知" appears only when the
+  bars are actually striped; the "全部范围按时间升序" line is gone.
+
+### Fixed
+
+- **English panels printed Chinese for `items`, `chars`, `groups`, `required`.** The translator
+  treated a translation that equals its own key as a stub and fell back to Chinese, so `31 items`
+  read `31 条目`. A missing value is now the only degradation case.
+- **Filtering by a suite emptied the table for every translated suite name.** A suite chip carries
+  the display label (`基础工具`) while an item carries the raw group id (`core`); both sides are
+  compared now. This also fixes clicking a suite name inside the list.
+- Policy update times are formatted instead of printed as raw ISO strings.
+
+### Verification
+
+- `node --test` 223/223; `node scripts/self-audit.mjs` 7/7 checks, 0 warnings.
+- Fixture screenshots 26/26 plus a two-click probe: both settings disclosures unfold, and a ranking
+  bar lands on 管理 with one suite and its rows visible.
+- README/docs tab descriptions and the panel screenshots are regenerated from the same client.
+
 ## 2.2.2 — 2026-11-18
 
 Subtraction pass. Three regions that repeated an existing number or offered nothing to press are

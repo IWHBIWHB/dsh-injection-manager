@@ -35,27 +35,22 @@ record the model adapter used.
 
 | Surface | What it is for |
 | --- | --- |
-| Manage (管理) | KPI row, request strip, health strip, one compact composition/ranking card, then the suite-clustered list (split into Plugins / MCP and DSH built-in) with switches; every row can expand a preview or open its content. |
-| Insights (洞察) | Cross-session first-turn trend, aggregate band, session cards, cross-session composition, heaviest suites, this session's event timeline, coverage footnote. |
-| Settings (设置) | Presets, four channel masters, custom prefix/suffix, export/import, undo history, verification, plugin preferences, versions and language. |
+| Manage (管理) | A switchboard: one line of numbers (next-session first turn, switchable share) plus the suite-clustered list (split into Other plugins & MCP and DeepSeek official, the latter foldable to one line) with switches; every row can expand a preview or open its content. No charts, no health checks. |
+| Insights (洞察) | One fixed order: this request's composition → injection ring and heaviest-suite ranking (a bar jumps back to Manage already filtered) → health checks → cross-session trend → changes and session cards. |
+| Settings (设置) | Four cards: this browser's preferences, presets with undo history, the policy file (export/import, prefix/suffix, verification), and about (versions, read-only items, folded details). |
 | Composer chip | Next session's first-turn total and window occupancy (switchable share when the window is unknown), one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
 
 ## 3. What the manage page shows
 
-- **Health** — deterministic findings over the current snapshot (section 5), each with an action.
-- **KPI** — next session's first turn (`numbers.next`), this session's injection
-  (`numbers.session`) when it differs, window occupancy with its denominator, and the switchable
-  share. The composer chip reads the same `next` number and falls back to the switchable share when
-  the window is unknown.
-- **Request strip** — system / tools / messages split of the *current* request and compaction
-  receipts, from the host's own projections.
-- **Overview card** — the first-turn composition ring and the suite ranking share one compact card
-  above the list; the filter bar only appears when a filter is active, so the list keeps the height.
+- **One line of numbers** — next session's first turn (`numbers.next`) and the switchable share;
+  this session's injection only appears in the sidebar when it differs. The composer chip reads the
+  same `next` number. The undo button sits at the right of this line.
 - **The list** — five channels, clustered into suites (one MCP server = one switch) and split into
-  **Plugins / MCP** (MCP tool namespaces, `mcp:<server>` prompt sections, provider-backed skills)
-  and **DSH built-in** (host prompt sections, runtime contexts, workspace rules, core built-in tool
-  families, instruction files); a profile with only one origin keeps the plain list. Every item
+  **Other plugins & MCP** (MCP tool namespaces, `mcp:<server>` prompt sections, provider-backed skills)
+  and **DeepSeek official** (host prompt sections, runtime contexts, workspace rules, core built-in tool
+  families, instruction files); a profile with only one origin keeps the plain list. Filtering by a
+  suite unfolds the official bucket, otherwise the jump would land on a folded line. Every item
   carries a description; a suite row carries item count, tokens, share and a tri-state switch; a
   closed suite stays visible with its remembered size so it can be reopened. Items expand an inline
   preview; the content button opens the drawer.

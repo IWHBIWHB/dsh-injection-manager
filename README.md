@@ -50,8 +50,8 @@ applies the switches without touching your files.
 one DSH process can no longer overwrite each other's policy.
 
 - **Two numbers, two names** — `/summary` returns `numbers: {session, next}`: what this conversation
-  is injecting now, and what a session created under the saved policy would get. The KPI row, panel
-  footer, sidebar footer, composer badge and composition-card title all read that pair and label it
+  is injecting now, and what a session created under the saved policy would get. The panel header,
+  sidebar footer, composer badge and composition-card title all read that pair and label it
   **Next session** vs **This session**. The composer badge now reads `next`, so closing a suite
   moves it — it used to read the measured all-on total and stay put.
 - **One meaning for "closed"** — `closedBadge` (已关闭) means the item is out of the assembly; the
@@ -79,32 +79,34 @@ Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 
 | Surface | Where | What it answers |
 | --- | --- | --- |
-| **Manage** | Panel → 管理 | What is in the next new session's first request — and what is this session carrying? Every channel, clustered into suites and split into Plugins / MCP and DSH built-in, with health checks, inline previews and a content drawer on every row. |
-| **Insights** | Panel → 洞察 | How has the new-session first turn been changing? Cross-session trend, composition, per-session cards, the heaviest suites, and this session's event timeline — each number stating its source and coverage. |
-| **Settings** | Panel → 设置 | What policy applies? Presets, four channel masters, custom prefix/suffix, export/import, undo history, verification, plugin preferences, versions. |
+| **Manage** | Panel → 管理 | A switchboard: what the next new session costs, how much of it is switchable, one row per suite, one switch per row. Numbers and switches only — no charts. |
+| **Insights** | Panel → 洞察 | One fixed order: this request's composition → injection composition and heaviest suites → health checks → trend → changes and session detail. |
+| **Settings** | Panel → 设置 | Four cards: this browser's preferences, presets and undo, the policy file (export/import, prefix/suffix, verification), and about (versions, read-only items, folded details). |
 | **Commands & tools** | Composer / model | `/inject` (+ `health｜all｜minimal｜undo`) for a text report, `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for the next-session number. |
 
 ## Screens
 
-Manage: KPI row, request strip, health strip, one compact card with the composition ring and the
-suite ranking, then the suite-clustered list split into Plugins / MCP and DSH built-in. The list
-carries a description column, every row can expand an inline preview or open its original content:
+Manage is a switchboard: one line of numbers (next-session first turn, switchable), then the
+suite-clustered list split into Plugins / MCP and DSH built-in, one switch per row, with the closed
+rows folded into a single line. The list carries a description column, every row can expand an
+inline preview or open its original content:
 
 | Manage | Content drawer |
 | --- | --- |
-| ![Manage tab: health, KPI and suites](docs/images/panel-manage.png) | ![Content drawer: breadcrumb, source note, parameter table and raw JSON](docs/images/panel-drawer.png) |
+| ![Manage tab: one line of numbers and the suite switches](docs/images/panel-manage.png) | ![Content drawer: breadcrumb, source note, parameter table and raw JSON](docs/images/panel-drawer.png) |
 
 A suite expands to its items, each with a preview and a content button:
 
 ![Expanded suite with inline preview](docs/images/panel-manage-expanded.png)
 
-Insights: cross-session first-turn trend (hover → pin → Esc), aggregate band, composition ring,
-heaviest suites, session cards and the current session's event timeline:
+Insights has one fixed order: this request's composition, the injection ring with the suite ranking
+(click a bar to land on Manage already filtered), health checks, the cross-session trend
+(hover → pin → Esc), then changes and session cards:
 
 ![Insights tab](docs/images/panel-insights.png)
 
-Settings: presets, channel masters, prefix/suffix, export/import/undo, verification,
-preferences, version and language:
+Settings is four cards: this browser's preferences, presets with undo history, the policy file, and
+about (versions, read-only items, folded details):
 
 ![Settings tab](docs/images/panel-settings.png)
 
@@ -303,7 +305,7 @@ modify each other.
 | Entry | Where | What |
 | --- | --- | --- |
 | Sidebar icon | Left panel list, "Injection" | Opens the panel: 管理 / 洞察 / 设置 |
-| Manage tab | Main area | Health, KPI, request strip, composition/ranking card, suite list split by origin, switches, content drawer |
+| Manage tab | Main area | One line of numbers, suite list split by origin, switches, content drawer |
 | Composer chip | Under the input | Next session's first-turn total and window occupancy (switchable share when the window is unknown), deliberately muted; × hides it, Settings can bring it back |
 | `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card; optional `{channel, name}` for one item's content (≤32 KB) |
 | `/inject` command | Composer | Text report + one health line; `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
