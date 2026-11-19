@@ -815,6 +815,13 @@ body[data-ds-dark-theme] .ci-root{
 .ci-manage-head .sp{flex:1 1 auto}
 .ci-donut-compact{gap:10px}
 .ci-donut-legend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
+/* the ring row sits on top of the ranking inside one card: side by side the two
+   columns never match in height, and the ring's legend gets squeezed */
+.ci-compose-top{display:flex;align-items:center;gap:16px 20px;min-width:0;padding:2px 0 8px;border-bottom:1px solid var(--ci-line2)}
+.ci-compose-top .ci-donut-legend{flex:1 1 auto;min-width:0}
+.ci-compose-top .ci-donut-legend-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.ci-compose-top .ci-donut-row{grid-template-columns:10px minmax(0,1fr) minmax(44px,auto) 40px}
+@container (max-width:720px){.ci-compose-top{flex-wrap:wrap}}
 /* settings: one hairline splits two questions inside a card */
 .ci-card>.ci-seg{align-self:flex-start}
 .ci-rule{height:1px;background:var(--ci-line2);margin:2px 0 4px}
@@ -2552,7 +2559,9 @@ body[data-ds-dark-theme] .ci-root{
             ? h('div', { className: 'ci-health-allclear' }, t('v2.healthAllClear'))
             : null,
           actionable.map((check, index) => checkRow(check, `action:${index}`, true)),
-          !quiet || countOnly > 0
+          // The fold only exists when there is something folded. With one
+          // actionable row and no notes it used to read "还有 0 条提示".
+          notes.length > 0 && (quiet ? countOnly > 0 : true)
             ? h(
                 'button',
                 {
@@ -2964,7 +2973,7 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      function HeaviestSuites({ snapshot, t, onPickSuite }) {
+      function SuitesRanking({ snapshot, t, onPickSuite }) {
         const groups = Array.isArray(snapshot.groups) ? snapshot.groups : []
         const itemsByGroup = new Map()
         for (const item of snapshot.items) {
@@ -2991,41 +3000,35 @@ body[data-ds-dark-theme] .ci-root{
           .slice(0, 8)
         const max = rows.reduce((value, row) => Math.max(value, Number(row.tokens) || 0), 1)
         const total = Math.max(1, effectiveTotalOf(snapshot))
+        if (rows.length === 0) return h('div', { className: 'ci-note' }, t('v2.heaviestEmpty'))
         return h(
           'div',
-          { className: 'ci-card' },
-          h('div', { className: 'ci-cardhead' }, h('h2', null, t('v2.heaviestTitle')), h('span', { className: 'sp' }), h('span', { className: 'hint' }, t('v2.heaviestHint'))),
-          rows.length === 0
-            ? h('div', { className: 'ci-note' }, t('v2.heaviestEmpty'))
-            : h(
-                'div',
-                { className: 'ci-bars' },
-                rows.map((group) =>
-                  h(
-                    'button',
-                    {
-                      type: 'button',
-                      className: 'ci-barrow ci-barrow-btn' + (group.effective === 0 ? ' off' : ''),
-                      key: group.id,
-                      onClick: onPickSuite ? () => onPickSuite(groupLabelOf(t, group)) : undefined,
-                      title: `${group.label} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effective)}`,
-                    },
-                    h('span', { className: 'n' }, groupLabelOf(t, group)),
-                    h(
-                      'span',
-                      { className: 'ci-bar-track', style: { width: `${Math.max(2, ((Number(group.tokens) || 0) / max) * 100)}%` } },
-                      h('span', {
-                        className: 'ci-bar-fill',
-                        style: {
-                          width: `${group.tokens === 0 ? 0 : Math.max(0, Math.min(100, (group.effective / group.tokens) * 100))}%`,
-                          background: COLOR[group.channel],
-                        },
-                      }),
-                    ),
-                    h('span', { className: 't', style: { textAlign: 'right' } }, `${token(group.effective)} · ${pctText(group.effective, total)}`),
-                  ),
-                ),
+          { className: 'ci-bars' },
+          rows.map((group) =>
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'ci-barrow ci-barrow-btn' + (group.effective === 0 ? ' off' : ''),
+                key: group.id,
+                onClick: onPickSuite ? () => onPickSuite(groupLabelOf(t, group)) : undefined,
+                title: `${group.label} · ${t('total')} ${digits(group.tokens)} · ${t('after')} ${digits(group.effective)}`,
+              },
+              h('span', { className: 'n' }, groupLabelOf(t, group)),
+              h(
+                'span',
+                { className: 'ci-bar-track', style: { width: `${Math.max(2, ((Number(group.tokens) || 0) / max) * 100)}%` } },
+                h('span', {
+                  className: 'ci-bar-fill',
+                  style: {
+                    width: `${group.tokens === 0 ? 0 : Math.max(0, Math.min(100, (group.effective / group.tokens) * 100))}%`,
+                    background: COLOR[group.channel],
+                  },
+                }),
               ),
+              h('span', { className: 't', style: { textAlign: 'right' } }, `${token(group.effective)} · ${pctText(group.effective, total)}`),
+            ),
+          ),
         )
       }
 
@@ -3187,43 +3190,40 @@ body[data-ds-dark-theme] .ci-root{
             ),
             h(RequestStrip, { snapshot, t, bare: true }),
           ),
-          // 2 — 重量落在哪
+          // 2 — 重量落在哪。环和排行是一张卡、上下两段：分成两张左右并排时，
+          // 高度差在左栏留下一个洞，图例也被挤成两窄列、标签全被截断。
           h(
             'div',
-            { className: 'ci-grid2' },
+            { className: 'ci-card' },
             h(
               'div',
-              { className: 'ci-card' },
+              { className: 'ci-cardhead' },
+              h('h2', null, t('injectionComposition')),
+              h('span', { className: 'sp' }),
+              h('span', { className: 'hint' }, `${totals.savablePercent}% ${t('savable')} · ${t('v2.heaviestHint')}`),
+            ),
+            h(
+              'div',
+              { className: 'ci-compose-top' },
+              h(Donut, { rows: channels, t, size: 84 }),
               h(
                 'div',
-                { className: 'ci-cardhead' },
-                h('h2', null, t('injectionComposition')),
-                h('span', { className: 'sp' }),
-                h('span', { className: 'hint' }, `${totals.savablePercent}% ${t('savable')}`),
-              ),
-              h(
-                'div',
-                { className: 'ci-donut' },
-                h(Donut, { rows: channels, t, size: 104 }),
-                h(
-                  'div',
-                  { className: 'ci-donut-legend ci-donut-legend-grid' },
-                  channels
-                    .filter((channel) => channel.tokens > 0)
-                    .map((channel) =>
-                      h(
-                        'div',
-                        { className: 'ci-donut-row', key: channel.id },
-                        h(Dot, { channel: channel.id }),
-                        h('span', { className: 'n' }, t(channel.id)),
-                        h('b', null, token(channel.tokens)),
-                        h('span', { className: 'p' }, `${pctText(channel.tokens, shareOf)}`),
-                      ),
+                { className: 'ci-donut-legend ci-donut-legend-grid' },
+                channels
+                  .filter((channel) => channel.tokens > 0)
+                  .map((channel) =>
+                    h(
+                      'div',
+                      { className: 'ci-donut-row', key: channel.id },
+                      h(Dot, { channel: channel.id }),
+                      h('span', { className: 'n' }, t(channel.id)),
+                      h('b', null, token(channel.tokens)),
+                      h('span', { className: 'p' }, `${pctText(channel.tokens, shareOf)}`),
                     ),
-                ),
+                  ),
               ),
             ),
-            h(HeaviestSuites, { snapshot, t, onPickSuite }),
+            h(SuitesRanking, { snapshot, t, onPickSuite }),
           ),
           // 3 — 能省什么 / 有没有问题
           h(HealthStrip, { health, t, v2: true, snapshot, act, onOpenContent, onOpenTab }),

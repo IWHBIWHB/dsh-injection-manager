@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.2.7 — 2026-11-19
+
+### Changed
+
+- **The ring and the ranking are one card again**, stacked instead of side by side. As two cards the
+  ranking was 440px tall and the ring 300px, so the left column ended in a visible hole, and the
+  ring's legend was squeezed into two 200px columns that clipped every label to "系统提…". Now the
+  ring sits in a header strip with the five channel figures in one row, a hairline separates it from
+  the ranking below, and the whole block is one card.
+- **The legend no longer ellipsises channel names.** The row grid gave the label 76px where the text
+  needed 77, so Chrome drew an ellipsis on every name. The strip widens the label to 91px.
+
+### Fixed
+
+- **The health strip said "还有 0 条提示"** when it had one actionable row and nothing folded.
+
+### Verification
+
+- `node --test` 223/223; `node scripts/self-audit.mjs --strict` 7/7, 0 warnings.
+- Legend measured: five rows of 203px, label 91px for 77px of text, `clipped: false` on all five.
+
 ## 2.2.6 — 2026-11-18
 
 ### Changed
