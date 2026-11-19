@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.2.8 — 2026-11-19
+
+### Changed
+
+- **A 多通道 row now says how many channels and what each holds.** The channel cell reads
+  `多通道 · 3` and its hover title lists the channels by size, e.g. 工具 schema 950 86.2% /
+  系统提示词段落 148 13.4% / 运行时上下文 4 0.4%. Single-channel rows got the same treatment
+  (`工具 schema · 6,086 token`). The cell shows a dotted underline and a help cursor so the hover is
+  discoverable.
+
+### Verification
+
+- Hover titles read back from the DOM for six suites, including a three-channel one.
+
 ## 2.2.7 — 2026-11-19
 
 ### Changed

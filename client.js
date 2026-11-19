@@ -493,6 +493,8 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-hit{background:rgba(77,107,254,.22);background:color-mix(in srgb, var(--ci-accent) 24%, transparent);color:inherit;border-radius:2px;padding:0 1px}
 .ci-row .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ci-fg2);white-space:nowrap}
 .ci-row .badge i{width:8px;height:8px;border-radius:3px;display:block}
+/* multi-channel rows hide a per-channel breakdown behind the hover title */
+.ci-row .ci-badge-multi{cursor:help;text-decoration:underline dotted var(--ci-line);text-underline-offset:3px}
 .ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
 .ci-btn:focus-visible,.ci-chip:focus-visible,.ci-switch:focus-visible,.ci-seg button:focus-visible,.ci-tabs button:focus-visible,.ci-legend button:focus-visible,.ci-grouphead:focus-visible,.ci-input:focus-visible,.ci-dock:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.ci-root *{transition:none!important;animation:none!important}}
@@ -2271,6 +2273,22 @@ body[data-ds-dark-theme] .ci-root{
                     const groupEffective = group.items.reduce((sum, item) => (isOn(item) ? sum + item.tokens : sum), 0)
                     const groupSaved = Math.max(0, group.tokens - groupEffective)
                     const suiteLabel = groupLabelOf(t, group)
+                    // A suite can span several channels (REA ships tools and a
+                    // prompt section). The row says 多通道 and nothing else, so
+                    // hovering spells out which channels and how much each holds.
+                    const channelsOf = Array.isArray(group.channels) && group.channels.length > 0 ? group.channels : [group.channel]
+                    const perChannel = new Map()
+                    for (const item of group.items) perChannel.set(item.channel, (perChannel.get(item.channel) || 0) + (Number(item.tokens) || 0))
+                    const channelTotal = Math.max(1, [...perChannel.values()].reduce((sum, value) => sum + value, 0))
+                    const channelTitle =
+                      channelsOf.length > 1
+                        ? [
+                            `${t('mixed')} · ${channelsOf.length}`,
+                            ...[...perChannel.entries()]
+                              .sort((left, right) => right[1] - left[1])
+                              .map(([channel, tokens]) => `${t(channel)}  ${digits(tokens)}  ${pctText(tokens, channelTotal)}`),
+                          ].join('\n')
+                        : `${t(group.channel)} · ${digits(group.tokens)} token`
                     return h(
                       'div',
                       { className: 'ci-group', key: group.id },
@@ -2315,9 +2333,9 @@ body[data-ds-dark-theme] .ci-root{
                         h('div', { className: 'ci-about' }),
                         h(
                           'div',
-                          { className: 'badge' },
-                          (group.channels || [group.channel]).map((channel) => h(Dot, { key: channel, channel })),
-                          (group.channels || [group.channel]).length > 1 ? t('mixed') : t(group.channel),
+                          { className: 'badge' + (channelsOf.length > 1 ? ' ci-badge-multi' : ''), title: channelTitle },
+                          channelsOf.map((channel) => h(Dot, { key: channel, channel })),
+                          channelsOf.length > 1 ? `${t('mixed')} · ${channelsOf.length}` : t(group.channel),
                         ),
                         h('div', { className: 'num' }, digits(group.tokens)),
                         h('div', { className: 'num' }, state.on ? `${pctText(group.tokens, effectiveTotal)}` : '—'),
