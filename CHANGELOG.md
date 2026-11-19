@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.2.9 — 2026-11-19
+
+### Changed
+
+- **Every channel square is its own hover target.** Hovering one 8px square shows that channel's
+  name, its token count inside the suite and its share; hovering the `多通道 · 3` text shows all of
+  them, largest first. The card is drawn in the panel's own style — 10px radius, hairline border, the
+  card shadow, tabular numbers — not the OS tooltip.
+- The card is portalled into `.ci-root` so it inherits the theme (light and dark both measured
+  `rgb(255,255,255)` / `rgb(22,22,25)`), and into a layer above the table so the table's own scroll box
+  cannot clip it. It flips above the anchor when the row is near the bottom edge, and disappears on
+  scroll or resize.
+
+### Verification
+
+- Probe hovered the second of three squares: card `系统提示词段落 148 13.4%`; hovered the text:
+  all three rows, sorted; leaving the row leaves zero `.ci-tip` nodes.
+
 ## 2.2.8 — 2026-11-19
 
 ### Changed

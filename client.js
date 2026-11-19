@@ -493,8 +493,18 @@ body[data-ds-dark-theme] .ci-tabs button.on{background:rgba(255,255,255,.1);box-
 .ci-hit{background:rgba(77,107,254,.22);background:color-mix(in srgb, var(--ci-accent) 24%, transparent);color:inherit;border-radius:2px;padding:0 1px}
 .ci-row .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ci-fg2);white-space:nowrap}
 .ci-row .badge i{width:8px;height:8px;border-radius:3px;display:block}
-/* multi-channel rows hide a per-channel breakdown behind the hover title */
-.ci-row .ci-badge-multi{cursor:help;text-decoration:underline dotted var(--ci-line);text-underline-offset:3px}
+/* each channel square is its own hover target: a padded hit area, and the
+   badge text explains the whole mix */
+.ci-dotbtn{display:inline-flex;align-items:center;justify-content:center;padding:4px;margin:-4px;border-radius:var(--ci-radius-chip);cursor:help}
+.ci-dotbtn:hover{background:var(--ci-line2)}
+.ci-badge-text{cursor:help;text-decoration:underline dotted var(--ci-line);text-underline-offset:3px}
+.ci-tip{position:fixed;z-index:70;display:flex;flex-direction:column;gap:3px;min-width:150px;max-width:236px;padding:7px 10px 8px;border:1px solid var(--ci-line);border-radius:var(--ci-radius-card);background:var(--ci-bg);box-shadow:var(--ci-shadow-pop);font-size:var(--ci-fs-label);color:var(--ci-fg2);pointer-events:none;-webkit-font-smoothing:antialiased}
+.ci-tip-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 40px;gap:6px;align-items:center;min-width:0}
+.ci-tip-row i{width:8px;height:8px;border-radius:3px;display:block}
+.ci-tip-row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ci-fg)}
+.ci-tip-row b{font-weight:600;color:var(--ci-fg);font-variant-numeric:tabular-nums}
+.ci-tip-row .p{text-align:right;color:var(--ci-fg3);font-variant-numeric:tabular-nums}
+/* multi-channel rows hide a per-channel breakdown behind the hover card */
 .ci-row .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ci-fg2)}
 .ci-btn:focus-visible,.ci-chip:focus-visible,.ci-switch:focus-visible,.ci-seg button:focus-visible,.ci-tabs button:focus-visible,.ci-legend button:focus-visible,.ci-grouphead:focus-visible,.ci-input:focus-visible,.ci-dock:focus-visible{outline:2px solid var(--ci-accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.ci-root *{transition:none!important;animation:none!important}}
@@ -906,6 +916,17 @@ body[data-ds-dark-theme] .ci-root{
       const React = require('react')
       const h = React.createElement
       const { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } = React
+      // Portals put a hover card on document.body: inside the panel a fixed
+      // element is contained by .ci-root (container-type) and clipped by the
+      // table's own scroll box, so the card would jump or get cut.
+      const ReactDOM = (() => {
+        try {
+          return require('react-dom')
+        } catch {
+          return null
+        }
+      })()
+      const canPortal = ReactDOM !== null && typeof ReactDOM.createPortal === 'function'
 
       const ctxRef = { current: null }
       const reportedStages = new Set()
@@ -1926,6 +1947,38 @@ body[data-ds-dark-theme] .ci-root{
 
         const deferredQuery = useDeferredValue(query)
         const searchRef = useRef(null)
+        // One hover card per table: the dots hand it the channel they belong to.
+        const [tip, setTip] = useState(null)
+        const showTip = (event, rows) => {
+          const node = event !== null && event !== undefined ? event.currentTarget : null
+          if (node === null || typeof node.getBoundingClientRect !== 'function' || typeof window === 'undefined') return
+          const rect = node.getBoundingClientRect()
+          // The card is portalled into .ci-root so it inherits the panel's CSS
+          // variables; that root is the containing block for fixed children
+          // (container-type), so the anchor is measured in its coordinates.
+          const root = typeof node.closest === 'function' ? node.closest('.ci-root') : null
+          const base = root !== null ? root.getBoundingClientRect() : null
+          const limit = base === null ? window.innerWidth : base.width
+          const left = base === null ? rect.left - 8 : rect.left - base.left - 8
+          // Flip above the dot when the card would fall out of the panel.
+          const height = rows.length * 18 + 20
+          const below = base === null ? rect.bottom + 6 : rect.bottom - base.top + 6
+          const flipped = base !== null && below + height > base.height && rect.top - base.top > height + 10
+          const top = flipped ? rect.top - base.top - height - 6 : below
+          setTip({ left: Math.max(8, Math.min(left, limit - 236)), top, rows, into: root })
+        }
+        const hideTip = () => setTip(null)
+        // A scrolled or resized panel moves the anchor without moving the card.
+        useEffect(() => {
+          if (tip === null) return undefined
+          const hide = () => setTip(null)
+          window.addEventListener('scroll', hide, true)
+          window.addEventListener('resize', hide)
+          return () => {
+            window.removeEventListener('scroll', hide, true)
+            window.removeEventListener('resize', hide)
+          }
+        }, [tip])
         const clearAllFilters = () => {
           setQuery('')
           setFilter('all')
@@ -2274,21 +2327,13 @@ body[data-ds-dark-theme] .ci-root{
                     const groupSaved = Math.max(0, group.tokens - groupEffective)
                     const suiteLabel = groupLabelOf(t, group)
                     // A suite can span several channels (REA ships tools and a
-                    // prompt section). The row says 多通道 and nothing else, so
-                    // hovering spells out which channels and how much each holds.
+                    // prompt section). Every dot in the channel cell is its own
+                    // hover target, so the row can explain either one channel or
+                    // the whole mix.
                     const channelsOf = Array.isArray(group.channels) && group.channels.length > 0 ? group.channels : [group.channel]
                     const perChannel = new Map()
                     for (const item of group.items) perChannel.set(item.channel, (perChannel.get(item.channel) || 0) + (Number(item.tokens) || 0))
                     const channelTotal = Math.max(1, [...perChannel.values()].reduce((sum, value) => sum + value, 0))
-                    const channelTitle =
-                      channelsOf.length > 1
-                        ? [
-                            `${t('mixed')} · ${channelsOf.length}`,
-                            ...[...perChannel.entries()]
-                              .sort((left, right) => right[1] - left[1])
-                              .map(([channel, tokens]) => `${t(channel)}  ${digits(tokens)}  ${pctText(tokens, channelTotal)}`),
-                          ].join('\n')
-                        : `${t(group.channel)} · ${digits(group.tokens)} token`
                     return h(
                       'div',
                       { className: 'ci-group', key: group.id },
@@ -2333,9 +2378,38 @@ body[data-ds-dark-theme] .ci-root{
                         h('div', { className: 'ci-about' }),
                         h(
                           'div',
-                          { className: 'badge' + (channelsOf.length > 1 ? ' ci-badge-multi' : ''), title: channelTitle },
-                          channelsOf.map((channel) => h(Dot, { key: channel, channel })),
-                          channelsOf.length > 1 ? `${t('mixed')} · ${channelsOf.length}` : t(group.channel),
+                          { className: 'badge' },
+                          channelsOf.map((channel) => {
+                            const value = perChannel.get(channel) || 0
+                            const share = pctText(value, channelTotal)
+                            return h(
+                              'span',
+                              {
+                                key: channel,
+                                className: 'ci-dotbtn',
+                                'aria-label': `${t(channel)} ${digits(value)} token ${share}`,
+                                onMouseEnter: (event) => showTip(event, [{ channel, tokens: value, share }]),
+                                onMouseLeave: hideTip,
+                              },
+                              h(Dot, { channel }),
+                            )
+                          }),
+                          h(
+                            'span',
+                            {
+                              className: 'ci-badge-text',
+                              onMouseEnter: (event) =>
+                                showTip(
+                                  event,
+                                  channelsOf
+                                    .map((channel) => ({ channel, tokens: perChannel.get(channel) || 0 }))
+                                    .sort((left, right) => right.tokens - left.tokens)
+                                    .map((row) => ({ ...row, share: pctText(row.tokens, channelTotal) })),
+                                ),
+                              onMouseLeave: hideTip,
+                            },
+                            channelsOf.length > 1 ? `${t('mixed')} · ${channelsOf.length}` : t(group.channel),
+                          ),
                         ),
                         h('div', { className: 'num' }, digits(group.tokens)),
                         h('div', { className: 'num' }, state.on ? `${pctText(group.tokens, effectiveTotal)}` : '—'),
@@ -2388,6 +2462,27 @@ body[data-ds-dark-theme] .ci-root{
                     return rows
                   }),
           ),
+          // The hover card is portalled out of the table so its scroll box cannot
+          // clip it; it stays inside .ci-root when it can, to inherit the theme.
+          tip === null || tip.rows.length === 0 || !canPortal || typeof document === 'undefined'
+            ? null
+            : ReactDOM.createPortal(
+                h(
+                  'div',
+                  { className: 'ci-tip', style: { left: tip.left, top: tip.top }, role: 'status' },
+                  tip.rows.map((row) =>
+                    h(
+                      'div',
+                      { className: 'ci-tip-row', key: row.channel },
+                      h(Dot, { channel: row.channel }),
+                      h('span', { className: 'n' }, t(row.channel)),
+                      h('b', null, digits(row.tokens)),
+                      h('span', { className: 'p' }, row.share),
+                    ),
+                  ),
+                ),
+                tip.into !== null && tip.into !== undefined ? tip.into : document.body,
+              ),
         )
       }
 
