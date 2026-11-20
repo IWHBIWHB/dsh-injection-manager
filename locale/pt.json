@@ -405,6 +405,27 @@
     "v2.originHint": "A lista oficial fica em lib/origin.js: seções do harness, contextos de execução e ferramentas do núcleo são oficiais; espaços MCP, skills com provider e plugins não listados não são.",
     "v2.notesHint": "clique para ver",
     "v2.officialHint": "Vem com o harness; feche item a item",
-    "health.builtin-heavy": "“{label}” é {share}% do primeiro turno (suíte integrada ao DSH; não recomendamos desativar)"
+    "health.builtin-heavy": "“{label}” é {share}% do primeiro turno (suíte integrada ao DSH; não recomendamos desativar)",
+    "session.tab": "Injeção",
+    "session.title": "Esta sessão",
+    "session.subtitle": "O que esta conversa carrega de fato agora; os interruptores só afetam sessões criadas depois",
+    "session.actual": "Injetado aqui",
+    "session.actualSub": "O que esta conversa carrega agora",
+    "session.next": "Próxima sessão nova",
+    "session.window": "Janela de contexto",
+    "session.windowSub": "Capacidade disponível neste turno",
+    "session.readOnly": "Somente leitura aqui: os interruptores valem para sessões criadas depois e nunca reescrevem uma conversa em andamento. A lista completa e os interruptores ficam no painel «Injeção» à esquerda.",
+    "session.footer": "Esta sessão {session} · próxima sessão {next} · desativável {savable} ({percent}%)",
+    "session.guide": "Composição da injeção, itens desativáveis e efeito da política",
+    "settingsCard.title": "Injeção de contexto",
+    "settingsCard.hint": "Apenas preferências de apresentação — nunca alteram a política de injeção. A política e os predefinidos ficam em Configurações, no painel.",
+    "settingsCard.dock": "Chip do compositor",
+    "settingsCard.dockHint": "Mostrar «injeção xxk · desativável xx%»; clique para abrir o painel",
+    "settingsCard.refresh": "Atualizar ao focar",
+    "settingsCard.refreshHint": "Ler números novos quando a janela recupera o foco",
+    "settingsCard.rawNames": "Mostrar chaves internas",
+    "settingsCard.rawNamesHint": "Mostrar chaves internas como harness:identity ao lado dos nomes em chinês",
+    "settingsCard.readOnly": "O host não oferece formulário de configuração; os valores abaixo são os efetivos atuais (somente leitura).",
+    "settingsCard.foot": "Alterar aqui edita a configuração do plugin e aplica na hora, sem reiniciar."
   }
 }

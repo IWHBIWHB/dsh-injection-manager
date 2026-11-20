@@ -3,16 +3,22 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
-[English](README.md) · [简体中文](README.zh.md)
+[English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
 
 **See and control what a new DeepSeek Harness session carries on its first request — and what the
 current conversation is already carrying.** Prompt sections, runtime contexts, the skill catalog,
 tool schemas and workspace rules are measured, clustered into suites (one MCP server = one switch),
 and browsable down to the real bytes. The panel answers three questions: *what will the next new
 session carry, what is this session carrying now, and what does any of it look like after a switch?*
+
+Five entry points tell that one story from the same snapshot: the **panel page** (Manage / Insights /
+Settings), the **conversation tab**, the **right-sidebar panel**, the **`/inject` command** and the
+**preference row in Settings → General**. The composer chip and the `context_injection` model tool are
+extra readings of the same numbers — an ambient badge and a read-only model surface, not separate
+features.
 
 ```powershell
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
@@ -44,36 +50,36 @@ applies the switches without touching your files.
 > and 38 collected skills cost 3.6%. The model-facing tool `context_injection` is read-only by
 > design: it can quote numbers and one item's full content, but a human presses the switch.
 
-## What's new in 2.2.0
+## What's new in 2.3.0
 
-2.2.0 is a correctness release: every surface now quotes the same two numbers, and two windows in
-one DSH process can no longer overwrite each other's policy.
+2.3.0 completes the five entry points. The panel already told one story; now the conversation, the
+right sidebar and the settings row tell the same story from the same snapshot instead of leaving it
+to one page.
 
-- **Two numbers, two names** — `/summary` returns `numbers: {session, next}`: what this conversation
-  is injecting now, and what a session created under the saved policy would get. The panel header,
-  sidebar footer, composer badge and composition-card title all read that pair and label it
-  **Next session** vs **This session**. The composer badge now reads `next`, so closing a suite
-  moves it — it used to read the measured all-on total and stay put.
-- **One meaning for "closed"** — `closedBadge` (已关闭) means the item is out of the assembly; the
-  new `offNextSession` (新会话关闭) means it is still in this session but will not be injected next
-  time. A row no longer carries two different "closed" labels.
-- **Policy writes survive races** — `lib/lock.js` puts every read-modify-write (`POST /action` and
-  `/inject all|minimal|undo`) in one process-wide queue, so two windows closing one suite each keep
-  both switches. Temp file names carry a counter and randomness, and each write first copies the
-  current file to `policy.json.bak` (when one exists); a corrupt `policy.json` now recovers from
-  that backup (`recovered: true`, error says `recovered from .bak`) instead of silently turning
-  everything back on.
-- **Smaller snapshots, clearer health text** — `/summary?lang=zh|en|…` returns the requested
-  dictionary plus English, dropping one polled response from ~267 KB to ~150 KB; `/locale` still
-  returns all eight. `/inject health` and the model card now separate installed plugin / MCP suites
-  (switchable) from DSH's own suites (not recommended) into two sentences, never re-recommend a
-  suite the policy already closed, the card title says "this session" with the "→ next session ≈"
-  line unchanged, and the sidebar kind chips (prompts / rules) now map to `sections` /
-  `instructions` instead of opening an empty list.
+- **Conversation tab** — a new `注入` tab next to 对话 / 轨迹. It leads with what *this conversation*
+  is already carrying (`numbers.session`), then what a new session would get under the saved policy
+  (`numbers.next`), the switchable share, the window, and the channel composition. Read-only by
+  design: switches apply to sessions created later, never to a running conversation.
+- **A real right-sidebar panel** — the old `sidebar.panel` slot no longer exists in DSH 0.2.2-rc.5,
+  so the compact panel silently stopped appearing. It now registers through the host's
+  `sidebarRightTabs` service and `sidebar.right.pane.tab`, with its own title. On hosts that still
+  declare the old slot and no tab registry, the old registration is kept as a fallback (one surface,
+  never two).
+- **Preference row in Settings → General** — the three presentation switches (`dock`,
+  `refreshOnFocus`, `showRawNames`) are now editable in the host's own settings page, not only by
+  editing the profile patch. The Config fields are `.volatile()`, so flipping a switch applies
+  immediately without restarting the plugin; the row shows the current effective values and is
+  read-only where the host does not serve a config form.
+- **One snapshot, five readings** — the page, conversation tab, right panel, `/inject` and the
+  settings row all read `GET /summary`; `numbers.session` / `numbers.next` are the same pair
+  everywhere, with the same wording for *this session* vs *next new session*.
 
-The content drawer, insights tab and settings are otherwise unchanged.
+Tests grew from 223 to 226 and the self-audit now fails if any of the five entry slots stops being
+registered or stops being documented. Verified on DSH 0.2.2-rc.1 (CLI) and 0.2.2-rc.5 (Desktop):
+16/16 browser checks per host, zero console errors.
 
-Full detail: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
+2.2.0 was the correctness release (two numbers, two names; one meaning for "closed"; serialized policy
+writes with `.bak` recovery). Full history: [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 
 ## Four surfaces, one question each
 
@@ -114,7 +120,7 @@ The sidebar shows the same snapshot compactly (next-session and this-session num
 share), and the composer carries a one-line chip (`83.8k · 36%` — next session's first turn, then
 window occupancy; the second slot falls back to the switchable share when the window is unknown):
 
-![Sidebar panel](docs/images/panel-sidebar.png)
+![Right-sidebar panel](docs/images/sidebar-panel.png)
 
 Dark theme follows the host; the composer chip is the ambient entry:
 
@@ -122,14 +128,30 @@ Dark theme follows the host; the composer chip is the ambient entry:
 | --- | --- |
 | ![Dark theme](docs/images/panel-dark.png) | ![Composer chip](docs/images/dock.png) |
 
+### The 2.3.0 entries
+
+The conversation tab answers the same question from inside a conversation: what this session is
+already carrying, what the next session would carry under the saved policy, the switchable share and
+the channel composition. It is read-only on purpose — a switch never rewrites a running conversation:
+
+![Conversation tab: this session's injection](docs/images/session-tab.png)
+
+The right-sidebar panel is the compact panel above, now registered through the host's sidebar tab
+service (`sidebarRightTabs`) instead of the removed `sidebar.panel` slot:
+
+![Right-sidebar tab](docs/images/sidebar-panel.png)
+
+The three presentation switches live in the host's own settings page, so they can be changed without
+editing the profile patch. `Config` fields are volatile: toggling one applies immediately and does not
+restart the plugin:
+
+![Preference row in Settings → General](docs/images/settings-general.png)
+
 Switching the REA suite off moves the next session's first request from 83.8k to 17.1k tokens; Undo
-brings it back (real data, interactions recorded against the fixture):
+brings it back (real data, interactions recorded on 2.1.1 — the layout is unchanged since; the images
+above were re-captured on 0.2.2-rc.5):
 
 ![Demo: suite switch and undo](docs/images/demo.gif)
-
-The screenshots and the demo GIF were captured on 2.1.1; 2.2.0 changes the labels and the badge
-number, not the layout. A re-shoot is queued — the numbers and wording in this text are the 2.2.0
-contract.
 
 ## What it manages
 
@@ -301,26 +323,36 @@ modify each other.
 
 ## Five entry points
 
-| Entry | Where | What |
+Five places, one dataset, one pair of numbers (`numbers.session` = what this conversation carries,
+`numbers.next` = what a new session gets under the saved policy). Every entry reads the same
+`GET /summary` snapshot; none of them computes its own totals.
+
+| Entry | Where | What it answers |
 | --- | --- | --- |
-| Sidebar icon | Left panel list, "Injection" | Opens the panel: 管理 / 洞察 / 设置 |
-| Manage tab | Main area | One line of numbers, suite list split by origin, switches, content drawer |
-| Composer chip | Under the input | Next session's first-turn total and window occupancy (switchable share when the window is unknown), deliberately muted; × hides it, Settings can bring it back |
-| `context_injection` tool | Model-callable | Read-only snapshot with a Markdown card; optional `{channel, name}` for one item's content (≤32 KB) |
-| `/inject` command | Composer | Text report + one health line; `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **Insight page** | Left panel list → "Context injection" → 管理 / 洞察 / 设置 | The full picture: switchboard, composition, health, trend, changes, session detail, policy |
+| **Conversation tab** | A conversation's tab row: 对话 / 轨迹 / **注入** | What *this conversation* carries now, what the next session would carry, what is switchable, how full the window is |
+| **Right-sidebar panel** | Right sidebar tab "Context injection" | The compact version while working: the two numbers, switchable share, skills focus, channel switches |
+| **`/inject` command** | Composer | A text report plus one health line. Subcommands: `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **Preference row** | Settings → General → "Context injection" | `dock` / `refreshOnFocus` / `showRawNames`, written through the host's config form (volatile: no restart) |
+
+Two extra readings are deliberately not counted as entries: the composer chip is an ambient badge of
+`numbers.next` (hideable from the preference row), and the `context_injection` model tool is a
+read-only snapshot the agent may quote — a human presses the switches.
 
 The model-facing tool is read-only: the model cannot loosen or tighten the policy. Every write comes
-from a click in the panel.
+from a click in the panel, the conversation tab (none), or the settings form.
 
 ## Install
 
 ```powershell
+dsh plugin add dsh-injection-manager
+# or, straight from GitHub:
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
 ```
 
-Or locally: DSH → Plugins → Add plugin → pick this directory, or
-`dsh plugin add D:/path/to/dsh-injection-manager`. Refresh the page; the "Injection" icon appears in
-the left panel list.
+Or in the app: DSH → Plugins → Add plugin → enter the package name or pick this directory. Refresh
+the page; the "Context injection" icon appears in the left panel list, and the five entry points above
+become available (no build step, no restart for a first install).
 
 Upgrading from `dsh-context-preflight` / `dsh-context-injection`: if only an old policy file exists,
 it is read once and used as the current policy. Writes always go to
@@ -333,13 +365,18 @@ Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md
 
 ## Plugin configuration
 
-Plugins → dsh-injection-manager → Configuration exposes three presentation options:
+The three presentation options are editable in **Settings → General → "Context injection"** (and,
+on hosts that show the plugin's config form, under Plugins → dsh-injection-manager → Configuration):
 
 | Setting | Default | Effect |
 | --- | --- | --- |
 | `dock` | on | Show the "injection 84k · 36%" chip next to the composer: next session's first turn, then window occupancy (switchable share when the window is unknown) |
 | `refreshOnFocus` | on | Refresh the panel when the window regains focus |
 | `showRawNames` | on | Show the raw key (`harness:identity`) next to the readable label |
+
+All three fields are `.volatile()` on the host: changing them applies immediately and does not restart
+the plugin or drop the in-memory snapshot cache. Where the host does not serve a config form, the
+settings row shows the effective values read-only and says so.
 
 Two panel preferences are browser-local and live where they apply: the content drawer's line-number
 toggle sits in the drawer's own toolbar, and the default insights range is the range pills on 洞察.
@@ -397,15 +434,19 @@ The 设置 tab exposes the same verification behind a button.
 ## Docs
 
 - [Detail](docs/DETAIL.md): the five-minute version of what is measured, what is switchable, and what the surfaces show
-- [Architecture](docs/ARCHITECTURE.md): the four injection channels, the snapshot pipeline, the routes and the data files
+- [Architecture](docs/ARCHITECTURE.md): the five injection channels, the snapshot pipeline, the five entry slots, the routes and the data files
+- [Decisions](docs/DECISIONS.md): why the right sidebar replaced `sidebar.panel`, why the settings card writes volatile Config, why the conversation tab is read-only
+- [RSI](docs/RSI.md): the repeatable self-audit loop this project uses between releases
+- [Self-assessment](docs/SELF-ASSESSMENT.md): this release scored against the project's own quality gates, with gaps stated
 - [FAQ](docs/FAQ.md): why `AGENTS.md` cannot be switched off, what the content drawer reads, relation to `dsh-context`
-- [Compatibility](docs/COMPATIBILITY.md): tested versions, required APIs, upgrade checks
-- [Performance](docs/PERFORMANCE.md): measured timings for 355 items, 27 suites, a 230-row expand and the v2 surfaces
+- [Compatibility](docs/COMPATIBILITY.md): tested versions (0.2.2-rc.1 CLI, 0.2.2-rc.5 Desktop), required APIs, upgrade checks
+- [Performance](docs/PERFORMANCE.md): measured timings for the snapshot, the five entry points and the trend backfill
 - [Security](SECURITY.md): reporting, verifiable boundaries, accepted risks
 - [Contributing](CONTRIBUTING.md): local loop, pre-commit checks, release steps (`npm run smoke` runs the pipeline offline)
 
 `docs/DETAIL.md` and `docs/DETAIL.zh.md` are the complete pages; the `de` / `es` / `fr` / `ja` /
 `pt` / `ru` variants currently contain only the preview image — placeholders, not full translations.
+The README set ships in eight languages (see the switch line at the top).
 
 ## Limitations
 
@@ -415,6 +456,13 @@ The 设置 tab exposes the same verification behind a button.
   shows them (and their content) instead of pretending otherwise.
 - The insights trend only contains sessions this plugin measured or priced from durable logs; older
   rows have no channel split and render striped.
+- The conversation tab is read-only: switches apply to sessions created after the save, as the panel
+  has always said. Opening it for a session the host no longer holds falls back to the last live one.
+- The right-sidebar tab is registered through the host's `sidebarRightTabs` service; hosts from before
+  that service (0.2.1 era) keep the old `sidebar.panel` registration instead, and a host with neither
+  simply shows no sidebar surface (the other four entries still work).
+- The settings row is writable only where the host serves a config form; otherwise it lists the
+  effective values and says they are read-only.
 - Not built yet: tool-to-plugin ownership (the host `ToolSchema` has no owner field), whether a
   skill was used recently, differences between sessions, filtering the event timeline, and
   virtualising the 354-row list.

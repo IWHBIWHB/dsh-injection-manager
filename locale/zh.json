@@ -405,6 +405,27 @@
     "v2.originHint": "官方名单在 lib/origin.js：宿主段落、运行时上下文与核心工具算官方；MCP 命名空间、带 provider 的技能、未列名的插件条目算其他。",
     "v2.notesHint": "点开查看",
     "v2.officialHint": "宿主自带，逐条可关；整套关通常不建议",
-    "health.builtin-heavy": "「{label}」占首轮 {share}%（DSH 自带套件，不建议关闭）"
+    "health.builtin-heavy": "「{label}」占首轮 {share}%（DSH 自带套件，不建议关闭）",
+    "session.tab": "注入",
+    "session.title": "本会话注入",
+    "session.subtitle": "这次对话此刻实际带着的内容；开关只影响之后新建的会话",
+    "session.actual": "本会话已注入",
+    "session.actualSub": "这段对话当前的注入量",
+    "session.next": "新会话将注入",
+    "session.window": "上下文窗口",
+    "session.windowSub": "模型本轮可用容量",
+    "session.readOnly": "这里只读：开关作用于之后新建的会话，不会改写正在进行的对话。完整清单与开关在左侧「上下文注入」面板。",
+    "session.footer": "本会话 {session} · 新会话 {next} · 可关 {savable}（{percent}%）",
+    "session.guide": "注入构成、可关项与策略效果",
+    "settingsCard.title": "上下文注入管理",
+    "settingsCard.hint": "呈现偏好：只影响界面，不影响注入策略。策略与预设在主面板的「设置」里。",
+    "settingsCard.dock": "输入框旁徽标",
+    "settingsCard.dockHint": "显示「注入 xxk · 可关 xx%」，点击可打开面板",
+    "settingsCard.refresh": "聚焦时刷新",
+    "settingsCard.refreshHint": "窗口重新获得焦点时读取一次最新数字",
+    "settingsCard.rawNames": "显示原始键名",
+    "settingsCard.rawNamesHint": "在中文名旁标出 harness:identity 这类内部键",
+    "settingsCard.readOnly": "宿主没有提供配置表单；下面是当前生效值（只读）。",
+    "settingsCard.foot": "改这里等于改插件配置；切换即时生效，不重启插件。"
   }
 }

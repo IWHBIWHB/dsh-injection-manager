@@ -1,6 +1,6 @@
 # 架构
 
-这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样；v2 新增的只读表面（内容透视、趋势、事件、健康检查）分别从哪来、写到哪去；2.2.0 的两个数字口径（`numbers.session` / `numbers.next`）和策略写入队列也在这里说明。
+这份文档只讲一件事：一次新会话的首轮上下文，从策略文件到模型请求，中间经过哪些环节、每一环用什么接口、失败时会怎样；v2 新增的只读表面（内容透视、趋势、事件、健康检查）分别从哪来、写到哪去；2.2.0 的两个数字口径（`numbers.session` / `numbers.next`）、策略写入队列，以及 2.3.0 的五个入口槽位也在这里说明。
 
 ## 四条注入通道
 
@@ -170,6 +170,32 @@ agent/created (source=startup|clear)
 - 排序按 `firstAt`（时间轴左→右），`limit` 取最近的 N 个点；`aggregate` 在切 `limit` **之前**算，所以汇总代表整个范围而不是「最近 120 个」。
 - 契约修订（2026-11-16）：`scope` 是自由字符串（常见 `startup｜clear｜route.session｜backfill`，未知值原样透传、截到 64 字符），`policy` 允许 `all｜minimal｜custom｜unknown`——不为迎合枚举而改写历史数据。
 - `coverage {recorded, known}`：`known` 来自 `sessionQuery.listSessions()` 的头信息数量（可失败为 `null`），`recorded` 是范围内的行数。UI 的覆盖率脚注就是这两个数。
+
+## 五个入口与槽位
+
+2.3.0 起，同一份快照有五个入口，各自落在不同的宿主槽位/服务上。槽位名是宿主契约；自审脚本
+（`scripts/self-audit.mjs` 的 reconcile 项）检查这五个名字既在 `client.js` 里注册、也在本文档里
+出现——宿主升级后某个槽位改名，自审会先失败，而不是等到用户发现入口消失。
+
+| 入口 | 宿主槽位 / 服务 | 数据来源 | 是否写 |
+| --- | --- | --- | --- |
+| 洞察页面（管理/洞察/设置） | `sidebar.panellist` + `main` | `GET /summary` | 开关、预设、导入、撤销（`POST /action`） |
+| 会话标签页「注入」 | `conversation.view` | `GET /summary?session=<id>` | 只读 |
+| 右侧边栏面板 | `sidebarRightTabs.register({id, kind, title, guide})` + `sidebar.right.pane.tab` + `sidebar.right.pane.tab.title` | `GET /summary` | 开关（`POST /action`） |
+| 斜杠命令 `/inject` | 宿主 `commands` | 同一 `buildSnapshot()` 的文本渲染 | `/inject all｜minimal｜undo` |
+| 设置 → 通用设置偏好行 | `settings.general.item` + `configForms.get('injection-manager')` | 插件行 `Config` | 三个 volatile 字段 |
+
+规则：
+
+1. **一份快照，五个读法。** 五个入口都从 `buildSnapshot()` 出来的同一份 payload 取数；面板显示的
+   `numbers.session`/`numbers.next` 与会话标签页、右侧栏、`/inject`、工具卡是同一对数，没有入口
+   自己再算。
+2. **会话标签页只读。** 策略在 `agent/created` 时应用一次，运行中的会话不会被改写；把开关放进
+   会话页会让“关掉”看起来像改了当前对话。会话页只讲它带着什么。
+3. **右侧栏是迁移不是新增。** 旧 `sidebar.panel` 槽在 0.2.2-rc.5 已不存在，2.3.0 迁到
+   `sidebarRightTabs`；在既没有该服务、又声明了旧槽的旧宿主上才保留旧注册（同一屏只出现一个面板）。
+4. **偏好行走宿主配置表单。** `Config` 三个字段是 `.volatile()`，写后原地更新、不重启插件；
+   `configForms` 是可选客户端服务，缺失时偏好行只读显示生效值并在文案里说明。
 
 ## 包结构
 

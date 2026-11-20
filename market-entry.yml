@@ -1,0 +1,8 @@
+url: https://github.com/IWHBIWHB/dsh-injection-manager
+name: IWHBIWHB/dsh-injection-manager
+category: usage
+description:
+  en: See and control what a new DSH session injects on its first request, and what the current conversation already carries. One switch per suite (prompt sections, runtime contexts, skills, tool schemas, workspace rules), with content browsing, health checks, a cross-session trend, and five entry points that read one snapshot.
+  zh: 看清并管住 DSH 新会话首轮会注入的上下文，以及当前对话已经带着的内容。一个 MCP server 一套开关（系统提示词段落、运行时上下文、技能目录、工具 schema、工作区规则），可读原文、带健康检查与跨会话趋势，五个入口读同一份快照。
+icon: https://raw.githubusercontent.com/IWHBIWHB/dsh-injection-manager/main/icon.svg
+tarball: https://github.com/IWHBIWHB/dsh-injection-manager/releases/latest/download/dsh-injection-manager.tgz

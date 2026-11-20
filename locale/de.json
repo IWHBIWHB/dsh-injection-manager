@@ -405,6 +405,27 @@
     "v2.originHint": "Die offizielle Liste steht in lib/origin.js: Harness-Abschnitte, Laufzeit-Kontexte und Kernwerkzeuge sind offiziell; MCP-Namensräume, provider-gestützte Skills und nicht gelistete Plugins sind es nicht.",
     "v2.notesHint": "zum Ansehen klicken",
     "v2.officialHint": "Teil des Harness; bei Bedarf einzeln schließen",
-    "health.builtin-heavy": "„{label}“ sind {share} % des ersten Aufrufs (DSH-integrierte Suite — Ausschalten nicht empfohlen)"
+    "health.builtin-heavy": "„{label}“ sind {share} % des ersten Aufrufs (DSH-integrierte Suite — Ausschalten nicht empfohlen)",
+    "session.tab": "Injektion",
+    "session.title": "Diese Sitzung",
+    "session.subtitle": "Was dieses Gespräch gerade tatsächlich mitführt; Schalter wirken nur auf später erzeugte Sitzungen",
+    "session.actual": "Hier injiziert",
+    "session.actualSub": "Was dieses Gespräch aktuell mitführt",
+    "session.next": "Nächste neue Sitzung",
+    "session.window": "Kontextfenster",
+    "session.windowSub": "In diesem Zug verfügbare Kapazität",
+    "session.readOnly": "Hier nur lesend: Schalter gelten für später erzeugte Sitzungen und schreiben nie in ein laufendes Gespräch um. Vollständige Liste und Schalter liegen im linken Bereich „Injektion“.",
+    "session.footer": "Diese Sitzung {session} · nächste Sitzung {next} · abschaltbar {savable} ({percent}%)",
+    "session.guide": "Injektionszusammensetzung, abschaltbare Einträge und Wirkung der Richtlinie",
+    "settingsCard.title": "Kontextinjektion",
+    "settingsCard.hint": "Nur Darstellungsoptionen — sie ändern nie die Injektionsrichtlinie. Richtlinie und Voreinstellungen liegen unter Einstellungen im Panel.",
+    "settingsCard.dock": "Chip am Eingabefeld",
+    "settingsCard.dockHint": "„Injektion xxk · abschaltbar xx%“ anzeigen; Klick öffnet das Panel",
+    "settingsCard.refresh": "Beim Fokus aktualisieren",
+    "settingsCard.refreshHint": "Frische Zahlen lesen, wenn das Fenster wieder den Fokus hat",
+    "settingsCard.rawNames": "Interne Schlüssel zeigen",
+    "settingsCard.rawNamesHint": "Interne Schlüssel wie harness:identity neben den chinesischen Namen anzeigen",
+    "settingsCard.readOnly": "Der Host bietet kein Konfigurationsformular; die Werte unten sind die aktuell wirksamen (nur lesend).",
+    "settingsCard.foot": "Änderungen hier bearbeiten die Plugin-Konfiguration und gelten sofort, ohne Neustart."
   }
 }

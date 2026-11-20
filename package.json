@@ -1,8 +1,8 @@
 {
   "name": "dsh-injection-manager",
-  "version": "2.2.9",
+  "version": "2.3.0",
   "type": "module",
-  "description": "See and control everything a DeepSeek Harness session injects before its first request — prompt sections, runtime contexts, skills, tool schemas and workspace rules — with a content browser that opens each item's source, cross-session injection trends, an injection event log, health checks, suite switches, presets and a token budget.",
+  "description": "See and control everything a DeepSeek Harness session injects before its first request — prompt sections, runtime contexts, skills, tool schemas and workspace rules — with a content browser that opens each item's source, cross-session injection trends, an injection event log, health checks, suite switches, presets and five entry points that read one snapshot.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -36,7 +36,8 @@
     "audit": "node scripts/self-audit.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": ">=0.2.0"
   },
   "repository": {
     "type": "git",
@@ -62,8 +63,7 @@
     "docs",
     "scripts",
     "icon.svg",
-    "README.md",
-    "README.zh.md",
+    "README*.md",
     "CHANGELOG.md",
     "LICENSE",
     "screenshots.json",
@@ -80,6 +80,13 @@
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-locale"
       ]
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.2-rc.1+": "tested",
+        "0.2.2-rc.5+": "tested",
+        "0.2.2-rc.2+": "compatible"
+      }
     }
   },
   "peerDependencies": {

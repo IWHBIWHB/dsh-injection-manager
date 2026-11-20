@@ -405,6 +405,27 @@
     "v2.originHint": "La liste officielle est dans lib/origin.js : sections du harness, contextes d'exécution et outils du noyau sont officiels ; les espaces MCP, les skills avec provider et les plugins non listés ne le sont pas.",
     "v2.notesHint": "cliquez pour voir",
     "v2.officialHint": "Fourni avec le harness ; fermez au cas par cas",
-    "health.builtin-heavy": "« {label} » représente {share} % du premier tour (suite intégrée à DSH, non recommandée à désactiver)"
+    "health.builtin-heavy": "« {label} » représente {share} % du premier tour (suite intégrée à DSH, non recommandée à désactiver)",
+    "session.tab": "Injection",
+    "session.title": "Cette session",
+    "session.subtitle": "Ce que cette conversation porte réellement maintenant ; les interrupteurs ne concernent que les sessions créées ensuite",
+    "session.actual": "Injecté ici",
+    "session.actualSub": "Ce que cette conversation porte actuellement",
+    "session.next": "Prochaine session",
+    "session.window": "Fenêtre de contexte",
+    "session.windowSub": "Capacité disponible pour ce tour",
+    "session.readOnly": "Lecture seule ici : les interrupteurs s’appliquent aux sessions créées ensuite et ne réécrivent jamais une conversation en cours. La liste complète et les interrupteurs sont dans le panneau « Injection » à gauche.",
+    "session.footer": "Cette session {session} · prochaine session {next} · désactivable {savable} ({percent} %)",
+    "session.guide": "Composition de l’injection, éléments désactivables et effet de la politique",
+    "settingsCard.title": "Injection de contexte",
+    "settingsCard.hint": "Préférences d’affichage uniquement — elles ne touchent jamais la politique d’injection. La politique et les préréglages sont dans Réglages, dans le panneau.",
+    "settingsCard.dock": "Pastille du composeur",
+    "settingsCard.dockHint": "Afficher « injection xxk · désactivable xx % » ; cliquer pour ouvrir le panneau",
+    "settingsCard.refresh": "Rafraîchir au focus",
+    "settingsCard.refreshHint": "Relire les chiffres quand la fenêtre reprend le focus",
+    "settingsCard.rawNames": "Afficher les clés internes",
+    "settingsCard.rawNamesHint": "Afficher les clés internes comme harness:identity à côté des noms chinois",
+    "settingsCard.readOnly": "L’hôte ne fournit pas de formulaire de configuration ; les valeurs ci-dessous sont les valeurs effectives actuelles (lecture seule).",
+    "settingsCard.foot": "Modifier ici revient à modifier la configuration du plugin ; l’effet est immédiat, sans redémarrage."
   }
 }

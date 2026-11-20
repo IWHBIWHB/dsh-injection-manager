@@ -53,19 +53,24 @@ function loadSchema() {
 const Schema = loadSchema()
 
 // Presentation and one seeding default. Every actual switch lives in
-// policy.json, so this form stays short and safe to edit.
+// policy.json, so this form stays short and safe to edit. All three fields are
+// volatile: they are toggled from the settings cards in the running UI, and an
+// edit that restarted the plugin to hide a chip would drop the in-memory state.
 export const Config =
   Schema === undefined
     ? undefined
     : Schema.object({
         dock: Schema.boolean()
           .default(true)
+          .volatile()
           .description('在输入框旁显示「注入 xxk · 可关 xx%」徽标；关掉只隐藏入口，不影响策略。'),
         refreshOnFocus: Schema.boolean()
           .default(true)
+          .volatile()
           .description('窗口重新获得焦点时刷新面板，多窗口同时开关时不会看到旧数字。'),
         showRawNames: Schema.boolean()
           .default(true)
+          .volatile()
           .description('在中文条目名旁显示原始键名（如 harness:identity），排障时有用。'),
       })
 

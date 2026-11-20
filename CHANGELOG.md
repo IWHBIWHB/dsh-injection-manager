@@ -1,5 +1,45 @@
 # Changelog
 
+## 2.3.0 — 2026-11-20
+
+Five entry points, one snapshot. The panel already told one story; the conversation, the right sidebar
+and the settings row now tell the same story from the same payload.
+
+### Added
+
+- **Conversation tab (`注入` / `Inject`)** — `conversation.view` slot. Leads with this conversation's
+  measured injection (`numbers.session`), then the next new session's projection (`numbers.next`),
+  the switchable share, the window, and the channel composition. Read-only by design: switches apply
+  to sessions created after the save.
+- **Preference row in Settings → General** — `settings.general.item` slot backed by
+  `configForms.get('injection-manager')`. `dock` / `refreshOnFocus` / `showRawNames` are editable
+  there; where the host serves no config form the row shows the effective values read-only.
+- Five-entry contract in `scripts/self-audit.mjs`: the five slot names must appear both in the
+  registration code and in `docs/ARCHITECTURE.md`; a silently unregistered surface now fails the
+  audit (reconcile, 15 points).
+- `dsh.compatibility` manifest field; README set translated to eight languages; `docs/DECISIONS.md`
+  and `docs/SELF-ASSESSMENT.md`; three new documentation screenshots (conversation tab, right-sidebar
+  panel, preferences row) captured on rc.5 with personal chrome removed.
+
+### Changed
+
+- **Right-sidebar panel migrated** from the removed `sidebar.panel` slot to the host's
+  `sidebarRightTabs` service + `sidebar.right.pane.tab` (+ title). On hosts that still declare the old
+  slot and have no tab registry, the old registration is kept as a fallback — one panel, never two.
+- **`Config` fields are `.volatile()`** — flipping a presentation switch applies immediately, without
+  restarting the plugin. `lib/settings.js` accepts both plain values and volatile references and
+  re-reads on access.
+- `package.json` files/targets: eight READMEs, new docs, `screenshots.json` entries for the new
+  surfaces.
+
+### Verification
+
+- 226 tests / 0 fail; self-audit 100/100 (including the new five-entry check and refreshed size
+  baseline).
+- DSH 0.2.2-rc.1 (CLI) 15/15 browser checks, DSH 0.2.2-rc.5 (Desktop) 16/16; zero console errors.
+- Performance (rc.5): `/summary` median 46 ms (p90 206 ms cold), panel open 220 ms, conversation tab
+  199 ms, right panel 82 ms; details in `docs/PERFORMANCE.md`.
+
 ## 2.2.9 — 2026-11-19
 
 ### Changed

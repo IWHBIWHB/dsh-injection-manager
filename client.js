@@ -11,6 +11,9 @@
 (function () {
   const ID = 'dsh-injection-manager'
   const BASE = '/plugins/dsh-injection-manager'
+  // The bundle's patch row id; the host serves the plugin's config form under
+  // this entry id, so the config card must look it up by that name.
+  const ENTRY = 'injection-manager'
   const ROUTES = {
     summary: BASE + '/summary',
     locale: BASE + '/locale',
@@ -201,6 +204,29 @@
     'trend.retry': '重试',
     'v2.eventsTitle': '本会话事件时间线',
     'v2.sessions': '会话',
+    // Entry points added in 2.3.0: the conversation tab, the right-sidebar panel
+    // and the settings card all render from the same /summary snapshot.
+    'session.tab': '注入',
+    'session.title': '本会话注入',
+    'session.subtitle': '这次对话此刻实际带着的内容；开关只影响之后新建的会话',
+    'session.actual': '本会话已注入',
+    'session.actualSub': '这段对话当前的注入量',
+    'session.next': '新会话将注入',
+    'session.window': '上下文窗口',
+    'session.windowSub': '模型本轮可用容量',
+    'session.readOnly': '这里只读：开关作用于之后新建的会话，不会改写正在进行的对话。完整清单与开关在左侧「上下文注入」面板。',
+    'session.footer': '本会话 {session} · 新会话 {next} · 可关 {savable}（{percent}%）',
+    'session.guide': '注入构成、可关项与策略效果',
+    'settingsCard.title': '上下文注入管理',
+    'settingsCard.hint': '呈现偏好：只影响界面，不影响注入策略。策略与预设在主面板的「设置」里。',
+    'settingsCard.dock': '输入框旁徽标',
+    'settingsCard.dockHint': '显示「注入 xxk · 可关 xx%」，点击可打开面板',
+    'settingsCard.refresh': '聚焦时刷新',
+    'settingsCard.refreshHint': '窗口重新获得焦点时读取一次最新数字',
+    'settingsCard.rawNames': '显示原始键名',
+    'settingsCard.rawNamesHint': '在中文名旁标出 harness:identity 这类内部键',
+    'settingsCard.readOnly': '宿主没有提供配置表单；下面是当前生效值（只读）。',
+    'settingsCard.foot': '改这里等于改插件配置；切换即时生效，不重启插件。',
   }
 
   const NAMES_ZH = {
@@ -886,6 +912,23 @@ body[data-ds-dark-theme] .ci-root{
   .ci-about{display:block;font-size:12px;color:var(--ci-fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .ci-row:hover .ci-about{color:var(--ci-fg2)}
 }
+
+/* ---------------------------------------------------- 2.3.0 entry surfaces */
+.ci-tab{height:100%;display:flex;flex-direction:column;min-height:0;background:var(--ci-bg,transparent);font-size:13px;color:var(--ci-fg)}
+.ci-tab .ci-head{flex:none;padding:14px 16px 10px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--ci-line2)}
+.ci-tab .ci-head h1{margin:0;font-size:16px;font-weight:600;line-height:1.35;color:var(--ci-fg)}
+.ci-tab .ci-head p{margin:3px 0 0;font-size:11.5px;line-height:1.5;color:var(--ci-fg3);max-width:52ch}
+.ci-tab .ci-body{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:12px}
+.ci-tab .ci-spacer{flex:1 1 auto}
+.ci-cfg{display:flex;flex-direction:column;gap:10px;padding:2px 0}
+.ci-cfg-head{display:flex;flex-direction:column;gap:2px}
+.ci-cfg-title{font-size:13px;font-weight:600;color:var(--ci-fg);line-height:1.4}
+.ci-cfg-hint{font-size:11px;line-height:1.5;color:var(--ci-fg3)}
+.ci-cfg-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--ci-line2)}
+.ci-cfg-row:last-of-type{border-bottom:0}
+.ci-cfg-lbl{min-width:0;font-size:12.5px;line-height:1.4;color:var(--ci-fg)}
+.ci-cfg-lbl .ci-cfg-hint{margin-top:2px}
+.ci-cfg-foot{font-size:11px;line-height:1.5;color:var(--ci-fg3)}
 `
 
   function createTranslator(dictionary, language) {
@@ -929,6 +972,10 @@ body[data-ds-dark-theme] .ci-root{
       const canPortal = ReactDOM !== null && typeof ReactDOM.createPortal === 'function'
 
       const ctxRef = { current: null }
+      // configForms is an optional client service: reading ctx.configForms
+      // without declaring it throws, so it is captured through ctx.inject and
+      // handed to the settings card through this ref.
+      const configFormsRef = { current: null }
       const reportedStages = new Set()
       const reportBoot = (stage, error) => {
         if (reportedStages.has(stage) && stage !== 'render-error') return
@@ -4481,6 +4528,234 @@ body[data-ds-dark-theme] .ci-root{
         return h(Panel, { props, compact: true })
       }
 
+      // --------------------------------------------------------------- 2.3.0 entries
+      //
+      // Both additional surfaces read the same /summary snapshot as the page and
+      // the chip. They add readings, not numbers: the conversation tab leads with
+      // what this session is actually injecting, the settings card edits only the
+      // presentation switches.
+      function sessionTabLabel(ctx) {
+        try {
+          const bound = ctx.locale.bind('injection-manager')
+          const value = bound('session.tab')
+          if (typeof value === 'string' && value.length > 0 && value !== 'session.tab') return value
+        } catch {
+          /* fall through to the Chinese label */
+        }
+        return FALLBACK['session.tab']
+      }
+
+      function guideDescription(ctx) {
+        try {
+          const bound = ctx.locale.bind('injection-manager')
+          const value = bound('session.guide')
+          if (typeof value === 'string' && value.length > 0 && value !== 'session.guide') return value
+        } catch {
+          /* fall through */
+        }
+        return FALLBACK['session.guide']
+      }
+
+      function SessionView(props) {
+        const sessionId = pickSessionId(props)
+        const { status, data, error, reload } = useSnapshot(sessionId, 8000)
+        const t = useLocale(data)
+        const [filter, setFilter] = useState('all')
+
+        const head = (subtitle) =>
+          h(
+            'div',
+            { className: 'ci-head' },
+            h('div', { style: { minWidth: 0 } }, h('h1', null, t('session.title')), h('p', null, subtitle)),
+            h('div', { className: 'ci-spacer' }),
+            h('button', { type: 'button', className: 'ci-btn', onClick: reload, title: t('refresh') }, t('refresh')),
+          )
+
+        if (status === 'loading' && data === null) {
+          return h('div', { className: 'ci-root ci-tab' }, h('style', null, STYLE), head(t('session.subtitle')), h('div', { className: 'ci-body' }, h('div', { className: 'ci-note' }, t('loading'))))
+        }
+        if (status === 'failed' && data === null) {
+          return h(
+            'div',
+            { className: 'ci-root ci-tab' },
+            h('style', null, STYLE),
+            head(t('session.subtitle')),
+            h(
+              'div',
+              { className: 'ci-body' },
+              h('div', { className: 'ci-note warn' }, `${t('failed')}: ${String(error || '')}`),
+              h('button', { type: 'button', className: 'ci-btn', onClick: reload }, t('retry')),
+            ),
+          )
+        }
+
+        const snapshot = data
+        const totals = snapshot.totals
+        const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
+        const numbers = snapshot.numbers !== undefined && snapshot.numbers !== null ? snapshot.numbers : { session: totals.tokens, next: view.tokens }
+        const context = snapshot.context || null
+        const windowKnown = context !== null && context.window !== null && context.used !== null
+        const cell = (key, label, value, sub, tone) =>
+          h(
+            'div',
+            { className: 'ci-kpi' + (tone && tone !== 'ok' && tone !== 'unknown' ? ` tone-${tone}` : ''), key },
+            h('div', { className: 'k' }, label),
+            h('div', { className: 'v' }, value),
+            h('div', { className: 's', title: sub }, sub),
+          )
+        return h(
+          'div',
+          { className: 'ci-root ci-tab' },
+          h('style', null, STYLE),
+          head(t('session.subtitle')),
+          h(
+            'div',
+            { className: 'ci-body' },
+            snapshot.host && snapshot.host.supported === false ? h('div', { className: 'ci-note warn' }, t('hostOld', { version: snapshot.host.version, tested: snapshot.host.tested })) : null,
+            // The page leads with "what a new session gets"; this view leads with
+            // "what this conversation is actually carrying". Same two numbers.
+            h(
+              'div',
+              { className: 'ci-kpis', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' } },
+              cell('session', t('session.actual'), token(numbers.session), t('session.actualSub')),
+              cell('next', t('session.next'), token(numbers.next), t('nextTurnHint')),
+              cell('savable', t('savable'), token(view.savableTokens), `${view.savablePercent}% · ${t('shareOf')}`),
+              cell(
+                'window',
+                t('session.window'),
+                windowKnown ? `${token(context.used)}/${token(context.window)}` : '—',
+                windowKnown ? `${context.occupancy}% · ${t('session.windowSub')}` : t('noWindow'),
+                windowKnown && context.tone !== undefined ? context.tone : 'unknown',
+              ),
+            ),
+            h(RequestStrip, { snapshot, t }),
+            h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+            snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
+              ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
+              : null,
+            h('div', { className: 'ci-note' }, t('session.readOnly')),
+            h(
+              'div',
+              { className: 'ci-foot' },
+              t('session.footer', {
+                session: digits(numbers.session),
+                next: digits(numbers.next),
+                savable: digits(totals.savableTokens),
+                percent: totals.savablePercent,
+              }),
+            ),
+          ),
+        )
+      }
+
+      function SettingsCard(props) {
+        const snapshotState = useSnapshot(undefined, 30000)
+        const t = useLocale(snapshotState.data)
+        const handleRef = useRef(null)
+        const [form, setForm] = useState({ status: 'loading', value: null, writable: false })
+
+        useEffect(() => {
+          const forms = configFormsRef.current
+          if (forms === undefined || forms === null || typeof forms.get !== 'function') {
+            setForm({ status: 'missing', value: null, writable: false })
+            return undefined
+          }
+          let handle = null
+          for (const id of [ENTRY, ID]) {
+            try {
+              handle = forms.get(id)
+              if (handle !== null && handle !== undefined) break
+            } catch {
+              /* try the package-name namespace next */
+            }
+          }
+          if (handle === null || handle === undefined) {
+            setForm({ status: 'missing', value: null, writable: false })
+            return undefined
+          }
+          handleRef.current = handle
+          let disposed = false
+          let unsubscribe = null
+          const read = () => {
+            if (disposed) return
+            try {
+              const snapshot = typeof handle.getSnapshot === 'function' ? handle.getSnapshot() : null
+              const value = snapshot !== null && snapshot !== undefined ? snapshot.value || snapshot.base || {} : {}
+              setForm({
+                status: 'ready',
+                value,
+                writable: snapshot !== null && snapshot !== undefined ? snapshot.writable !== false : false,
+                entry: handle.entryId || handle.id || null,
+              })
+            } catch {
+              setForm({ status: 'error', value: null, writable: false })
+            }
+          }
+          if (typeof handle.subscribe === 'function') unsubscribe = handle.subscribe(read)
+          read()
+          return () => {
+            disposed = true
+            if (typeof unsubscribe === 'function') unsubscribe()
+          }
+        }, [])
+
+        const fallback = snapshotState.data && snapshotState.data.settings ? snapshotState.data.settings : null
+        const value = form.value !== null && form.value !== undefined ? form.value : fallback || {}
+        const writable = form.writable === true
+        // Diagnostics for the config path: the settings form can be served
+        // read-only or under a different namespace per host, and a silent no-op
+        // toggle is the worst failure mode. Harmless in production, read by the
+        // QA probe (and by `node -e` while debugging).
+        try {
+          window.__injectionManagerConfig = { status: form.status, writable, value, entry: form.entry || null }
+        } catch {
+          /* no window in a test renderer */
+        }
+
+        const write = (key, next) => {
+          const handle = handleRef.current
+          if (handle === null || handle === undefined || typeof handle.set !== 'function') return
+          try {
+            const result = handle.set(key, next)
+            if (result !== null && result !== undefined && typeof result.catch === 'function') result.catch(() => {})
+          } catch {
+            /* the next snapshot read reports the failure state */
+          }
+        }
+
+        const rows = [
+          ['dock', t('settingsCard.dock'), t('settingsCard.dockHint')],
+          ['refreshOnFocus', t('settingsCard.refresh'), t('settingsCard.refreshHint')],
+          ['showRawNames', t('settingsCard.rawNames'), t('settingsCard.rawNamesHint')],
+        ]
+        return h(
+          'div',
+          { className: 'ci-root ci-cfg' },
+          h('style', null, STYLE),
+          h(
+            'div',
+            { className: 'ci-cfg-head' },
+            h('div', { className: 'ci-cfg-title' }, t('settingsCard.title')),
+            h('div', { className: 'ci-cfg-hint' }, t('settingsCard.hint')),
+          ),
+          rows.map(([key, label, hint]) =>
+            h(
+              'div',
+              { className: 'ci-cfg-row', key },
+              h('div', { className: 'ci-cfg-lbl' }, h('div', null, label), h('div', { className: 'ci-cfg-hint' }, hint)),
+              h(Switch, {
+                on: value[key] !== false,
+                disabled: form.status !== 'ready' || writable !== true,
+                onChange: () => write(key, value[key] === false),
+                title: label,
+              }),
+            ),
+          ),
+          form.status === 'missing' ? h('div', { className: 'ci-cfg-hint' }, t('settingsCard.readOnly')) : null,
+          h('div', { className: 'ci-cfg-foot' }, t('settingsCard.foot')),
+        )
+      }
+
       function DockChip(props) {
         const sessionId = pickSessionId(props)
         // The chip is ambient information; poll slowly so it does not compete
@@ -4601,6 +4876,20 @@ body[data-ds-dark-theme] .ci-root{
           }
         }
 
+        // Optional service, captured once: the settings card reads and writes the
+        // plugin's own Config through it. Absent on older hosts -> read-only card.
+        try {
+          ctx.inject(['configForms'], (scope) => {
+            try {
+              configFormsRef.current = scope.configForms === undefined ? null : scope.configForms
+            } catch {
+              configFormsRef.current = null
+            }
+          })
+        } catch {
+          configFormsRef.current = null
+        }
+
         attempt(
           'sidebar',
           () => {
@@ -4613,9 +4902,81 @@ body[data-ds-dark-theme] .ci-root{
         attempt('main', () => ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'injection-manager' }, guarded(MainPanel))), false)
         // Optional right-sidebar body: only registered when the host declares
         // that slot, so profiles without it lose nothing.
+        // 2.3.0: the right-sidebar tab is the real second surface. The old
+        // `sidebar.panel` slot was removed from the host after 0.2.2-rc.3, so it
+        // is kept only as a fallback for hosts that still declare it and have no
+        // sidebarRightTabs service (one surface, never two).
+        const hasRightTabs = (() => {
+          try {
+            return typeof ctx.get === 'function' && ctx.get('sidebarRightTabs') !== undefined
+          } catch {
+            return false
+          }
+        })()
+        if (hasRightTabs !== true) {
+          attempt(
+            'sidebar-body',
+            () => ctx.slots.inject('sidebar.panel', () => ctx.slots.register({ name: 'sidebar.panel', id: 'injection-manager', order: 6 }, guarded(SidePanel))),
+            true,
+          )
+        }
         attempt(
-          'sidebar-body',
-          () => ctx.slots.inject('sidebar.panel', () => ctx.slots.register({ name: 'sidebar.panel', id: 'injection-manager', order: 6 }, guarded(SidePanel))),
+          'sidebar-tab',
+          () => {
+            ctx.inject(['sidebarRightTabs'], (scope) => {
+              const right = scope.sidebarRightTabs
+              if (right === undefined || right === null || typeof right.register !== 'function') throw new Error('sidebarRightTabs-unavailable')
+              scope.effect(
+                () =>
+                  right.register({
+                    id: 'injection-manager',
+                    kind: 'injection-manager',
+                    title: () => panelLabel(ctx),
+                    guide: [
+                      {
+                        id: 'injection-manager',
+                        order: 6,
+                        title: () => panelLabel(ctx),
+                        description: () => guideDescription(ctx),
+                        icon: PanelIcon,
+                      },
+                    ],
+                  }),
+                'injection-manager: sidebar tab',
+              )
+              scope.slots.inject('sidebar.right.pane.tab', () =>
+                scope.slots.register({ name: 'sidebar.right.pane.tab', key: 'injection-manager', locale: 'injection-manager' }, guarded(SidePanel)),
+              )
+              scope.slots.inject('sidebar.right.pane.tab.title', () =>
+                scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: 'injection-manager' }, () => h('span', null, panelLabel(ctx))),
+              )
+            })
+          },
+          true,
+        )
+        // 2.3.0: the conversation tab reads the same snapshot from this session's
+        // side; the label is the plugin's own word for "injection".
+        attempt(
+          'session-tab',
+          () =>
+            ctx.slots.inject('conversation.view', () =>
+              ctx.slots.register(
+                { name: 'conversation.view', id: 'injection-manager', order: 20, locale: 'injection-manager', label: () => sessionTabLabel(ctx) },
+                guarded(SessionView),
+              ),
+            ),
+          true,
+        )
+        // 2.3.0: one preference row in Settings → General, backed by the plugin's
+        // own volatile Config. A General row is the host-native home for
+        // presentation preferences: it is visible without digging into the
+        // Plugins page, and it writes through configForms like any other setting.
+        attempt(
+          'settings-card',
+          () =>
+            ctx.slots.inject('settings.general.item', () =>
+              ctx.slots.register({ name: 'settings.general.item', id: 'injection-manager-prefs', order: 40, locale: 'injection-manager' }, guarded(SettingsCard)),
+            ),
           true,
         )
         attempt(

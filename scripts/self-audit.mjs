@@ -41,7 +41,7 @@ const WEIGHTS = {
 // Absolute budgets are a coarse ceiling; the per-round comparison to
 // _research/rsi/baseline-metrics.json is the signal that matters.
 const SIZE_BUDGETS = {
-  clientBytes: 256 * 1024,
+  clientBytes: 272 * 1024,
   enLocaleBytes: 24 * 1024,
   filesBytes: 2 * 1024 * 1024,
 }
@@ -566,6 +566,16 @@ function checkReconcile() {
     return check('reconcile', 'route / command / config contract', WEIGHTS.reconcile, 'fail', 'lib/routes.js or index.js missing', {})
   }
 
+  const clientSource = readText('client.js')
+  const architectureSource = readText('docs/ARCHITECTURE.md')
+  // 2.3.0 contract: five entry points, all registered in the browser half and
+  // all mapped to their host slot in the architecture document. A surface that
+  // silently stops registering (a renamed slot after a host upgrade) fails here
+  // instead of disappearing from the UI unnoticed.
+  const ENTRY_SLOTS = ['sidebar.panellist', 'main', 'conversation.view', 'sidebar.right.pane.tab', 'settings.general.item']
+  const entriesMissingInCode = clientSource === null ? ENTRY_SLOTS : ENTRY_SLOTS.filter((slot) => !clientSource.includes(`name: '${slot}'`))
+  const entriesMissingInDocs = architectureSource === null ? ENTRY_SLOTS : ENTRY_SLOTS.filter((slot) => !architectureSource.includes(slot))
+
   const routes = routeIdsFromCode(routesSource)
   const apiVersionMatch = routesSource.match(/export const API_VERSION\s*=\s*(\d+)/)
   const apiVersion = apiVersionMatch === null ? null : Number(apiVersionMatch[1])
@@ -597,6 +607,8 @@ function checkReconcile() {
   for (const field of configCodeOnly) findings.push(`config field in Config but not documented: ${field}`)
   if (!apiVersionDocumented) findings.push(`API_VERSION ${apiVersionLabel} is not documented`)
   if (!Number.isFinite(apiVersion)) findings.push('API_VERSION is missing from lib/routes.js')
+  for (const slot of entriesMissingInCode) findings.push(`entry slot not registered in client.js: ${slot}`)
+  for (const slot of entriesMissingInDocs) findings.push(`entry slot missing from docs/ARCHITECTURE.md: ${slot}`)
 
   const docOnlyTotal = routeDocOnly.length + commandDocOnly.length + configDocOnly.length
   const codeOnlyTotal = routeCodeOnly.length + commandCodeOnly.length + configCodeOnly.length

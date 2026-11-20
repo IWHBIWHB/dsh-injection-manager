@@ -3,15 +3,20 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.3%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.zh.md)
 
-[English](README.md) · [简体中文](README.zh.md)
+[English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
 
 **看清并管住 DeepSeek Harness 新会话「第一轮请求」带给模型的一切，也看清当前这段对话已经背了
 什么，还能读每一行背后的原文。** 系统提示词段落、运行时上下文、技能目录、工具 schema、工作区
 规则，逐条量出来、按套件聚合（一个 MCP server 就是一套、一个开关），也能一层层点到真实内容。
 它只回答三件事：**下一个新会话会带什么、本会话现在带着什么、关掉之后长什么样。**
+
+五个入口讲同一件事，数字全部来自同一份快照：**面板页**（管理 / 洞察 / 设置）、**会话标签页**、
+**右侧边栏面板**、**`/inject` 命令**、**设置 → 通用设置里的偏好行**。输入框徽标与
+`context_injection` 模型工具是同一组数字的另外两种读法——一个常驻徽标、一个只读模型接口，
+不单独算入口。
 
 ```powershell
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
@@ -39,33 +44,29 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 > 参考机器上关掉 REA 就砍掉新会话首轮请求的 79.6%，38 个收藏技能占 3.6%。
 > 模型侧工具 `context_injection` 按设计是只读的：它能引用数字、能读单条原文，但开关要人来点。
 
-## 2.2.0 有什么新东西
+## 2.3.0 有什么新东西
 
-2.2.0 是一次「把数说对、把盘写稳」的修整：所有界面引用同一对数，同一个 DSH 进程里两个窗口
-同时改策略也不会互相覆盖。
+2.3.0 把五个入口补齐。面板早就在讲同一件事，现在会话、右侧栏和设置行也从同一份快照讲同一件事，
+而不是只有一个页面在讲。
 
-- **两个数，两个名字**：`/summary` 新增 `numbers: {session, next}`——本会话此刻实际注入多少，
-  按已保存策略下一个新会话会注入多少。面板首行、侧栏脚注、输入框徽标、构成卡标题都读
-  这一对，并分别标成「新会话首轮」和「本会话」。输入框徽标原来读全开总量，现在读 `next`，所以
-  关掉一套它会真的变小。
-- **「已关闭」只表示一件事**：`closedBadge`（已关闭）表示这条已经不在装配里；新 key
-  `offNextSession`（新会话关闭）表示本会话还有、下次新会话不再注入。同一行不会再出现两个
-  「已关闭」。
-- **策略写入不再丢、不再写坏**：`lib/lock.js` 把所有读-改-写（`POST /action` 与
-  `/inject all|minimal|undo`）放进同一个进程内队列，两个窗口各关一个套件不会只剩一个；临时
-  文件名带计数器与随机后缀；每次写之前把当前文件复制成 `policy.json.bak`（首次写没有旧文件就
-  跳过），`policy.json` 读不出来时先恢复 `.bak`（返回 `recovered: true`，错误里写明
-  `recovered from .bak`），不再静默回到全开。
-- **快照更小，健康文案更准**：`/summary?lang=zh|en|…` 只返回该语言词典加英文兜底，单次响应
-  从约 267KB 降到约 150KB（客户端现在会带语言；`/locale` 仍返回全部 8 份）。`/inject health`
-  与模型工具卡把「可整套关的已安装插件 / MCP 套件」和「不建议关的 DSH 自带套件」拆成两句话，
-  已经被策略关掉的套件不再重复推荐；工具卡标题从「首轮 X」改成「本会话 X」，「→ 新会话首轮
-  ≈ Y」不变；侧栏技能卡的「提示词 / 规则」按钮改成映射到 `sections` / `instructions`，不再点出
-  空表。
+- **会话标签页**：对话顶部多了一个「注入」标签（对话 / 轨迹 / 注入）。它先讲**本会话**已经带了
+  多少（`numbers.session`），再讲按已保存策略**新会话**会带多少（`numbers.next`）、可关闭占比、
+  窗口占用和通道构成。它只读：开关作用于之后新建的会话，永远不改写正在进行的对话。
+- **真正的右侧边栏面板**：旧 `sidebar.panel` 槽在 DSH 0.2.2-rc.5 已经不存在，紧凑面板此前是
+  静默失效的。现在改用宿主的 `sidebarRightTabs` 服务 + `sidebar.right.pane.tab` 注册，并带自己
+  的标题；在仍声明旧槽、没有新服务的旧宿主上保留旧注册兜底（只有一个面板，绝不出现两个）。
+- **设置 → 通用设置里的偏好行**：`dock` / `refreshOnFocus` / `showRawNames` 三个呈现开关现在能在
+  宿主设置页直接改，不必再手改 profile patch。Config 三个字段改成 `.volatile()`，切换立即生效、
+  不重启插件；宿主不提供配置表单时这一行显示当前生效值并注明只读。
+- **一份快照，五种读法**：面板页、会话标签页、右侧栏、`/inject`、设置行全部读 `GET /summary`；
+  `numbers.session` / `numbers.next` 在所有入口是同一对数，措辞也统一为「本会话」与「新会话」。
 
-内容抽屉、洞察页和设置页其余不变。
+测试从 223 增到 226；自审脚本新增一条硬检查：五个入口槽位任何一个停止注册或停止写进架构文档，
+自审直接失败。已在 DSH 0.2.2-rc.1（CLI）与 0.2.2-rc.5（Desktop）两个宿主上验证：每个宿主 16/16
+项浏览器检查通过、0 console error。
 
-完整变化见 [CHANGELOG.md](CHANGELOG.md)，五分钟版见 [docs/DETAIL.zh.md](docs/DETAIL.zh.md)。
+2.2.0 是「把数说对、把盘写稳」的修整（两个数两个名字、关闭语义只留一种、策略写入串行化 + `.bak`
+恢复）。完整变化见 [CHANGELOG.md](CHANGELOG.md)，五分钟版见 [docs/DETAIL.zh.md](docs/DETAIL.zh.md)。
 
 ## 四张表面，一件事一张
 
@@ -102,7 +103,7 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 侧栏是同一份数据的紧凑视图（新会话首轮与本会话两个数、可关占比）；输入框旁有一行
 「83.8k · 36%」徽标（新会话首轮 · 窗口占用，窗口未知时才显示可关占比）：
 
-![侧栏面板](docs/images/panel-sidebar.png)
+![右侧边栏面板](docs/images/sidebar-panel.png)
 
 深色主题与宿主一致；输入框徽标是常驻入口：
 
@@ -110,12 +111,27 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 | --- | --- |
 | ![深色主题](docs/images/panel-dark.png) | ![输入框徽标](docs/images/dock.png) |
 
-关掉 REA 整套后，新会话首轮从 83.8k 降到 17.1k，再撤销回来（真实数据，交互在离线夹页里录制）：
+### 2.3.0 新增的三个入口
+
+会话标签页从「这段对话内部」回答同一个问题：本会话已经带了多少、按已保存策略新会话会带多少、
+可关闭占比、通道构成。它只读——开关永远不改写正在进行的对话：
+
+![会话标签页：本会话注入](docs/images/session-tab.png)
+
+右侧边栏面板就是上面那张紧凑面板，只是改为通过宿主的侧栏标签服务注册（不再用已移除的
+`sidebar.panel` 槽）：
+
+![右侧边栏标签页](docs/images/sidebar-panel.png)
+
+三个呈现开关放在宿主自己的设置页里，不必再手改 profile patch。Config 字段是 volatile 的：
+切换立即生效，不重启插件：
+
+![设置 → 通用设置里的偏好行](docs/images/settings-general.png)
+
+关掉 REA 整套后，新会话首轮从 83.8k 降到 17.1k，再撤销回来（真实数据；GIF 摄于 2.1.1，布局未变，
+上面三张新图摄于 0.2.2-rc.5）：
 
 ![演示：整组开关与撤销](docs/images/demo.gif)
-
-以上截图与演示 GIF 摄于 2.1.1；2.2.0 改的是标签和徽标读数，布局没变，重拍排在下一轮。正文里
-的数字与文案以 2.2.0 为准。
 
 ## 它管什么
 
@@ -261,24 +277,33 @@ code 永远不会出现（`duplicate-skill`、`tool-name-collision`）：这版�
 
 ## 五个入口
 
-| 入口 | 位置 | 用途 |
-| --- | --- | --- |
-| 侧栏图标 | 左侧面板列表「注入」 | 打开面板：管理 / 洞察 / 设置 |
-| 管理页 | 主区域 | 一行数字、按来源分段的套件清单、开关、内容抽屉 |
-| 输入框徽标 | 输入框下方 | 新会话首轮 + 窗口占用（窗口未知时显示可关占比）；点 × 隐藏，设置页可重新打开 |
-| 工具 `context_injection` | 模型可调用 | 只读快照 + markdown 卡片；可选 `{channel, name}` 读单条原文（≤32KB） |
-| 斜杠命令 `/inject` | 输入框 | 文本清单 + 一行健康摘要；`/inject health`、`/inject minimal`、`/inject all`、`/inject undo` |
+五个位置、同一份数据、同一对数（`numbers.session` = 本会话带着多少，`numbers.next` = 新会话将
+注入多少）。每个入口都读同一个 `GET /summary` 快照，没有哪个入口自己另算一套数。
 
-模型侧工具是只读的：模型不能自己放宽或收紧策略，所有写操作只能由你在面板里点。
+| 入口 | 位置 | 回答什么 |
+| --- | --- | --- |
+| **洞察页面** | 左侧面板「上下文注入」→ 管理 / 洞察 / 设置 | 全貌：开关板、构成、健康检查、趋势、变更、会话明细、策略 |
+| **会话标签页** | 对话顶部标签行：对话 / 轨迹 / **注入** | 本会话现在带着多少、新会话会带多少、可关闭多少、窗口多满 |
+| **右侧边栏面板** | 右侧栏标签「上下文注入」 | 工作时的紧凑版：两个数、可关占比、技能焦点、通道开关 |
+| **`/inject` 命令** | 输入框 | 文本清单 + 一行健康摘要。子命令：`/inject health`、`/inject minimal`、`/inject all`、`/inject undo` |
+| **偏好行** | 设置 → 通用设置 →「上下文注入管理」 | `dock` / `refreshOnFocus` / `showRawNames`，走宿主配置表单写入（volatile，不重启） |
+
+另外两种读法刻意不算入口：输入框徽标是 `numbers.next` 的常驻展示（可在偏好行隐藏），
+`context_injection` 工具是模型可引用的只读快照——开关始终由人来按。
+
+模型侧工具是只读的：模型不能自己放宽或收紧策略，所有写操作只能由你在面板、会话页（无写）或设置
+表单里点。
 
 ## 安装
 
 ```powershell
+dsh plugin add dsh-injection-manager
+# 或直接从 GitHub 装：
 dsh plugin add github:IWHBIWHB/dsh-injection-manager
 ```
 
-也可以本地目录安装：DSH → Plugins → Add plugin → 选这个目录；或
-`dsh plugin add D:/path/to/dsh-injection-manager`。装完刷新页面，左侧面板列表出现「注入」。
+也可以在应用里：DSH → Plugins → Add plugin → 填包名或选本地目录。装完刷新页面，左侧面板出现
+「上下文注入」图标，上面五个入口同时可用（无需构建，首次安装无需重启）。
 
 从旧的 `dsh-context-preflight` / `dsh-context-injection` 升级：第一次读取时如果只找到旧策略
 文件，插件会把它读进来当作当前策略；写入始终落到 `$DSH_HOME/injection-manager/policy.json`。
@@ -290,13 +315,17 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 ## 插件设置
 
-Plugins → dsh-injection-manager → Configuration 里有三项，只影响显示：
+三个呈现选项可以在 **设置 → 通用设置 →「上下文注入管理」** 里直接改（宿主流提供插件配置表单时，
+Plugins → dsh-injection-manager → Configuration 里也有）：
 
 | 设置 | 默认 | 作用 |
 | --- | --- | --- |
 | `dock` | 开 | 是否在输入框旁显示「注入 xxk · 窗口 xx%」徽标：新会话首轮，后面是窗口占用；窗口未知时才显示可关占比 |
 | `refreshOnFocus` | 开 | 窗口重新获得焦点时刷新面板（多窗口同时开关不会看到旧数字） |
 | `showRawNames` | 开 | 在中文名旁显示原始键名（`harness:identity` 这类），排障用 |
+
+三个字段在宿主侧都是 `.volatile()`：改动立即生效，不重启插件，也不会丢掉内存里的快照缓存。宿主
+不提供配置表单时，设置行显示当前生效值并注明只读。
 
 两个面板偏好只存在这个浏览器，并且放在它们起作用的地方：内容抽屉的行号开关在抽屉自己的工具栏
 里，洞察默认时间范围就是洞察页上那三个按钮。它们不写策略文件，避免出现两套真相。
@@ -347,21 +376,30 @@ Plugins → dsh-injection-manager → Configuration 里有三项，只影响显�
 ## 文档
 
 - [详细说明](docs/DETAIL.zh.md)：五分钟版，量了什么、能关什么、各表面显示什么
-- [架构](docs/ARCHITECTURE.md)：四条注入通道、快照流水线、路由与数据文件
+- [架构](docs/ARCHITECTURE.md)：五条注入通道、快照流水线、五个入口槽位、路由与数据文件
+- [决策记录](docs/DECISIONS.md)：右侧栏为什么替代 `sidebar.panel`、设置卡片为什么写 volatile
+  Config、会话标签页为什么只读
+- [RSI](docs/RSI.md)：这个项目在版本之间用的可重复自审循环
+- [自评](docs/SELF-ASSESSMENT.md)：对照本项目质量门槛给这一版打分，差距直说
 - [常见问题](docs/FAQ.md)：AGENTS.md 为什么关不掉、内容抽屉会读什么、和 dsh-context 的关系
-- [兼容性](docs/COMPATIBILITY.md)：已验证版本、依赖接口、升级排查
-- [性能](docs/PERFORMANCE.md)：355 条 / 27 组 / 展开 230 行与 v2 新表面的实测耗时
+- [兼容性](docs/COMPATIBILITY.md)：已验证版本（0.2.2-rc.1 CLI、0.2.2-rc.5 Desktop）、依赖接口、升级排查
+- [性能](docs/PERFORMANCE.md)：快照、五个入口与趋势回填的实测耗时
 - [安全](SECURITY.md)：报告渠道、可验证的边界、已知风险
 - [参与开发](CONTRIBUTING.md)：本地循环、提交前检查、发布步骤（`npm run smoke` 可离线跑整条流水线）
 
 完整译文只有 `docs/DETAIL.md` 与 `docs/DETAIL.zh.md`；`de` / `es` / `fr` / `ja` / `pt` / `ru`
-的 DETAIL 目前只有一张预览图，是占位，不是完整译文。
+的 DETAIL 目前只有一张预览图，是占位，不是完整译文。README 本身提供八种语言（见顶部切换行）。
 
 ## 限制
 
 - 技能目录是 pre-step 消息，只有「逐条 shadow」与「关掉 skill 工具」两种粒度。
 - 工作区规则、时间上下文这类 user 消息通道不可管，插件只做展示（连原文一起展示）。
 - 洞察趋势只包含本插件测过、或从历史日志定价过的会话；更早的记录没有通道分解，画成斜纹。
+- 会话标签页只读：开关只作用于保存之后新建的会话，这一点和面板一直说的一致；宿主已经不再持有的
+  会话打开时会退回到最近活跃会话。
+- 右侧栏入口通过宿主的 `sidebarRightTabs` 服务注册；没有这个服务的旧宿主（0.2.1 时代）保留旧
+  `sidebar.panel` 注册，两者都没有时就没有侧栏入口，其余四个入口照常工作。
+- 设置行只有在宿主提供配置表单时可写；否则显示当前生效值并注明只读。
 - 还没做：工具归属到具体插件（宿主 `ToolSchema` 没有 owner 字段）、技能最近是否被使用、会话间
   差异、事件时间线筛选、354 行列表虚拟化。
 - 界面支持简体中文、English、日本語、Español、Français、Deutsch、Русский、Português 八种

@@ -90,8 +90,29 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
 - 护栏当场抓到一次：首跑 (a) 失败，因为 DockChip 的旧宿主回退仍直接读 `data.totals.tokens`。没有放宽护栏，而是把 DockChip 改成复用 `tokenNumbersOf()`——护栏要能逼出更好的代码，不是被代码改窄。
 - 证据：本文件、`_research/rsi/shots/`（22 张）、`node --test` 220/220、`scripts/self-audit.mjs --json`。
 
+## 2026-11-20 这一轮（2.3.0：五入口闭环）
+
+- 基线：2.2.9，223 个测试，自审 100/100，npm latest 2.2.9，GitHub 有 v2.2.9 release；
+  但官方精选目录 0 命中、README 只有两种语言、`sidebar.panel` 入口在 rc.5 已静默失效。
+- 这一轮的判据不是「再加功能」，而是「同一件事是否真有五个入口」：
+  - 会话标签页 `conversation.view`：本会话视角，只读；
+  - 右侧栏迁移到 `sidebarRightTabs` + `sidebar.right.pane.tab`（旧槽回退只在没有新服务的宿主上启用）；
+  - 设置 → 通用设置偏好行 `settings.general.item`，Config 三个字段改 `.volatile()`。
+- 新增护栏：自审 reconcile 项要求五个槽位名同时出现在 `client.js` 与 `docs/ARCHITECTURE.md`；
+  任一侧缺失直接 fail。这样宿主下一次删槽位时，先红的是自审，不是用户界面。
+- 结果：226 个测试全过（新增 3 条 volatile 设置用例）；自审 100/100，体积基线重写；
+  rc.1 CLI 15/15、rc.5 Desktop 16/16 浏览器检查通过，0 console error。
+- 证据：`docs/DECISIONS.md`（本轮 5 条决策）、`docs/SELF-ASSESSMENT.md`、
+  `docs/images/session-tab.png`、`sidebar-panel.png`、`settings-general.png`、
+  `docs/PERFORMANCE.md` 2.3.0 节、`_research/verify/probe-entries.mjs` 与 `_research/verify/desk/`。
+- 自评本轮真实弱点：会话页信息量偏薄；`/summary` 仍是整包轮询（252KB）；六个翻译 README 未经
+  母语复核；发布与市场收录仍未完成。
+
 ## 下一轮候选（backlog）
 
+- 发布与收录：npm 2.3.0 + GitHub release + 官方精选目录条目（本轮备好 `market-entry.yml`）。
+- 会话标签页加一条会话内结论（本会话最大的可关套件 + 跳转管理页）。
+- `/summary` 分页参数：会话页只要前 N 行，不再整包轮询 252KB。
 - 工具归属到插件：`ToolSchema` 没有 owner 字段，健康检查与套件只能靠命名猜。
 - 技能使用频次：技能目录只有体积，没有「上次用到」。
 - 会话间差异：两个会话的首轮构成 diff，而不是只看单点。

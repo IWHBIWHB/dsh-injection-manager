@@ -8,7 +8,7 @@ sections, runtime contexts, the skill catalog as text, one JSON schema per tool,
 turn any of it off.
 
 This page is the five-minute version of what the plugin measures, what it can and cannot switch,
-and what the surfaces in 2.2.0 show. The [README](../README.md) is the overview; the
+and what the surfaces in 2.3.0 show. The [README](../README.md) is the overview; the
 [architecture](ARCHITECTURE.md) is the implementation.
 
 ## 1. The numbers, and what they answer
@@ -31,13 +31,20 @@ Token counts from this plugin are estimates (ASCII ÷ 4, other characters ÷ 1.6
 figure is not: `pressureTokens` is provider-reported, and the window comes from the same request
 record the model adapter used.
 
-## 2. Three tabs, two ambient entries
+## 2. Three tabs, five entry points
+
+One snapshot is read five ways. The first three are tabs of the panel page; the next two are the
+surfaces added in 2.3.0. The composer chip and the model tool below them are extra readings, not
+entry points.
 
 | Surface | What it is for |
 | --- | --- |
 | Manage (管理) | A switchboard: one line of numbers (next-session first turn, switchable share) plus the suite-clustered list (split into Other plugins & MCP and DeepSeek official, the latter foldable to one line) with switches; every row can expand a preview or open its content. No charts, no health checks. |
 | Insights (洞察) | One fixed order: this request's composition → injection ring and heaviest-suite ranking (a bar jumps back to Manage already filtered) → health checks → cross-session trend → session detail. |
 | Settings (设置) | One card of five rows: the policy file (path, export/import), the presets (two-click confirmation), a folded custom prefix/suffix, the composer-chip switch, and about (host/API plus folded details). |
+| Conversation tab (`注入`) | Inside a conversation: this session's measured injection, the next new session's projection, the switchable share, the window and the channel composition. Read-only — switches apply to sessions created later. |
+| Right-sidebar panel | The compact version while working: the two numbers, switchable share, skills focus and channel switches, in the host's right sidebar tab. |
+| Settings → General row | `dock` / `refreshOnFocus` / `showRawNames`, written through the host config form. The fields are volatile: a toggle applies without restarting the plugin. |
 | Composer chip | Next session's first-turn total and window occupancy (switchable share when the window is unknown), one line, deliberately muted; × hides it. |
 | `/inject` + `context_injection` | The same numbers as text, plus a read-only model tool (optionally one item's content). |
 

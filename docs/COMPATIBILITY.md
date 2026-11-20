@@ -6,12 +6,24 @@
 
 | dsh 版本 | 环境 | 结果 | 验证方式 |
 | --- | --- | --- | --- |
-| `0.2.2-rc.1` | **CLI**：临时 profile `v2qa` 起的独立 `dsh web` 实例（49801），不碰 Desktop 实例 | 通过 | Playwright 全流程（管理/洞察/设置三 tab、内容抽屉、趋势、设置页）+ 四条新路由探针（135 项断言 PASS）；宿主版本由 `hostinfo` 在真实宿主里读出 |
-| `0.2.2-rc.3` | **Desktop**：用户真实 profile（49711） | 通过 | 真实会话：`/verify` 重新装配、`/diag` 过滤器计数、子智能体实测工具集 |
+| `0.2.2-rc.5` | **Desktop**：独立 QA 实例（profile `v2qa`，49811；直接以 Desktop 自带 CLI 启动，不碰用户 GUI） | 通过 | 2.3.0 五入口探针 **16/16**：面板页、会话标签页、右侧栏面板、设置→通用设置偏好行、配置写入回读；0 console error |
+| `0.2.2-rc.1` | **CLI**：临时 profile `v2qa` 起的独立 `dsh web` 实例（49801），不碰 Desktop 实例 | 通过 | 2.3.0 五入口探针 **15/15**（该宿主无 tokenMeter，窗口占用显示「窗口未知」）；Playwright 全流程 + 四条 v2 路由探针 |
+| `0.2.2-rc.3` | **Desktop**：用户真实 profile（49711） | 通过 | 真实会话：`/verify` 重新装配、`/diag` 过滤器计数、子智能体实测工具集（2.2.0 轮） |
 | `0.2.2-rc.2` | — | 未验证 | — |
-| `0.2.1` / `0.2.0` | — | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测 |
+| `0.2.1` / `0.2.0` | — | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测；右侧栏入口在这类宿主上走 `sidebar.panel` 兜底，未真机确认 |
 
-运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。版本读取在桌面 rc.3 与 CLI rc.1 两个真实宿主里都验证过（`hostinfo`），`/diag` 的 `host` 字段给出实际读到的版本与来源。
+运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。版本读取在桌面 rc.3/rc.5 与 CLI rc.1 两个真实宿主里都验证过（`hostinfo`），`/diag` 的 `host` 字段给出实际读到的版本与来源。
+
+## 五个入口的宿主依赖（2.3.0）
+
+| 入口 | 依赖 | 缺失时 |
+| --- | --- | --- |
+| 面板页 | `sidebar.panellist` + `main` 槽、`webServer` | 插件不激活（web 组合必需） |
+| 会话标签页 | `conversation.view` 槽（0.2.2 全系） | 该入口不注册，其余四个照常 |
+| 右侧边栏面板 | `ctx.get('sidebarRightTabs')` + `sidebar.right.pane.tab`（.title） | 退到旧 `sidebar.panel` 槽（仅当宿主声明了它）；两者都没有时无侧栏入口 |
+| 斜杠命令 | 宿主 `commands` | 插件不激活 |
+| 偏好行 | `settings.general.item` 槽 + `configForms`（entry id `injection-manager`） | 槽缺失则该行不出现；`configForms` 缺失则该行只读显示生效值 |
+
 
 ## 依赖的接口（缺一个会降级或失效）
 
