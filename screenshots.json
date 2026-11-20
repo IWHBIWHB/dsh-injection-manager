@@ -1,13 +1,10 @@
 [
   "docs/images/panel-manage.png",
-  "docs/images/panel-manage-expanded.png",
-  "docs/images/panel-drawer.png",
-  "docs/images/panel-insights.png",
-  "docs/images/panel-settings.png",
-  "docs/images/sidebar-panel.png",
   "docs/images/session-tab.png",
+  "docs/images/sidebar-panel.png",
+  "docs/images/panel-insights.png",
   "docs/images/settings-general.png",
-  "docs/images/panel-dark.png",
-  "docs/images/dock.png",
-  "docs/images/demo.gif"
+  "docs/images/panel-settings.png",
+  "docs/images/panel-drawer.png",
+  "docs/images/panel-dark.png"
 ]
