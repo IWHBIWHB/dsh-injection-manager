@@ -106,7 +106,10 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
   `docs/images/session-tab.png`、`sidebar-panel.png`、`settings-general.png`、
   `docs/PERFORMANCE.md` 2.3.0 节、`_research/verify/probe-entries.mjs` 与 `_research/verify/desk/`。
 - 自评本轮真实弱点：会话页信息量偏薄；`/summary` 仍是整包轮询（252KB）；六个翻译 README 未经
-  母语复核；发布与市场收录仍未完成。
+  母语复核；市场收录仍未完成。
+- 发布（2026-11-20）：tag `v2.3.0` → release workflow 校验版本、跑测试、`npm publish --provenance`
+  并发 GitHub Release；GitHub CI 与 release 两条 workflow 均 success；npm 安装路径在干净 profile
+  实测五入口 16/16。
 
 ## 下一轮候选（backlog）
 
