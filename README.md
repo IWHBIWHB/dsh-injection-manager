@@ -118,7 +118,7 @@ composer-chip switch, and about:
 ![Settings tab](docs/images/panel-settings.png)
 
 The sidebar shows the same snapshot compactly (next-session and this-session numbers, switchable
-share), and the composer carries a one-line chip (`83.8k · 36%` — next session's first turn, then
+share), and the composer carries a one-line chip (`17.1k · 85%` — next session's first turn, then
 window occupancy; the second slot falls back to the switchable share when the window is unknown):
 
 ![Right-sidebar panel](docs/images/sidebar-panel.png)
@@ -148,9 +148,9 @@ restart the plugin:
 
 ![Preference row in Settings → General](docs/images/settings-general.png)
 
-Switching the REA suite off moves the next session's first request from 83.8k to 17.1k tokens; Undo
-brings it back (real data, interactions recorded on 2.1.1 — the layout is unchanged since; the images
-above were re-captured on 0.2.2-rc.5):
+Switching a suite off moves the next session's first request from 17.1k to 14.3k tokens; Undo
+brings it back (real data; every screenshot and the GIF were captured on 0.2.2-rc.5 in an isolated
+QA profile):
 
 ![Demo: suite switch and undo](docs/images/demo.gif)
 
@@ -439,6 +439,7 @@ The 设置 tab exposes the same verification behind a button.
 - [Decisions](docs/DECISIONS.md): why the right sidebar replaced `sidebar.panel`, why the settings card writes volatile Config, why the conversation tab is read-only
 - [RSI](docs/RSI.md): the repeatable self-audit loop this project uses between releases
 - [Self-assessment](docs/SELF-ASSESSMENT.md): this release scored against the project's own quality gates, with gaps stated
+- [Distribution](docs/DISTRIBUTION.md) (Chinese): the three standard channels (GitHub Release, npm, awesome-dsh-plugin), what each release must do, what the catalog refreshes by itself, and how to roll back
 - [FAQ](docs/FAQ.md): why `AGENTS.md` cannot be switched off, what the content drawer reads, relation to `dsh-context`
 - [Compatibility](docs/COMPATIBILITY.md): tested versions (0.2.2-rc.1 CLI, 0.2.2-rc.5 Desktop), required APIs, upgrade checks
 - [Performance](docs/PERFORMANCE.md): measured timings for the snapshot, the five entry points and the trend backfill

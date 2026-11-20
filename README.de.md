@@ -129,7 +129,7 @@ eingeklappte Präfix/Suffix, der Schalter für den Chip am Eingabefeld und Hinwe
 ![Einstellungen-Tab](docs/images/panel-settings.png)
 
 Die Seitenleiste zeigt denselben Snapshot kompakt (Zahlen der nächsten und dieser Sitzung,
-abschaltbarer Anteil), und am Eingabefeld hängt ein einzeiliger Chip (`83.8k · 36%` — erste Runde
+abschaltbarer Anteil), und am Eingabefeld hängt ein einzeiliger Chip (`17.1k · 85%` — erste Runde
 der nächsten Sitzung, dann Auslastung des Kontextfensters; ist das Fenster unbekannt, zeigt der
 zweite Slot den abschaltbaren Anteil):
 
@@ -161,9 +161,9 @@ sofort und startet das Plugin nicht neu:
 
 ![Einstellungszeile unter Einstellungen → Allgemein](docs/images/settings-general.png)
 
-Das Abschalten der REA-Suite verschiebt die erste Anfrage der nächsten Sitzung von 83.8k auf
-17.1k Token; Rückgängig bringt sie zurück (echte Daten, Interaktionen aufgezeichnet auf 2.1.1 —
-das Layout ist seitdem unverändert; die Bilder oben wurden auf 0.2.2-rc.5 neu erstellt):
+Das Abschalten einer Suite verschiebt die erste Anfrage der nächsten Sitzung von 17.1k auf
+14.3k Token; Rückgängig bringt sie zurück (echte Daten; alle Screenshots und das GIF wurden auf
+0.2.2-rc.5 in einem isolierten QA-Profil aufgenommen):
 
 ![Demo: Suite-Schalter und Rückgängig](docs/images/demo.gif)
 

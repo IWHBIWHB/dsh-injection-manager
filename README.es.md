@@ -127,7 +127,7 @@ plegado, el interruptor del chip del compositor y acerca de:
 
 La barra lateral muestra la misma instantánea de forma compacta (los números de la próxima sesión y
 de esta sesión, la proporción conmutable), y el compositor lleva un chip de una línea
-(`83.8k · 36%`: primer turno de la próxima sesión y después ocupación de la ventana; el segundo
+(`17.1k · 85%`: primer turno de la próxima sesión y después ocupación de la ventana; el segundo
 valor recurre a la proporción conmutable cuando la ventana es desconocida):
 
 ![Panel de la barra lateral derecha](docs/images/sidebar-panel.png)
@@ -159,9 +159,9 @@ desactivar uno se aplica de inmediato y no reinicia el plugin:
 
 ![Fila de preferencias en Ajustes → General](docs/images/settings-general.png)
 
-Desactivar la suite REA mueve la primera petición de la próxima sesión de 83.8k a 17.1k tokens;
-Deshacer la devuelve (datos reales, interacciones grabadas en 2.1.1; el diseño no ha cambiado desde
-entonces; las imágenes de arriba se volvieron a capturar en 0.2.2-rc.5):
+Desactivar una suite mueve la primera petición de la próxima sesión de 17.1k a 14.3k tokens;
+Deshacer la devuelve (datos reales; todas las capturas y el GIF se grabaron en 0.2.2-rc.5, en un
+perfil de QA aislado):
 
 ![Demostración: interruptor de suite y deshacer](docs/images/demo.gif)
 

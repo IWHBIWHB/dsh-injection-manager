@@ -125,7 +125,7 @@ recolhido, o interruptor do chip do campo de entrada e sobre:
 ![Aba Ajustes](docs/images/panel-settings.png)
 
 A barra lateral mostra o mesmo instantâneo de forma compacta (números da próxima sessão e desta
-sessão, fatia desativável), e o campo de entrada carrega um chip de uma linha (`83.8k · 36%` —
+sessão, fatia desativável), e o campo de entrada carrega um chip de uma linha (`17.1k · 85%` —
 primeiro turno da próxima sessão e, depois, ocupação da janela; o segundo campo recorre à fatia
 desativável quando a janela é desconhecida):
 
@@ -156,9 +156,9 @@ hora e não reinicia o plugin:
 
 ![Linha de preferências em Ajustes → Geral](docs/images/settings-general.png)
 
-Desligar a suíte REA leva a primeira requisição da próxima sessão de 83.8k para 17.1k tokens;
-Desfazer traz de volta (dados reais, interações gravadas na 2.1.1 — o layout não mudou desde então;
-as imagens acima foram capturadas de novo na 0.2.2-rc.5):
+Desligar uma suíte leva a primeira requisição da próxima sessão de 17.1k para 14.3k tokens;
+Desfazer traz de volta (dados reais; todas as capturas e o GIF foram gravados na 0.2.2-rc.5, em um
+perfil de QA isolado):
 
 ![Demonstração: interruptor de suíte e desfazer](docs/images/demo.gif)
 

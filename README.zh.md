@@ -102,7 +102,7 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 ![设置页](docs/images/panel-settings.png)
 
 侧栏是同一份数据的紧凑视图（新会话首轮与本会话两个数、可关占比）；输入框旁有一行
-「83.8k · 36%」徽标（新会话首轮 · 窗口占用，窗口未知时才显示可关占比）：
+「17.1k · 85%」徽标（新会话首轮 · 窗口占用，窗口未知时才显示可关占比）：
 
 ![右侧边栏面板](docs/images/sidebar-panel.png)
 
@@ -129,8 +129,8 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 
 ![设置 → 通用设置里的偏好行](docs/images/settings-general.png)
 
-关掉 REA 整套后，新会话首轮从 83.8k 降到 17.1k，再撤销回来（真实数据；GIF 摄于 2.1.1，布局未变，
-上面三张新图摄于 0.2.2-rc.5）：
+关掉一套套件后，新会话首轮从 17.1k 降到 14.3k，再撤销回来（真实数据；全部截图与 GIF 均摄于
+0.2.2-rc.5 的隔离实例）：
 
 ![演示：整组开关与撤销](docs/images/demo.gif)
 
@@ -383,6 +383,7 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
   Config、会话标签页为什么只读
 - [RSI](docs/RSI.md)：这个项目在版本之间用的可重复自审循环
 - [自评](docs/SELF-ASSESSMENT.md)：对照本项目质量门槛给这一版打分，差距直说
+- [分发 SOP](docs/DISTRIBUTION.md)：标准渠道（GitHub Release、npm、awesome 目录）、每次发版动作、目录自动更新的边界、回滚方式
 - [常见问题](docs/FAQ.md)：AGENTS.md 为什么关不掉、内容抽屉会读什么、和 dsh-context 的关系
 - [兼容性](docs/COMPATIBILITY.md)：已验证版本（0.2.2-rc.1 CLI、0.2.2-rc.5 Desktop）、依赖接口、升级排查
 - [性能](docs/PERFORMANCE.md)：快照、五个入口与趋势回填的实测耗时

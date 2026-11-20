@@ -128,7 +128,7 @@ replié, l’interrupteur de la puce du compositeur et la section Notes :
 ![Onglet Réglages](docs/images/panel-settings.png)
 
 La barre latérale montre le même instantané de façon compacte (chiffres de la prochaine session et
-de cette session, part désactivable), et le compositeur porte une puce sur une ligne (`83.8k · 36%`
+de cette session, part désactivable), et le compositeur porte une puce sur une ligne (`17.1k · 85%`
 — premier tour de la prochaine session, puis occupation de la fenêtre ; le second emplacement
 retombe sur la part désactivable quand la fenêtre est inconnue) :
 
@@ -161,9 +161,9 @@ un s’applique immédiatement et ne redémarre pas le plugin :
 
 ![Ligne de préférences dans Réglages → Général](docs/images/settings-general.png)
 
-Désactiver la suite REA fait passer la première requête de la prochaine session de 83.8k à 17.1k
-tokens ; Annuler la rétablit (données réelles, interactions enregistrées sur 2.1.1 — la disposition
-n’a pas changé depuis ; les images ci-dessus ont été reprises sur 0.2.2-rc.5) :
+Désactiver une suite fait passer la première requête de la prochaine session de 17.1k à 14.3k
+tokens ; Annuler la rétablit (données réelles ; toutes les captures et le GIF ont été réalisés sur
+0.2.2-rc.5, dans un profil QA isolé) :
 
 ![Démo : interrupteur de suite et annulation](docs/images/demo.gif)
 
