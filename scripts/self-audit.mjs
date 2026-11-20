@@ -43,7 +43,8 @@ const WEIGHTS = {
 const SIZE_BUDGETS = {
   clientBytes: 272 * 1024,
   enLocaleBytes: 24 * 1024,
-  filesBytes: 2 * 1024 * 1024,
+  // The 2.3.0 README set is eight languages, so the packaged docs grew by ~210 KB.
+  filesBytes: 3 * 1024 * 1024,
 }
 
 const STATUS_CREDIT = { pass: 1, warn: 0.5, fail: 0 }

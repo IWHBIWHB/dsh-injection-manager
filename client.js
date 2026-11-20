@@ -217,15 +217,17 @@
     'session.readOnly': '这里只读：开关作用于之后新建的会话，不会改写正在进行的对话。完整清单与开关在左侧「上下文注入」面板。',
     'session.footer': '本会话 {session} · 新会话 {next} · 可关 {savable}（{percent}%）',
     'session.guide': '注入构成、可关项与策略效果',
+    'openPanel': '打开面板',
     'settingsCard.title': '上下文注入管理',
     'settingsCard.hint': '呈现偏好：只影响界面，不影响注入策略。策略与预设在主面板的「设置」里。',
     'settingsCard.dock': '输入框旁徽标',
-    'settingsCard.dockHint': '显示「注入 xxk · 可关 xx%」，点击可打开面板',
+    'settingsCard.dockHint': '显示「注入 xxk · 窗口 xx%」，点击可打开面板',
     'settingsCard.refresh': '聚焦时刷新',
     'settingsCard.refreshHint': '窗口重新获得焦点时读取一次最新数字',
     'settingsCard.rawNames': '显示原始键名',
     'settingsCard.rawNamesHint': '在中文名旁标出 harness:identity 这类内部键',
     'settingsCard.readOnly': '宿主没有提供配置表单；下面是当前生效值（只读）。',
+    'settingsCard.writeFailed': '保存失败：宿主没有接受这次写入。',
     'settingsCard.foot': '改这里等于改插件配置；切换即时生效，不重启插件。',
   }
 
@@ -922,13 +924,16 @@ body[data-ds-dark-theme] .ci-root{
 .ci-tab .ci-spacer{flex:1 1 auto}
 .ci-cfg{display:flex;flex-direction:column;gap:10px;padding:2px 0}
 .ci-cfg-head{display:flex;flex-direction:column;gap:2px}
-.ci-cfg-title{font-size:13px;font-weight:600;color:var(--ci-fg);line-height:1.4}
-.ci-cfg-hint{font-size:11px;line-height:1.5;color:var(--ci-fg3)}
+.ci-cfg-title{font-size:13.5px;font-weight:600;color:var(--ci-fg);line-height:1.4}
+.ci-cfg-hint{font-size:11.5px;line-height:1.5;color:var(--ci-fg3)}
 .ci-cfg-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--ci-line2)}
 .ci-cfg-row:last-of-type{border-bottom:0}
-.ci-cfg-lbl{min-width:0;font-size:12.5px;line-height:1.4;color:var(--ci-fg)}
+.ci-cfg-lbl{min-width:0;font-size:13px;line-height:1.4;color:var(--ci-fg)}
 .ci-cfg-lbl .ci-cfg-hint{margin-top:2px}
 .ci-cfg-foot{font-size:11px;line-height:1.5;color:var(--ci-fg3)}
+/* Right-sidebar header: the host tab already carries the title and close. */
+.ci-head-slim{padding:10px 12px 8px;align-items:center;border-bottom:1px solid var(--ci-line2)}
+.ci-head-slim p{margin:0;font-size:11px;line-height:1.5;color:var(--ci-fg3);max-width:none}
 `
 
   function createTranslator(dictionary, language) {
@@ -976,6 +981,47 @@ body[data-ds-dark-theme] .ci-root{
       // without declaring it throws, so it is captured through ctx.inject and
       // handed to the settings card through this ref.
       const configFormsRef = { current: null }
+
+      // One source of truth for the composer chip: the plugin's Config `dock`
+      // field. The chip's ×, the settings page switch and the settings card all
+      // write the same field — there is no localStorage copy that could disagree
+      // with it (2.3.0 review, finding 2).
+      const configFormHandle = () => {
+        const forms = configFormsRef.current
+        if (forms === undefined || forms === null || typeof forms.get !== 'function') return null
+        for (const id of [ENTRY, ID]) {
+          try {
+            const handle = forms.get(id)
+            if (handle !== null && handle !== undefined) return handle
+          } catch {
+            /* try the package-name namespace next */
+          }
+        }
+        return null
+      }
+      const writeConfigField = async (key, value) => {
+        const handle = configFormHandle()
+        if (handle === null || typeof handle.set !== 'function') return false
+        try {
+          const result = handle.set(key, value)
+          if (result !== null && result !== undefined && typeof result.then === 'function') await result
+          window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      // The plugin's own panel page is a left-panel entry; the composer chip and
+      // the right-sidebar panel both need the same jump.
+      const openMainPanel = () => {
+        try {
+          const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
+          if (layout && typeof layout.selectPanel === 'function') layout.selectPanel('injection-manager')
+        } catch {
+          /* opening is best effort */
+        }
+      }
       const reportedStages = new Set()
       const reportBoot = (stage, error) => {
         if (reportedStages.has(stage) && stage !== 'render-error') return
@@ -1406,7 +1452,7 @@ body[data-ds-dark-theme] .ci-root{
       // Skills are the reason people end up needing this plugin: a collected
       // catalog sits in every request. This card is the "why is my prompt so
       // big" answer, and its button jumps straight to that channel.
-      function SkillsFocus({ snapshot, t, onFilter }) {
+      function SkillsFocus({ snapshot, t, onFilter, compact }) {
         const state = snapshot.skillsState
         if (state === undefined || state === null || !Number.isFinite(state.catalogTokens)) return null
         if ((state.total ?? 0) === 0) return null
@@ -1450,11 +1496,16 @@ body[data-ds-dark-theme] .ci-root{
                 }),
               ),
             ),
-            h(
-              'button',
-              { type: 'button', className: 'ci-btn', onClick: () => onFilter('skills'), title: t('skillsJump') },
-              t('skillsManage'),
-            ),
+            // In the compact panel there is no Manage tab to jump to, and the
+            // compact list has no filter, so this button used to do nothing at
+            // all. Hide it there instead of shipping a dead control.
+            compact
+              ? null
+              : h(
+                  'button',
+                  { type: 'button', className: 'ci-btn', onClick: () => onFilter('skills'), title: t('skillsJump') },
+                  t('skillsManage'),
+                ),
           ),
           kinds.length > 0
             ? h(
@@ -3895,7 +3946,10 @@ body[data-ds-dark-theme] .ci-root{
       // either duplicates another surface or was read once and never again.
       function SettingsPage({ snapshot, t, act, sessionId, notify }) {
         const policy = snapshot.policy
-        const [dockHidden, setDockHidden] = useStoredState('dockHidden', false)
+        // The chip has one switch: Config `dock`. It is rendered here and on the
+        // Settings → General row; both read the same field.
+        const dockOn = !(snapshot.settings && snapshot.settings.dock === false)
+        const dockWritable = configFormsRef.current !== null && typeof configFormsRef.current.get === 'function'
         const [pendingPreset, setPendingPreset] = useState(null)
         const [open, setOpen] = useState('')
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
@@ -3920,20 +3974,11 @@ body[data-ds-dark-theme] .ci-root{
           },
           [],
         )
-        // The dock chip lives outside this tree and can close itself; it
-        // announces that so this switch never disagrees with what is on screen.
-        useEffect(() => {
-          const onPref = (event) => {
-            const detail = event && event.detail
-            if (detail && typeof detail.hidden === 'boolean') setDockHidden(detail.hidden)
-          }
-          window.addEventListener('injection-manager:dock', onPref)
-          return () => window.removeEventListener('injection-manager:dock', onPref)
-        }, [setDockHidden])
 
         const setDockVisible = (visible) => {
-          setDockHidden(!visible)
-          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: !visible } }))
+          void writeConfigField('dock', visible).then((ok) => {
+            if (ok !== true) notify({ kind: 'error', text: `${t('failed')}：dock` })
+          })
         }
 
         const choosePreset = (name, label) => {
@@ -4099,7 +4144,16 @@ body[data-ds-dark-theme] .ci-root{
             'div',
             { className: 'ci-setrow' },
             h('span', { className: 'k' }, t('showDock')),
-            h('span', { className: 'v' }, h(Switch, { on: !dockHidden, onChange: (next) => setDockVisible(next), title: t('showDock') })),
+            h(
+              'span',
+              { className: 'v' },
+              h(Switch, {
+                on: dockOn,
+                disabled: dockWritable !== true,
+                onChange: (next) => setDockVisible(next),
+                title: dockWritable === true ? t('showDock') : t('settingsCard.readOnly'),
+              }),
+            ),
           ),
           h(
             'div',
@@ -4150,7 +4204,7 @@ body[data-ds-dark-theme] .ci-root{
         )
       }
 
-      function Panel({ props, compact }) {
+      function Panel({ props, compact, surface }) {
         const sessionId = pickSessionId(props)
         const { status, data, error, reload } = useSnapshot(sessionId)
         const t = useLocale(data)
@@ -4353,14 +4407,28 @@ body[data-ds-dark-theme] .ci-root{
         }
 
         const snapshot = data
-        const head = h(
-          'div',
-          { className: 'ci-head' },
-          h('div', { style: { minWidth: 0 } }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle')), h('p', null, t('subtitle'))),
-          h('div', { className: 'ci-spacer' }),
-          h('button', { type: 'button', className: 'ci-btn', onClick: reload, title: t('refresh') }, t('refresh')),
-          compact ? h('button', { type: 'button', className: 'ci-btn', onClick: close }, t('close')) : null,
-        )
+        // The right-sidebar surface already has the host's own tab title and a
+        // close button on the tab strip, so duplicating both here produced two
+        // titles and a close button that closes the wrong thing. In the sidebar
+        // the header keeps only the one-line explanation and refresh.
+        const rightSurface = surface === 'right'
+        const head = rightSurface
+          ? h(
+              'div',
+              { className: 'ci-head ci-head-slim' },
+              h('p', null, t('subtitle')),
+              h('div', { className: 'ci-spacer' }),
+              h('button', { type: 'button', className: 'ci-btn', onClick: openMainPanel, title: t('pageTitle') }, t('openPanel')),
+              h('button', { type: 'button', className: 'ci-btn', onClick: reload, title: t('refresh') }, t('refresh')),
+            )
+          : h(
+              'div',
+              { className: 'ci-head' },
+              h('div', { style: { minWidth: 0 } }, h('h1', null, t(compact ? 'panelTitle' : 'pageTitle')), h('p', null, t('subtitle'))),
+              h('div', { className: 'ci-spacer' }),
+              h('button', { type: 'button', className: 'ci-btn', onClick: reload, title: t('refresh') }, t('refresh')),
+              compact ? h('button', { type: 'button', className: 'ci-btn', onClick: close }, t('close')) : null,
+            )
 
         if (compact) {
           const groups = snapshot.groups.slice(0, 12)
@@ -4377,7 +4445,7 @@ body[data-ds-dark-theme] .ci-root{
                 : null,
               h(Kpis, { snapshot, t }),
               h(RequestStrip, { snapshot, t }),
-              h(SkillsFocus, { snapshot, t, onFilter: setFilter }),
+              h(SkillsFocus, { snapshot, t, onFilter: setFilter, compact: true }),
               h(Composition, { snapshot, t, filter, onFilter: setFilter }),
               snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
                 ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
@@ -4528,6 +4596,13 @@ body[data-ds-dark-theme] .ci-root{
         return h(Panel, { props, compact: true })
       }
 
+      // Right-sidebar variant: the host tab strip owns the title and the close
+      // button, so the panel body must not draw a second title or a close button
+      // that would target the left panel instead.
+      function RightSidePanel(props) {
+        return h(Panel, { props, compact: true, surface: 'right' })
+      }
+
       // --------------------------------------------------------------- 2.3.0 entries
       //
       // Both additional surfaces read the same /summary snapshot as the page and
@@ -4593,6 +4668,12 @@ body[data-ds-dark-theme] .ci-root{
         const totals = snapshot.totals
         const view = snapshot.effective && snapshot.effective.totals ? snapshot.effective.totals : totals
         const numbers = snapshot.numbers !== undefined && snapshot.numbers !== null ? snapshot.numbers : { session: totals.tokens, next: view.tokens }
+        // Everything inside this tab is scoped to THIS conversation: the
+        // composition bar, the switchable share and the footer all read the
+        // measured totals. Only the explicit "next new session" cell uses the
+        // policy projection — mixing the two scopes inside one screen was the
+        // first thing the 2.3.0 review caught.
+        const sessionSnapshot = Object.assign({}, snapshot, { effective: null })
         const context = snapshot.context || null
         const windowKnown = context !== null && context.window !== null && context.used !== null
         const cell = (key, label, value, sub, tone) =>
@@ -4617,9 +4698,9 @@ body[data-ds-dark-theme] .ci-root{
             h(
               'div',
               { className: 'ci-kpis', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' } },
-              cell('session', t('session.actual'), token(numbers.session), t('session.actualSub')),
+              cell('session', t('session.actual'), token(totals.tokens), t('session.actualSub')),
               cell('next', t('session.next'), token(numbers.next), t('nextTurnHint')),
-              cell('savable', t('savable'), token(view.savableTokens), `${view.savablePercent}% · ${t('shareOf')}`),
+              cell('savable', t('savable'), token(totals.savableTokens), `${totals.savablePercent}% · ${t('shareOf')}`),
               cell(
                 'window',
                 t('session.window'),
@@ -4629,7 +4710,7 @@ body[data-ds-dark-theme] .ci-root{
               ),
             ),
             h(RequestStrip, { snapshot, t }),
-            h(Composition, { snapshot, t, filter, onFilter: setFilter }),
+            h(Composition, { snapshot: sessionSnapshot, t, filter, onFilter: setFilter }),
             snapshot.policy.appliedToThisAgent === false && snapshot.policy.preview && snapshot.policy.preview.savedTokens > 0
               ? h('div', { className: 'ci-note warn' }, t('sessionNotApplied'))
               : null,
@@ -4653,6 +4734,7 @@ body[data-ds-dark-theme] .ci-root{
         const t = useLocale(snapshotState.data)
         const handleRef = useRef(null)
         const [form, setForm] = useState({ status: 'loading', value: null, writable: false })
+        const [writeError, setWriteError] = useState(false)
 
         useEffect(() => {
           const forms = configFormsRef.current
@@ -4714,12 +4796,20 @@ body[data-ds-dark-theme] .ci-root{
 
         const write = (key, next) => {
           const handle = handleRef.current
-          if (handle === null || handle === undefined || typeof handle.set !== 'function') return
+          if (handle === null || handle === undefined || typeof handle.set !== 'function') {
+            setWriteError(true)
+            return
+          }
+          const settle = (ok) => {
+            setWriteError(ok !== true)
+            if (ok === true) window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+          }
           try {
             const result = handle.set(key, next)
-            if (result !== null && result !== undefined && typeof result.catch === 'function') result.catch(() => {})
+            if (result !== null && result !== undefined && typeof result.then === 'function') result.then((ok) => settle(ok !== false)).catch(() => settle(false))
+            else settle(true)
           } catch {
-            /* the next snapshot read reports the failure state */
+            settle(false)
           }
         }
 
@@ -4751,7 +4841,8 @@ body[data-ds-dark-theme] .ci-root{
               }),
             ),
           ),
-          form.status === 'missing' ? h('div', { className: 'ci-cfg-hint' }, t('settingsCard.readOnly')) : null,
+          form.status !== 'ready' || writable !== true ? h('div', { className: 'ci-cfg-hint' }, t('settingsCard.readOnly')) : null,
+          writeError === true ? h('div', { className: 'ci-cfg-hint warn' }, t('settingsCard.writeFailed')) : null,
           h('div', { className: 'ci-cfg-foot' }, t('settingsCard.foot')),
         )
       }
@@ -4762,25 +4853,16 @@ body[data-ds-dark-theme] .ci-root{
         // with the panel's own refresh.
         const { status, data, reload } = useSnapshot(sessionId, 15000)
         const t = useLocale(data)
-        const [hidden, setHidden] = useStoredState('dockHidden', false)
 
         useEffect(() => {
-          const onPref = (event) => {
-            const detail = event && event.detail
-            if (detail && typeof detail.hidden === 'boolean') setHidden(detail.hidden)
-          }
-          window.addEventListener('injection-manager:dock', onPref)
           window.addEventListener('injection-manager:changed', reload)
-          return () => {
-            window.removeEventListener('injection-manager:dock', onPref)
-            window.removeEventListener('injection-manager:changed', reload)
-          }
-        }, [setHidden, reload])
+          return () => window.removeEventListener('injection-manager:changed', reload)
+        }, [reload])
 
         if (status === 'failed') return null
-        // Config `dock: false` is the installation-level switch.
+        // Config `dock: false` is the only switch for the chip; there is no
+        // per-browser copy any more (2.3.0 review, finding 2).
         if (data && data.settings && data.settings.dock === false) return null
-        if (hidden) return null
 
         // Same pair of numbers as the panel header: `next` is what the policy
         // gives a new session, `session` stays in the tooltip. The badge used to
@@ -4792,16 +4874,10 @@ body[data-ds-dark-theme] .ci-root{
         const context = data ? data.context : null
         const windowKnown = context !== null && context !== undefined && context.window !== null && context.used !== null
         const open = () => {
-          try {
-            const layout = ctxRef.current && ctxRef.current.get && ctxRef.current.get('layout')
-            if (layout && typeof layout.selectPanel === 'function') layout.selectPanel('injection-manager')
-          } catch {
-            /* opening is best effort */
-          }
+          openMainPanel()
         }
         const hide = () => {
-          setHidden(true)
-          window.dispatchEvent(new CustomEvent('injection-manager:dock', { detail: { hidden: true } }))
+          void writeConfigField('dock', false)
         }
         // The ambient number is the one that decides when a session gets
         // compacted: how much of the window the next request will take. The
@@ -4945,7 +5021,7 @@ body[data-ds-dark-theme] .ci-root{
                 'injection-manager: sidebar tab',
               )
               scope.slots.inject('sidebar.right.pane.tab', () =>
-                scope.slots.register({ name: 'sidebar.right.pane.tab', key: 'injection-manager', locale: 'injection-manager' }, guarded(SidePanel)),
+                scope.slots.register({ name: 'sidebar.right.pane.tab', key: 'injection-manager', locale: 'injection-manager' }, guarded(RightSidePanel)),
               )
               scope.slots.inject('sidebar.right.pane.tab.title', () =>
                 scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: 'injection-manager' }, () => h('span', null, panelLabel(ctx))),

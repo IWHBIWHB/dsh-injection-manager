@@ -27,6 +27,8 @@ jobs:
         run: node --test
       - name: Smoke (offline snapshot)
         run: npm run smoke
+      - name: Self-audit (tests, locales, five-entry contract, invariants)
+        run: node scripts/self-audit.mjs --strict
       - name: Package metadata
         run: |
           node -e "const p=require('./package.json'); if(!p.dsh||!p.dsh.bundle||!p.dsh.bundle.patch) throw new Error('missing dsh.bundle.patch'); console.log('bundle ok:', p.name, p.version)"

@@ -39,6 +39,11 @@ and the settings row now tell the same story from the same payload.
 - DSH 0.2.2-rc.1 (CLI) 15/15 browser checks, DSH 0.2.2-rc.5 (Desktop) 16/16; zero console errors.
 - Performance (rc.5): `/summary` median 46 ms (p90 206 ms cold), panel open 220 ms, conversation tab
   199 ms, right panel 82 ms; details in `docs/PERFORMANCE.md`.
+- Independent design review before release (`docs/REVIEW-230.md`, full review and author response):
+  33/70 at the first cut, three defects fixed before shipping — the conversation tab mixed the
+  next-session projection into a this-session reading; the composer chip had three switches over two
+  storage systems; the right sidebar had dead controls and no way back to the full panel.
+  `_research/verify/desk/probe-review.mjs` now covers those interactions (10/10).
 
 ## 2.2.9 — 2026-11-19
 

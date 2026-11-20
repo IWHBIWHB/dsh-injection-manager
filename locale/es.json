@@ -420,12 +420,14 @@
     "settingsCard.title": "Inyección de contexto",
     "settingsCard.hint": "Solo preferencias de presentación: nunca tocan la política de inyección. La política y los preajustes están en Ajustes dentro del panel.",
     "settingsCard.dock": "Chip del compositor",
-    "settingsCard.dockHint": "Muestra «inyección xxk · desactivable xx%»; haz clic para abrir el panel",
+    "settingsCard.dockHint": "Muestra «inyección xxk · ventana xx%»; haz clic para abrir el panel",
     "settingsCard.refresh": "Actualizar al enfocar",
     "settingsCard.refreshHint": "Leer cifras nuevas cuando la ventana recupera el foco",
     "settingsCard.rawNames": "Mostrar claves internas",
     "settingsCard.rawNamesHint": "Muestra claves internas como harness:identity junto a los nombres en chino",
     "settingsCard.readOnly": "El host no ofrece formulario de configuración; los valores de abajo son los efectivos actuales (solo lectura).",
-    "settingsCard.foot": "Cambiar esto edita la configuración del plugin y se aplica al instante, sin reiniciar."
+    "settingsCard.foot": "Cambiar esto edita la configuración del plugin y se aplica al instante, sin reiniciar.",
+    "openPanel": "Abrir panel",
+    "settingsCard.writeFailed": "No se pudo guardar: el host no aceptó la escritura."
   }
 }

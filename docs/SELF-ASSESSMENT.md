@@ -56,6 +56,25 @@
 
 代码与文档可以追上；发布节奏与社区证明追不上一次冲刺。
 
+## 外部设计评审与修复（2026-11-20）
+
+2.3.0 的三张新入口做了一轮独立设计评审（评审对象 `4bdb197`，rc.5 实测）：总分 33/70，低分不在视觉，
+集中在「能看但没接上」。三条最该先修全部在发布前修完并复测（`_research/verify/desk/probe-review.mjs`
+10/10）：
+
+| 评审问题 | 影响 | 修复 |
+| --- | --- | --- |
+| 会话标签页混用两套口径：可关闭卡/构成条读下个新会话投影，页脚读本会话 | 「数字诚实」被自己破掉 | 会话页统一本会话 `totals`；新会话只留一张 KPI 卡；构成条喂 `effective: null` 的会话快照 |
+| 输入框徽标三处开关、两套存储（localStorage + Config） | 开关 ON 而徽标不见 | `Config.dock` 成唯一真相源；×、面板设置页、设置行写同一字段；写后广播刷新；删除 localStorage 副本 |
+| 右栏「去管理」「关闭」是哑按钮，无回完整面板出口 | 第一次用右栏会以为只能看不能操作 | compact 隐藏「去管理」、删除「关闭」；新增「打开面板」按钮（实测可回完整面板） |
+
+另修快速收益：`dockHint` 文案（窗口占用）、设置卡只读条件与写失败提示、设置行字号、右栏标题去重、
+README 八语言的「五个入口都读快照」口径（改为「四种读法 + 一行设置」）。仍有保留项：会话页不加
+「打开完整面板」大按钮；宿主不持有会话时的静默回退没有可见提示（需要新返回字段，列入下一轮）。
+
+这次评审是本轮最值钱的外部输入：16/16 的浏览器探针只证明「能渲染、能写入」，评审抓到的
+「两个数打架」和「假按钮」都是探针结构上测不到的。下一轮把这类交互断言补进验收脚本。
+
 ## 按优先级排的差距
 
 1. **发布与收录**：2.3.0 发 npm + GitHub release；向官方精选目录提交条目（本轮已备好
@@ -74,7 +93,7 @@
 | 证据 | 位置 |
 | --- | --- |
 | 226 tests / 0 fail | `node --test` |
-| 自审 100/100（含五入口契约） | `node scripts/self-audit.mjs`，基线 `_research/rsi/baseline-metrics.json` |
-| rc.1 五入口 15/15、rc.5 五入口 16/16 | `_research/verify/probe-entries.mjs`、`_research/verify/desk/probe-entries.mjs` |
+| 自审 100/100（含五入口契约） | `node scripts/self-audit.mjs`，基线 `_research/rsi/baseline-metrics.json`（开发机，不随包发布） |
+| rc.1 五入口 15/15、rc.5 五入口 16/16、评审修复 10/10 | 开发机 QA 脚本 `_research/verify/probe-entries.mjs`、`_research/verify/desk/probe-entries.mjs`、`_research/verify/desk/probe-review.mjs`（不随包发布） |
 | 五入口截图（rc.5，已去个人信息） | `docs/images/session-tab.png`、`sidebar-panel.png`、`settings-general.png` |
 | 性能实测 | `docs/PERFORMANCE.md` 2.3.0 节 |

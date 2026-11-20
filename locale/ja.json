@@ -420,12 +420,14 @@
     "settingsCard.title": "コンテキスト注入",
     "settingsCard.hint": "表示設定のみ。注入ポリシーには影響しません。ポリシーとプリセットはパネルの「設定」にあります。",
     "settingsCard.dock": "入力欄のチップ",
-    "settingsCard.dockHint": "「注入 xxk · 無効化可 xx%」を表示。クリックでパネルを開きます",
+    "settingsCard.dockHint": "「注入 xxk · ウィンドウ xx%」を表示。クリックでパネルを開きます",
     "settingsCard.refresh": "フォーカス時に更新",
     "settingsCard.refreshHint": "ウィンドウがフォーカスを取り戻したときに最新の数値を読み取ります",
     "settingsCard.rawNames": "内部キーを表示",
     "settingsCard.rawNamesHint": "harness:identity などの内部キーを中国語名の横に表示します",
     "settingsCard.readOnly": "ホストが設定フォームを提供していません。以下は現在の有効値です（読み取り専用）。",
-    "settingsCard.foot": "ここでの変更はプラグイン設定を編集し、再起動なしで即時反映されます。"
+    "settingsCard.foot": "ここでの変更はプラグイン設定を編集し、再起動なしで即時反映されます。",
+    "openPanel": "パネルを開く",
+    "settingsCard.writeFailed": "保存できませんでした：ホストが書き込みを受け付けませんでした。"
   }
 }

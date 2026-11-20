@@ -420,12 +420,14 @@
     "settingsCard.title": "Kontextinjektion",
     "settingsCard.hint": "Nur Darstellungsoptionen — sie ändern nie die Injektionsrichtlinie. Richtlinie und Voreinstellungen liegen unter Einstellungen im Panel.",
     "settingsCard.dock": "Chip am Eingabefeld",
-    "settingsCard.dockHint": "„Injektion xxk · abschaltbar xx%“ anzeigen; Klick öffnet das Panel",
+    "settingsCard.dockHint": "„Injektion xxk · Fenster xx%“ anzeigen; Klick öffnet das Panel",
     "settingsCard.refresh": "Beim Fokus aktualisieren",
     "settingsCard.refreshHint": "Frische Zahlen lesen, wenn das Fenster wieder den Fokus hat",
     "settingsCard.rawNames": "Interne Schlüssel zeigen",
     "settingsCard.rawNamesHint": "Interne Schlüssel wie harness:identity neben den chinesischen Namen anzeigen",
     "settingsCard.readOnly": "Der Host bietet kein Konfigurationsformular; die Werte unten sind die aktuell wirksamen (nur lesend).",
-    "settingsCard.foot": "Änderungen hier bearbeiten die Plugin-Konfiguration und gelten sofort, ohne Neustart."
+    "settingsCard.foot": "Änderungen hier bearbeiten die Plugin-Konfiguration und gelten sofort, ohne Neustart.",
+    "openPanel": "Panel öffnen",
+    "settingsCard.writeFailed": "Speichern fehlgeschlagen: der Host hat den Schreibvorgang nicht angenommen."
   }
 }

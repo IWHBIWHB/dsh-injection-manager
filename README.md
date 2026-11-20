@@ -70,9 +70,10 @@ to one page.
   editing the profile patch. The Config fields are `.volatile()`, so flipping a switch applies
   immediately without restarting the plugin; the row shows the current effective values and is
   read-only where the host does not serve a config form.
-- **One snapshot, five readings** — the page, conversation tab, right panel, `/inject` and the
-  settings row all read `GET /summary`; `numbers.session` / `numbers.next` are the same pair
-  everywhere, with the same wording for *this session* vs *next new session*.
+- **One pair of numbers, four readings, one settings row** — the page, conversation tab, right
+  panel and `/inject` read `GET /summary`, so `numbers.session` / `numbers.next` are the same values
+  everywhere, each labelled with its scope. The settings row is the fifth entry but the only one that
+  is not a reading: it edits the plugin's own volatile Config.
 
 Tests grew from 223 to 226 and the self-audit now fails if any of the five entry slots stops being
 registered or stops being documented. Verified on DSH 0.2.2-rc.1 (CLI) and 0.2.2-rc.5 (Desktop):
@@ -323,9 +324,9 @@ modify each other.
 
 ## Five entry points
 
-Five places, one dataset, one pair of numbers (`numbers.session` = what this conversation carries,
-`numbers.next` = what a new session gets under the saved policy). Every entry reads the same
-`GET /summary` snapshot; none of them computes its own totals.
+Five places, one plugin. Four of them read the same `GET /summary` snapshot and therefore quote the
+same pair of numbers (`numbers.session` = what this conversation carries, `numbers.next` = what a new
+session gets under the saved policy); the fifth edits the plugin's own Config and shows no numbers.
 
 | Entry | Where | What it answers |
 | --- | --- | --- |
@@ -390,7 +391,7 @@ Neither is written to the policy file, so there is exactly one source of truth f
 | `$DSH_HOME/injection-manager/policy.json.bak` | The previous good policy, used when `policy.json` cannot be parsed | Each policy write, when a previous file exists |
 | `$DSH_HOME/injection-manager/stats.json` | One measured row per session, with a per-channel token split | Every snapshot the panel/tool/command/export/health builds, plus the background trend backfill |
 | `$DSH_HOME/injection-manager/events.json` | Append-only event feed, max 300, atomic write | Policy saves, presets, imports, undos, compactions |
-| Plugin config row | dock / refreshOnFocus / showRawNames | Plugins → Configuration |
+| Plugin config row | dock / refreshOnFocus / showRawNames | Settings → General card, or Plugins → Configuration |
 | Browser local storage | Drawer line numbers, insights range, dismissed cards | This browser only |
 
 Snapshot GETs refresh `stats.json` and the trend backfill only adds to it; no GET changes the

@@ -58,8 +58,9 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 - **设置 → 通用设置里的偏好行**：`dock` / `refreshOnFocus` / `showRawNames` 三个呈现开关现在能在
   宿主设置页直接改，不必再手改 profile patch。Config 三个字段改成 `.volatile()`，切换立即生效、
   不重启插件；宿主不提供配置表单时这一行显示当前生效值并注明只读。
-- **一份快照，五种读法**：面板页、会话标签页、右侧栏、`/inject`、设置行全部读 `GET /summary`；
-  `numbers.session` / `numbers.next` 在所有入口是同一对数，措辞也统一为「本会话」与「新会话」。
+- **一对数、四种读法、一行设置**：面板页、会话标签页、右侧栏、`/inject` 读同一份
+  `GET /summary`，`numbers.session` / `numbers.next` 在各处是同一对数、各自标明口径；设置行是第五个
+  入口，也是唯一不读快照的入口——它编辑插件自己的 volatile Config。
 
 测试从 223 增到 226；自审脚本新增一条硬检查：五个入口槽位任何一个停止注册或停止写进架构文档，
 自审直接失败。已在 DSH 0.2.2-rc.1（CLI）与 0.2.2-rc.5（Desktop）两个宿主上验证：每个宿主 16/16
@@ -277,8 +278,9 @@ code 永远不会出现（`duplicate-skill`、`tool-name-collision`）：这版�
 
 ## 五个入口
 
-五个位置、同一份数据、同一对数（`numbers.session` = 本会话带着多少，`numbers.next` = 新会话将
-注入多少）。每个入口都读同一个 `GET /summary` 快照，没有哪个入口自己另算一套数。
+五个位置、一个插件。其中四个读同一份 `GET /summary` 快照，因此引用同一对数
+（`numbers.session` = 本会话带着多少，`numbers.next` = 新会话将注入多少）；第五个编辑插件自己的
+Config，不显示数字。
 
 | 入口 | 位置 | 回答什么 |
 | --- | --- | --- |
@@ -338,7 +340,7 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
 | `$DSH_HOME/injection-manager/policy.json.bak` | 上一份能解析的策略，`policy.json` 损坏时用来恢复 | 每次写策略（已有旧文件时） |
 | `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量，含通道分解 | 面板/工具/命令/导出/健康检查每次取快照，以及趋势后台回填 |
 | `$DSH_HOME/injection-manager/events.json` | 追加式事件流，上限 300，原子写 | 策略保存、预设、导入、撤销、压缩 |
-| 插件行 `config` | dock / refreshOnFocus / showRawNames | Plugins → Configuration |
+| 插件行 `config` | dock / refreshOnFocus / showRawNames | 设置 → 通用设置行，或 Plugins → Configuration |
 | 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的提示卡 | 只在这个浏览器 |
 
 快照 GET 与趋势回填会刷新 `stats.json`，但没有任何 GET 会改策略或工作区文件。不联网、不遥测、

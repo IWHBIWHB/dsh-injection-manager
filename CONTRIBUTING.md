@@ -20,16 +20,22 @@ node --check index.js
 node --check client.js
 Get-ChildItem lib/*.js | ForEach-Object { node --check $_.FullName }
 node --test
-npm pack --dry-run   # 确认 locale/docs/icon 都进包
+node scripts/self-audit.mjs          # 7 项自审；--strict 在任一 fail 时退出 1
+npm pack --dry-run                   # 确认 locale/docs/icon/README 都进包
 ```
+
+自审的 reconcile 项包含**五入口契约**：`sidebar.panellist`、`main`、`conversation.view`、
+`sidebar.right.pane.tab`、`settings.general.item` 五个槽位名必须同时出现在 `client.js` 与
+`docs/ARCHITECTURE.md`。宿主升级导致槽位改名时，先改这里再看界面。
 
 ## 设计约束（改之前先读）
 
-1. **一份快照**：面板、工具、导出、生效策略都从 `buildSnapshot()` 来；不要在浏览器里重算 token 或策略。
+1. **一份快照**：面板、工具、导出、会话标签页、右侧栏、设置偏好都从 `buildSnapshot()` 来；不要在浏览器里重算 token 或策略。
 2. **不写 workspace 文件**：任何开关只能是会话作用域注册。
-3. **只影响新会话**：策略在 `agent/created`（`startup` / `clear`）应用。
+3. **只影响新会话**：策略在 `agent/created`（`startup` / `clear`）应用；会话标签页因此只读。
 4. **必填上下文不可关**：`working-directory:current`、`subagent:identity`。
 5. **段落不能同名 shadow**：agent preset 已占用这些名字，必须走 scoped `system-prompt/assemble`。
+6. **呈现偏好走 Config + configForms**：`dock` / `refreshOnFocus` / `showRawNames` 是 `.volatile()` 字段，不要另建一套 localStorage 真相。
 
 更细的时序与通道表见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 

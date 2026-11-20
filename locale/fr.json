@@ -420,12 +420,14 @@
     "settingsCard.title": "Injection de contexte",
     "settingsCard.hint": "Préférences d’affichage uniquement — elles ne touchent jamais la politique d’injection. La politique et les préréglages sont dans Réglages, dans le panneau.",
     "settingsCard.dock": "Pastille du composeur",
-    "settingsCard.dockHint": "Afficher « injection xxk · désactivable xx % » ; cliquer pour ouvrir le panneau",
+    "settingsCard.dockHint": "Afficher « injection xxk · fenêtre xx % » ; cliquer pour ouvrir le panneau",
     "settingsCard.refresh": "Rafraîchir au focus",
     "settingsCard.refreshHint": "Relire les chiffres quand la fenêtre reprend le focus",
     "settingsCard.rawNames": "Afficher les clés internes",
     "settingsCard.rawNamesHint": "Afficher les clés internes comme harness:identity à côté des noms chinois",
     "settingsCard.readOnly": "L’hôte ne fournit pas de formulaire de configuration ; les valeurs ci-dessous sont les valeurs effectives actuelles (lecture seule).",
-    "settingsCard.foot": "Modifier ici revient à modifier la configuration du plugin ; l’effet est immédiat, sans redémarrage."
+    "settingsCard.foot": "Modifier ici revient à modifier la configuration du plugin ; l’effet est immédiat, sans redémarrage.",
+    "openPanel": "Ouvrir le panneau",
+    "settingsCard.writeFailed": "Enregistrement impossible : l’hôte a refusé l’écriture."
   }
 }

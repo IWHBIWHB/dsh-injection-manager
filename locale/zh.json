@@ -420,12 +420,14 @@
     "settingsCard.title": "上下文注入管理",
     "settingsCard.hint": "呈现偏好：只影响界面，不影响注入策略。策略与预设在主面板的「设置」里。",
     "settingsCard.dock": "输入框旁徽标",
-    "settingsCard.dockHint": "显示「注入 xxk · 可关 xx%」，点击可打开面板",
+    "settingsCard.dockHint": "显示「注入 xxk · 窗口 xx%」，点击可打开面板",
     "settingsCard.refresh": "聚焦时刷新",
     "settingsCard.refreshHint": "窗口重新获得焦点时读取一次最新数字",
     "settingsCard.rawNames": "显示原始键名",
     "settingsCard.rawNamesHint": "在中文名旁标出 harness:identity 这类内部键",
     "settingsCard.readOnly": "宿主没有提供配置表单；下面是当前生效值（只读）。",
-    "settingsCard.foot": "改这里等于改插件配置；切换即时生效，不重启插件。"
+    "settingsCard.foot": "改这里等于改插件配置；切换即时生效，不重启插件。",
+    "openPanel": "打开面板",
+    "settingsCard.writeFailed": "保存失败：宿主没有接受这次写入。"
   }
 }

@@ -420,12 +420,14 @@
     "settingsCard.title": "Context injection",
     "settingsCard.hint": "Presentation preferences only — they never touch the injection policy. Policy and presets live under Settings in the panel.",
     "settingsCard.dock": "Composer chip",
-    "settingsCard.dockHint": "Show “injection xxk · switchable xx%”; click it to open the panel",
+    "settingsCard.dockHint": "Show “injection xxk · window xx%”; click it to open the panel",
     "settingsCard.refresh": "Refresh on focus",
     "settingsCard.refreshHint": "Read fresh numbers when the window regains focus",
     "settingsCard.rawNames": "Show raw keys",
     "settingsCard.rawNamesHint": "Print internal keys such as harness:identity next to the Chinese names",
     "settingsCard.readOnly": "The host does not serve a config form; the values below are the current effective ones (read-only).",
-    "settingsCard.foot": "Changing these edits the plugin configuration and applies immediately, without a restart."
+    "settingsCard.foot": "Changing these edits the plugin configuration and applies immediately, without a restart.",
+    "openPanel": "Open panel",
+    "settingsCard.writeFailed": "Could not save the preference: the host did not accept the write."
   }
 }

@@ -420,12 +420,14 @@
     "settingsCard.title": "Injeção de contexto",
     "settingsCard.hint": "Apenas preferências de apresentação — nunca alteram a política de injeção. A política e os predefinidos ficam em Configurações, no painel.",
     "settingsCard.dock": "Chip do compositor",
-    "settingsCard.dockHint": "Mostrar «injeção xxk · desativável xx%»; clique para abrir o painel",
+    "settingsCard.dockHint": "Mostrar «injeção xxk · janela xx%»; clique para abrir o painel",
     "settingsCard.refresh": "Atualizar ao focar",
     "settingsCard.refreshHint": "Ler números novos quando a janela recupera o foco",
     "settingsCard.rawNames": "Mostrar chaves internas",
     "settingsCard.rawNamesHint": "Mostrar chaves internas como harness:identity ao lado dos nomes em chinês",
     "settingsCard.readOnly": "O host não oferece formulário de configuração; os valores abaixo são os efetivos atuais (somente leitura).",
-    "settingsCard.foot": "Alterar aqui edita a configuração do plugin e aplica na hora, sem reiniciar."
+    "settingsCard.foot": "Alterar aqui edita a configuração do plugin e aplica na hora, sem reiniciar.",
+    "openPanel": "Abrir painel",
+    "settingsCard.writeFailed": "Não foi possível salvar: o host não aceitou a gravação."
   }
 }
