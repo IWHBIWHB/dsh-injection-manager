@@ -355,6 +355,10 @@ Or in the app: DSH → Plugins → Add plugin → enter the package name or pick
 the page; the "Context injection" icon appears in the left panel list, and the five entry points above
 become available (no build step, no restart for a first install).
 
+If the in-app **Discover** card still shows a slightly older version — the catalog's version field
+refreshes on its daily build, not when a new npm version is published — install the latest explicitly:
+`dsh plugin add dsh-injection-manager@latest` (or pin the version you want).
+
 Upgrading from `dsh-context-preflight` / `dsh-context-injection`: if only an old policy file exists,
 it is read once and used as the current policy. Writes always go to
 `$DSH_HOME/injection-manager/policy.json`.

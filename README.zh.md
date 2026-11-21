@@ -307,6 +307,9 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 也可以在应用里：DSH → Plugins → Add plugin → 填包名或选本地目录。装完刷新页面，左侧面板出现
 「上下文注入」图标，上面五个入口同时可用（无需构建，首次安装无需重启）。
 
+如果发现页卡片显示的版本略旧——目录的版本字段走每日构建，npm 发版当天不一定刷新——直接装最新：
+`dsh plugin add dsh-injection-manager@latest`（或钉具体版本）。
+
 从旧的 `dsh-context-preflight` / `dsh-context-injection` 升级：第一次读取时如果只找到旧策略
 文件，插件会把它读进来当作当前策略；写入始终落到 `$DSH_HOME/injection-manager/policy.json`。
 

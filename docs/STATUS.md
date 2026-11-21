@@ -25,16 +25,16 @@
 ## 3. 外部依赖（不是我们的代码问题）
 
 - **awesome 目录的版本字段**：push/merge 构建只重建文本、不跑 npm 探针；每日 scheduled `build-site`
-  才 `PROBE_ALL`。其 2026-11-21T02:28Z 的 scheduled 构建截至本文件更新时仍 `in_progress`，所以卡片
-  版本停在 2.1.1。条目和描述都在，等它恢复自动刷新；核对命令在 DISTRIBUTION「市场可见性验收」。
+  才 `PROBE_ALL`。2026-11-21T02:28Z 的 scheduled 构建已 **success**，发现页卡片版本从 2.1.1 刷新到
+  **2.3.0**；当天 05:27Z 发布的 2.3.1 会在下一次（次日 02:23Z）构建进入索引。
 - **发现页的卡片图标**：目录索引生成器目前不输出 `icon` 字段（6376 条里 0 条带 icon），所以发现页
   统一显示默认图标；条目的 `icon` 字段仍供其他消费者使用，不是我们缺字段。
 - **DSH Registry（`dsh-pluginmarket/metadata`）**：bot 于 11-16 自动建 issue #8956 与 PR #8969，
   等该仓库维护者 review；不能替对方合并。
 - **首批真实用户反馈**：产品内通道、[FEEDBACK.md](FEEDBACK.md)、[BETA.md](BETA.md) 与邀请草稿都已就绪；
   把邀请发出去需要本人账号与同意（草稿在 `_research/outreach/beta-invite.md`）。
-- **上游催办草稿**：`_research/outreach/upstream-issues.md`（awesome 构建挂起 / Registry PR ping），
-  未发。
+- **上游催办草稿**：`_research/outreach/upstream-issues.md`（Registry PR ping；awesome 构建已自行恢复，
+  只剩 Registry 那条），未发。
 
 ## 4. 下一轮候选
 

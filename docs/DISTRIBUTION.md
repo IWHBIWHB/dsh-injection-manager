@@ -37,11 +37,11 @@
 
 **为什么发现页的版本会滞后（2026-11-21 实测）**：目录的 `build-site` 有两种触发——push/merge
 触发的构建只重建文本，**不跑 npm 探针**；只有每日 scheduled 构建会带 `PROBE_ALL` 全量刷新版本。
-所以 PR 合并后描述会立刻更新，版本却可能停在上一次 scheduled 构建的结果。当天排查发现它的
-scheduled 构建从 2026-11-21T02:28Z 起一直 `in_progress`（未被判定失败），版本因此停在 2.1.1。
-核对方式：`gh run list -R awesome-dsh-plugin/awesome-dsh-plugin --workflow build-site.yml`；
-若 scheduled 长期挂起，条目仍在（旧 index 继续服务），只是版本/统计不新——这不是我们的发布故障，
-不要因此重复发版。
+2.3.0 发布后卡片仍显示 2.1.1；当天的 scheduled 构建成功后，卡片刷新到 2.3.0；而 2.3.1 发布于该构建
+之后，所以还要等下一次构建。核对方式：
+`gh run list -R awesome-dsh-plugin/awesome-dsh-plugin --workflow build-site.yml`；
+若 scheduled 构建失败或挂起，条目仍在（旧 index 继续服务），只是版本/统计不新——这不是我们的发布
+故障，不要因此重复发版。
 
 另：DSH/pnpm 的供应链策略有最小发布年龄（`minimumReleaseAge`），刚发布的版本在普通用户机器上可能
 一天内装不到；`dsh plugin add dsh-injection-manager@X.Y.Z` 显式钉版本会放行。这是策略行为，不是故障。
