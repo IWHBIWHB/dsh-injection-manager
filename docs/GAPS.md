@@ -9,9 +9,19 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 官方精选目录收录 | **1**（awesome-dsh-plugin 条目已存在，分类 usage）；描述/图标更新 PR #17255 已开、CI pass、等维护者合并 | 保持 1，并让条目信息与最新版一致 | 合并后核对条目；季度审计一次描述/分类/截图 | `data/plugins/IWHBIWHB__dsh-injection-manager.yml`；PR #17255 | 进行中（待合并） |
 | 2 | 外部 issue / PR（真实用户的失败与误解） | **0**（截至 2026-11-21） | ≥3 条真实反馈 | 已把反馈入口做进产品：设置页「复制诊断 / 报告问题」（诊断已脱敏，可直接贴 issue）；issue 模板含 `/diag` 字段要求；下一步：在 DSH 社群发试用邀请（需本人账号与同意），拿到首批报告后按失败类型修 | `client.js` 反馈行；`lib/diagnostics.js`；`.github/ISSUE_TEMPLATE/`；`docs/FEEDBACK.md` | 通道已建，等待外部用户 |
-| 3 | 发布 tag | **10**（v2.3.1 发布后；此前 9） | 有节奏的持续发布（patch 每周、minor 每 2–4 周） | 已加 `scripts/release.mjs`（CI 同门槛 + 版本号 + tag 一条命令）与 `docs/DISTRIBUTION.md` §4 节奏；每次真改动都发 patch，不再攒大版本 | `scripts/release.mjs`；`git tag -l` | 机制完成，按节奏增长 |
+| 3 | 发布 tag | **11**（v2.3.1 发布后；此前 9） | 有节奏的持续发布（patch 每周、minor 每 2–4 周） | 已加 `scripts/release.mjs`（CI 同门槛 + 版本号 + tag 一条命令）与 `docs/DISTRIBUTION.md` §4 节奏；每次真改动都发 patch，不再攒大版本 | `scripts/release.mjs`；`git tag -l` | 机制完成，按节奏增长 |
 | 4 | 真机验过的宿主 | **4 个版本**：0.2.0-rc.1、0.2.1-rc.5、0.2.2-rc.1、0.2.2-rc.5 | 覆盖 0.2.x 各 rc（含 0.2.2-rc.2/3/4） | 0.2.0 与 0.2.1 已从 npm 装进隔离 home 实测（插件激活、`/summary`、preset 写入、诊断报告）；剩余 rc 用同一套脚本逐个跑 | `docs/COMPATIBILITY.md`；`_research/verify/probe-old-actions.mjs`（开发机） | 主要版本已覆盖 |
 | 5 | 产品·工程·文档自评 | **8.8 / 10**（2.3.1） | 9.0+ | 这次补了旧宿主真机、反馈通道、发布自动化；未补：客户端单测、列表虚拟化、官方市场未上线（外部） | `docs/SELF-ASSESSMENT.md` | 持续 |
+
+## 2.3.1 发版验证（2026-11-21）
+
+- npm：`dsh-injection-manager@2.3.1` 已发布（provenance），装进干净 profile（`v2qa-231`）后
+  五入口探针 **16/16**；反馈行可用：复制诊断 550 字符、无路径、issue 模板与正文预填、0 console error。
+- GitHub：tag `v2.3.1` + Release；CI 与 release 两条 workflow success；release 资产附 tgz。
+- 旧宿主：0.2.0-rc.1、0.2.1-rc.5 从 npm 装进隔离 home，插件激活、`/summary`、preset 写入、
+  诊断报告均通过（见 COMPATIBILITY）。
+- 目录：条目仍在；PR #17255 仍等维护者合并；市场版本字段按夜间探针节奏刷新（当前仍显示旧版，
+  属预期滞后，见 DISTRIBUTION「市场可见性验收」）。
 
 ## 已知无法靠代码消除的差距
 

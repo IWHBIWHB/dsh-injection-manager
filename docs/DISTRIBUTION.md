@@ -1,4 +1,4 @@
-# 分发 SOP（标准渠道 · 每次发版做什么）
+﻿# 分发 SOP（标准渠道 · 每次发版做什么）
 
 一句话：**两个源头 + 一个目录**。GitHub 是源码、版本与发布说明的源头；npm 是安装与版本事实的源头；
 `awesome-dsh-plugin` 是发现与市场的目录。其余渠道都是这三样的下游缓存，**不需要单独提交**。
@@ -105,7 +105,7 @@ CI 会：校验 tag 与 `package.json` 版本一致 → 跑测试 → `npm publi
 | 项 | 状态 |
 | --- | --- |
 | npm | `dsh-injection-manager@2.3.1` 为 latest（provenance 已签） |
-| GitHub | tag `v2.3.1` + Release；CI/release 两条 workflow success；累计 tag 10 个 |
+| GitHub | tag `v2.3.1` + Release；CI/release 两条 workflow success；累计 tag 11 个 |
 | 目录条目 | `data/plugins/IWHBIWHB__dsh-injection-manager.yml`（分类 usage）；描述/图标更新 PR #17255 已开、CI pass、等维护者合并 |
 | 截图 | 8 张（0.2.2-rc.5 隔离实例重拍），`screenshots.json` 合法 |
 | 图标 | `docs/images/icon-180.png`（180×180 PNG，raw 200） |

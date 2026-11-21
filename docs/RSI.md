@@ -1,4 +1,4 @@
-# RSI：可重复的自审计
+﻿# RSI：可重复的自审计
 
 一句话：每次改数字、改开关或改文案，跑一次 `node scripts/self-audit.mjs`，把代码、面板和文档对一遍；对不上就红，不靠人眼。
 
@@ -127,7 +127,7 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
     patch 每周 / minor 2–4 周；2.3.1 为第一笔。
   - **目录事实**：awesome-dsh-plugin 条目其实早已存在（此前记录为 0 是旧快照），PR #17255 更新
     描述与图标，CI pass、等合并。
-- 结果：231 测试 / 0 fail；自审 100/100；tag 10；自评 8.6 → 8.8。外部 issue 仍为 0——这条只能
+- 结果：231 测试 / 0 fail；自审 100/100；tag 11；自评 8.6 → 8.8。外部 issue 仍为 0——这条只能
   等真实用户，通道已经降到一键。
 - 证据：`docs/COMPATIBILITY.md`、`docs/GAPS.md`、`docs/FEEDBACK.md`、`scripts/release.mjs`、
   `_research/verify/probe-old-actions.mjs`（开发机）。
