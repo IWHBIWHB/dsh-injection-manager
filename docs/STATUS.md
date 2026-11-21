@@ -12,6 +12,14 @@
 | 4 | 0.2.0 / 0.2.1 真机验证并修兼容 | **完成** | 0.2.0-rc.1 与 0.2.1-rc.5 从 npm 装进隔离 home：插件激活、`/summary apiVersion 2`、preset 写入落盘、诊断报告、0 console error；修复 `workingDirectory` 硬依赖与旧 CLI 版本识别；矩阵见 `docs/COMPATIBILITY.md` |
 | 5 | 自评/GAPS 与诚实数据有据 | **完成** | `docs/SELF-ASSESSMENT.md`（8.8/10，2.3.1 节）；`docs/GAPS.md`（每项现值/目标/证据）；`docs/RSI.md` 2026-11-21 轮；看板 `D:\DSH\差距-诚实-2026-11-21.html` |
 
+## 1.1 使用信号（不是"反馈"，但能说明有人在用）
+
+| 指标 | 值 | 口径/限制 |
+| --- | --- | --- |
+| npm 周下载 | **1,456**（2026-11-13~19） | `api.npmjs.org/downloads`；含 CI、重复安装与镜像，不等于独立用户数 |
+| GitHub 克隆（14 天） | 511 次 / 178 唯一 | 可能含 CI 与自动化 |
+| 外部反馈 | **0** | 已公开发 3 个试用邀请帖，等待回复 |
+
 ## 2. 当前发布
 
 | 项 | 值 |
@@ -31,8 +39,10 @@
   统一显示默认图标；条目的 `icon` 字段仍供其他消费者使用，不是我们缺字段。
 - **DSH Registry（`dsh-pluginmarket/metadata`）**：bot 于 11-16 自动建 issue #8956 与 PR #8969，
   等该仓库维护者 review；不能替对方合并。
-- **首批真实用户反馈**：产品内通道、[FEEDBACK.md](FEEDBACK.md)、[BETA.md](BETA.md) 与邀请草稿都已就绪；
-  把邀请发出去需要本人账号与同意（草稿在 `_research/outreach/beta-invite.md`）。
+- **首批真实用户反馈**：产品内通道、[FEEDBACK.md](FEEDBACK.md)、[BETA.md](BETA.md) 已就绪，并已公开发出
+  3 个试用邀请（官方 DSH Show Your Plugins #13984、awesome Show and tell #17474、本仓库 Discussions #1），
+  另在「上下文灾难」讨论帖 #12329 留了一条同口径测量的回复。截至 2026-11-21 16:40 仍 0 条外部回复；
+  npm 周下载 1,456 说明有人在装，但还没有人回失败样本。
 - **上游催办草稿**：`_research/outreach/upstream-issues.md`（Registry PR ping；awesome 构建已自行恢复，
   只剩 Registry 那条），未发。
 
