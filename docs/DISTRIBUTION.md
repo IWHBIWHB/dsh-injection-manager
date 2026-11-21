@@ -13,6 +13,7 @@
 | 1 目录 | **awesome-dsh-plugin** | dsh-market、目录站、catalog index 都从它读 | **首次收录要一次 PR（已完成）**；之后版本/星/下载/截图/更新说明全自动；只有改**描述/分类/url/name/icon/移除**才提 PR，且只改自己那一行 | 条目在 `data/plugins/<owner>__<repo>.yml`；`probe-npm` 每晚刷最新 npm 版本，`probe-updates` 刷 Release notes + commit tail，`probe-stars/downloads` 每日，`probe-screenshots` 从**你仓库的** `screenshots.json` 每晚抓 |
 | 2 下游 | **dsh-market**（DSH 里的可视化市场插件） | 装 `dshmarket` 后在市场里搜/装/更新 | 什么都不用做 | 官方 README：列表来自 awesome registry，安装源限制在 registry 内；实时读 `awesome-dsh-plugin.com/plugins.json` |
 | 2 下游 | **catalog index（官方 Discover 可订阅）** | Plugins → Discover → Add index source 填 `https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json` | 什么都不用做 | awesome 生态发布的 `plugins.json`/index.json；官方 DSH 本身不提供索引（`DSH ships no index source`） |
+| 2 下游 | **DSH Registry（`dsh-pluginmarket/metadata`）** | 供该 registry 的消费方读 `entries/*.json` | bot 自动提交：issue #8956 + PR #8969（2026-11-16），等维护者 review 合并后生效；不跟版本号 | README：每个条目一个 JSON，`status: active`，PR 就是审核门；当前 PR 仍 open（该仓库活动很少，不能替维护者合） |
 | 3 可选 | 自建 index.json（format 1） | 用户把我们的索引 URL 加进 Discover | 仅在想脱离第三方市场、自己控索引时做：静态托管 + 官方 generator | 官方 `docs/user/guide/plugin-market.md`：index 是 UTF-8 JSON，`format: 1`，≤128MiB，用户手动加 URL |
 | 3 可选 | 其他 awesome 列表 | 额外曝光 | 可选 PR，不算标准渠道 | 生态里有多个次级列表，受众小于主目录 |
 | 不做 | 自建插件商店、独立站、公众号分发 | — | — | 与 npm + 目录重复，维护成本归我们 |
