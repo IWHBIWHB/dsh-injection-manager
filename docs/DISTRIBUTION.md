@@ -1,4 +1,4 @@
-﻿# 分发 SOP（标准渠道 · 每次发版做什么）
+# 分发 SOP（标准渠道 · 每次发版做什么）
 
 一句话：**两个源头 + 一个目录**。GitHub 是源码、版本与发布说明的源头；npm 是安装与版本事实的源头；
 `awesome-dsh-plugin` 是发现与市场的目录。其余渠道都是这三样的下游缓存，**不需要单独提交**。
@@ -33,6 +33,14 @@
    构建生成。
 4. **描述/图标/分类**：只有 awesome PR 合并后重建才变；**截图**由目录的夜间探针从本仓库
    `screenshots.json` 抓，最多晚一天生效。这些都**不需要**再发版。
+
+**为什么发现页的版本会滞后（2026-11-21 实测）**：目录的 `build-site` 有两种触发——push/merge
+触发的构建只重建文本，**不跑 npm 探针**；只有每日 scheduled 构建会带 `PROBE_ALL` 全量刷新版本。
+所以 PR 合并后描述会立刻更新，版本却可能停在上一次 scheduled 构建的结果。当天排查发现它的
+scheduled 构建从 2026-11-21T02:28Z 起一直 `in_progress`（未被判定失败），版本因此停在 2.1.1。
+核对方式：`gh run list -R awesome-dsh-plugin/awesome-dsh-plugin --workflow build-site.yml`；
+若 scheduled 长期挂起，条目仍在（旧 index 继续服务），只是版本/统计不新——这不是我们的发布故障，
+不要因此重复发版。
 
 另：DSH/pnpm 的供应链策略有最小发布年龄（`minimumReleaseAge`），刚发布的版本在普通用户机器上可能
 一天内装不到；`dsh plugin add dsh-injection-manager@X.Y.Z` 显式钉版本会放行。这是策略行为，不是故障。
