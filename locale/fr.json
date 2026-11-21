@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "L’hôte ne fournit pas de formulaire de configuration ; les valeurs ci-dessous sont les valeurs effectives actuelles (lecture seule).",
     "settingsCard.foot": "Modifier ici revient à modifier la configuration du plugin ; l’effet est immédiat, sans redémarrage.",
     "openPanel": "Ouvrir le panneau",
-    "settingsCard.writeFailed": "Enregistrement impossible : l’hôte a refusé l’écriture."
+    "settingsCard.writeFailed": "Enregistrement impossible : l’hôte a refusé l’écriture.",
+    "feedback": "Retour",
+    "feedbackHint": "Uniquement versions, enregistrement des slots et comptes de politique — aucun chemin ni contenu de conversation.",
+    "copyDiagnostics": "Copier le diagnostic",
+    "reportIssue": "Signaler un problème",
+    "diagCopied": "Diagnostic copié. Collez-le dans l’issue.",
+    "diagCopyFailed": "Copie impossible ; ouvrez l’issue GitHub et collez-le manuellement."
   }
 }

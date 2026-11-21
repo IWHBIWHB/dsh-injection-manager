@@ -33,7 +33,8 @@
   "scripts": {
     "test": "node --test",
     "smoke": "node scripts/smoke.mjs",
-    "audit": "node scripts/self-audit.mjs"
+    "audit": "node scripts/self-audit.mjs",
+    "release": "node scripts/release.mjs"
   },
   "engines": {
     "node": ">=20",

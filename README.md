@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -364,6 +364,23 @@ Uninstall: remove the plugin like any other; the policy, stats and event files s
 
 Version support and required APIs: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
+## Feedback
+
+The plugin ships a feedback row in **Settings → Feedback**: "Copy diagnostics" copies a sanitized
+report (versions, slot registration, policy counts — no paths, session ids or conversation text) and
+"Report a problem" opens the bug template with that report prefilled. A report includes the same
+facts as `GET /plugins/dsh-injection-manager/diag?report=1`, which you can also fetch yourself.
+
+If the panel is not reachable, open an issue with the template and paste the output of:
+
+```powershell
+dsh --version
+dsh plugin --profile desktop list | Select-String injection-manager
+```
+
+What helps most: expected vs actual numbers, the switches involved, and whether the session was
+created before or after the policy change. Details: [docs/FEEDBACK.md](docs/FEEDBACK.md).
+
 ## Plugin configuration
 
 The three presentation options are editable in **Settings → General → "Context injection"** (and,
@@ -439,6 +456,8 @@ The 设置 tab exposes the same verification behind a button.
 - [Decisions](docs/DECISIONS.md): why the right sidebar replaced `sidebar.panel`, why the settings card writes volatile Config, why the conversation tab is read-only
 - [RSI](docs/RSI.md): the repeatable self-audit loop this project uses between releases
 - [Self-assessment](docs/SELF-ASSESSMENT.md): this release scored against the project's own quality gates, with gaps stated
+- [GAPS ledger](docs/GAPS.md): every number on the honesty page with its current value, target and evidence
+- [Feedback](docs/FEEDBACK.md): what to include in a report, what the diagnostics contain, and how we respond
 - [Distribution](docs/DISTRIBUTION.md) (Chinese): the three standard channels (GitHub Release, npm, awesome-dsh-plugin), what each release must do, what the catalog refreshes by itself, and how to roll back
 - [FAQ](docs/FAQ.md): why `AGENTS.md` cannot be switched off, what the content drawer reads, relation to `dsh-context`
 - [Compatibility](docs/COMPATIBILITY.md): tested versions (0.2.2-rc.1 CLI, 0.2.2-rc.5 Desktop), required APIs, upgrade checks

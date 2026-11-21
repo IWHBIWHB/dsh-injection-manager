@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -394,6 +394,12 @@ statistiques et d’événements restent dans `$DSH_HOME/injection-manager/` (su
 pour repartir de zéro).
 
 Versions prises en charge et API requises : [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+## Retour
+
+Réglages → Retour : **Copier le diagnostic** place un rapport nettoyé dans le presse-papiers (si le navigateur le bloque, une zone de texte sélectionnable s’ouvre) ; **Signaler un problème** ouvre le modèle de bug avec le diagnostic prérempli. Le rapport ne contient que versions, enregistrement des slots et comptes de politique — aucun chemin, id de session ni contenu de conversation ; sinon `GET /plugins/dsh-injection-manager/diag?report=1`.
+
+Sans panneau : joindre `dsh --version`, `dsh plugin --profile desktop list | Select-String injection-manager` et les 30 dernières lignes du journal de démarrage. Détails : [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 ## Configuration du plugin
 

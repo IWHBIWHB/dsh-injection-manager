@@ -6,6 +6,20 @@
 2.3.0 把「同一件事的五个入口」补齐，工程与文档证据完整。没到「官方推荐」那一档的原因不在代码，
 在于外部反馈、社区证明与发布动作——最后一节直说。
 
+## 2.3.1 更新（2026-11-21）
+
+**总分：8.8 / 10。** 这一版只做「缩短差距」的四件事，不扩功能面：
+
+| 差距 | 之前 | 现在 | 证据 |
+| --- | --- | --- | --- |
+| 旧宿主验证 | 0.2.0/0.2.1 标「预期可用」 | **四个版本真机通过**：0.2.0-rc.1、0.2.1-rc.5、0.2.2-rc.1、0.2.2-rc.5 | `docs/COMPATIBILITY.md`；修复 `workingDirectory` 硬依赖与旧 CLI 版本识别（`lib/snapshot.js`、`lib/hostinfo.js`） |
+| 外部反馈通道 | 只有 issue 模板 | 设置页内「复制诊断 / 报告问题」，诊断脱敏、浏览器拦截剪贴板时可手动复制；`/diag?report=1` 可脚本取 | `client.js` 反馈行、`lib/diagnostics.js`、`docs/FEEDBACK.md`；面板实测：复制 536 字符、无路径、issue 预填成功 |
+| 发布节奏 | 9 个 tag，手工 bump | `scripts/release.mjs` 一条命令（CI 同门槛 + 版本 + tag），节奏写进 SOP；2.3.1 起按 patch 每周 / minor 2–4 周走 | `scripts/release.mjs`、`docs/DISTRIBUTION.md` §4；tag `v2.3.1` |
+| 目录收录数字 | 记录为 0 | **已收录 1**（awesome-dsh-plugin `data/plugins/IWHBIWHB__dsh-injection-manager.yml`，分类 usage）；描述/图标更新 PR #17255 待合并 | `docs/GAPS.md` |
+
+仍然为 0、且不能靠代码解决的：**真实用户反馈**（通道已建，等外部使用）、**官方市场收录**（官方市场
+未上线，无提交入口）。这两项如实留在 `docs/GAPS.md`。
+
 ## 产品层
 
 | 门槛 | 分 | 证据 | 差距 |

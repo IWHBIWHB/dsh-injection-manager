@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.zh.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -315,6 +315,12 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 版本兼容与依赖接口见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。
 
+## 反馈
+
+面板 → 设置 → 最下面的「反馈」一行：**复制诊断** 把一份脱敏报告放进剪贴板（被浏览器拦住时会展开可手动复制的文本框），**报告问题** 直接打开 bug 模板并预填诊断。诊断只含版本、槽位注册与策略计数，不含路径、会话 id 和对话内容；也可以自己取 `GET /plugins/dsh-injection-manager/diag?report=1`。
+
+面板不可用时，贴出 `dsh --version`、`dsh plugin --profile desktop list | Select-String injection-manager` 和启动日志末尾 30 行。详细要求见 [docs/FEEDBACK.md](docs/FEEDBACK.md)。
+
 ## 插件设置
 
 三个呈现选项可以在 **设置 → 通用设置 →「上下文注入管理」** 里直接改（宿主流提供插件配置表单时，
@@ -383,6 +389,8 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
   Config、会话标签页为什么只读
 - [RSI](docs/RSI.md)：这个项目在版本之间用的可重复自审循环
 - [自评](docs/SELF-ASSESSMENT.md)：对照本项目质量门槛给这一版打分，差距直说
+- [差距台账](docs/GAPS.md)：诚实页上的每个数字，现值、目标、证据
+- [反馈](docs/FEEDBACK.md)：报告里该带什么、诊断包含什么、我们怎么处理
 - [分发 SOP](docs/DISTRIBUTION.md)：标准渠道（GitHub Release、npm、awesome 目录）、每次发版动作、目录自动更新的边界、回滚方式
 - [常见问题](docs/FAQ.md)：AGENTS.md 为什么关不掉、内容抽屉会读什么、和 dsh-context 的关系
 - [兼容性](docs/COMPATIBILITY.md)：已验证版本（0.2.2-rc.1 CLI、0.2.2-rc.5 Desktop）、依赖接口、升级排查

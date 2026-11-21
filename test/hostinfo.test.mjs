@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { compareVersions, hostInfo, resetHostInfoCache, TESTED_VERSION } from '../lib/hostinfo.js'
+import { compareVersions, findManifestNear, hostInfo, resetHostInfoCache, TESTED_VERSION } from '../lib/hostinfo.js'
 
 test('version comparison handles rc suffixes and missing parts', () => {
   assert.equal(compareVersions('0.2.2-rc.3', '0.2.2'), 0)
@@ -28,6 +28,40 @@ test('an install directory with a newer manifest is reported as supported', asyn
   await rm(root, { recursive: true, force: true })
   delete process.env.DSH_INSTALL_DIR
   resetHostInfoCache()
+})
+
+test('findManifestNear walks up to the launcher package', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-near-'))
+  const pkg = join(root, 'node_modules', '@deepseek-ai', 'dsh')
+  await mkdir(join(pkg, 'lib'), { recursive: true })
+  await writeFile(join(pkg, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', version: '0.2.1-rc.5' }))
+  const entry = join(pkg, 'lib', 'bin.js')
+  await writeFile(entry, '')
+  const found = findManifestNear(entry)
+  assert.equal(found.version, '0.2.1-rc.5')
+  assert.equal(found.source, pkg)
+  await rm(root, { recursive: true, force: true })
+})
+
+test('a launcher path identifies an old host without DSH_INSTALL_DIR', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-argv-'))
+  const pkg = join(root, 'node_modules', '@deepseek-ai', 'dsh')
+  await mkdir(join(pkg, 'lib'), { recursive: true })
+  await writeFile(join(pkg, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', version: '0.2.0-rc.1' }))
+  const entry = join(pkg, 'lib', 'bin.js')
+  await writeFile(entry, '')
+  const originalArgv = process.argv[1]
+  delete process.env.DSH_INSTALL_DIR
+  process.env.DSH_PROFILE_DIR = join(tmpdir(), 'no-profile-' + Date.now())
+  process.argv[1] = entry
+  resetHostInfoCache()
+  const info = hostInfo()
+  assert.equal(info.version, '0.2.0-rc.1')
+  assert.equal(info.supported, false, '0.2.0 is below the 0.2.2 full-feature target')
+  process.argv[1] = originalArgv
+  delete process.env.DSH_PROFILE_DIR
+  resetHostInfoCache()
+  await rm(root, { recursive: true, force: true })
 })
 
 test('an unknown host is reported as unknown, not guessed', async () => {

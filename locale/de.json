@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "Der Host bietet kein Konfigurationsformular; die Werte unten sind die aktuell wirksamen (nur lesend).",
     "settingsCard.foot": "Änderungen hier bearbeiten die Plugin-Konfiguration und gelten sofort, ohne Neustart.",
     "openPanel": "Panel öffnen",
-    "settingsCard.writeFailed": "Speichern fehlgeschlagen: der Host hat den Schreibvorgang nicht angenommen."
+    "settingsCard.writeFailed": "Speichern fehlgeschlagen: der Host hat den Schreibvorgang nicht angenommen.",
+    "feedback": "Feedback",
+    "feedbackHint": "Nur Versionen, Slot-Registrierungen und Richtlinien-Zahlen — keine Pfade oder Gesprächsinhalte.",
+    "copyDiagnostics": "Diagnose kopieren",
+    "reportIssue": "Problem melden",
+    "diagCopied": "Diagnose kopiert. Bitte in das Issue einfügen.",
+    "diagCopyFailed": "Kopieren fehlgeschlagen; bitte das GitHub-Issue öffnen und manuell einfügen."
   }
 }

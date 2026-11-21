@@ -23,6 +23,7 @@
     boot: BASE + '/boot',
     registrations: BASE + '/registrations',
     stats: BASE + '/stats',
+    diag: BASE + '/diag',
     // v2 read-only surfaces. All GET + JSON, same origin; the host owns every
     // number and every byte these return.
     content: BASE + '/content',
@@ -229,6 +230,12 @@
     'settingsCard.readOnly': '宿主没有提供配置表单；下面是当前生效值（只读）。',
     'settingsCard.writeFailed': '保存失败：宿主没有接受这次写入。',
     'settingsCard.foot': '改这里等于改插件配置；切换即时生效，不重启插件。',
+    feedback: '反馈',
+    feedbackHint: '只有版本、槽位注册与策略计数，不含路径和对话内容。',
+    copyDiagnostics: '复制诊断',
+    reportIssue: '报告问题',
+    diagCopied: '诊断已复制，可直接粘贴到 issue。',
+    diagCopyFailed: '复制失败：请手动打开 GitHub issue 粘贴。',
   }
 
   const NAMES_ZH = {
@@ -267,6 +274,34 @@
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     return response.json()
+  }
+
+  // Clipboard API needs a secure context; a hidden textarea keeps the copy
+  // working on plain-http hosts and older Edge builds.
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard !== undefined && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      /* fall through to execCommand */
+    }
+    try {
+      const area = document.createElement('textarea')
+      area.value = text
+      area.setAttribute('readonly', '')
+      area.style.position = 'fixed'
+      area.style.top = '-1000px'
+      area.style.opacity = '0'
+      document.body.appendChild(area)
+      area.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(area)
+      return ok === true
+    } catch {
+      return false
+    }
   }
 
   async function postJson(url, body) {
@@ -931,6 +966,8 @@ body[data-ds-dark-theme] .ci-root{
 .ci-cfg-lbl{min-width:0;font-size:13px;line-height:1.4;color:var(--ci-fg)}
 .ci-cfg-lbl .ci-cfg-hint{margin-top:2px}
 .ci-cfg-foot{font-size:11px;line-height:1.5;color:var(--ci-fg3)}
+.ci-feedback{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ci-feedback-manual{flex:1 1 100%;display:flex;flex-direction:column;gap:4px;min-width:0}
 /* Right-sidebar header: the host tab already carries the title and close. */
 .ci-head-slim{padding:10px 12px 8px;align-items:center;border-bottom:1px solid var(--ci-line2)}
 .ci-head-slim p{margin:0;font-size:11px;line-height:1.5;color:var(--ci-fg3);max-width:none}
@@ -3950,6 +3987,8 @@ body[data-ds-dark-theme] .ci-root{
         // Settings → General row; both read the same field.
         const dockOn = !(snapshot.settings && snapshot.settings.dock === false)
         const dockWritable = configFormsRef.current !== null && typeof configFormsRef.current.get === 'function'
+        const [feedbackBusy, setFeedbackBusy] = useState(false)
+        const [diagnostics, setDiagnostics] = useState(null)
         const [pendingPreset, setPendingPreset] = useState(null)
         const [open, setOpen] = useState('')
         const [prefix, setPrefix] = useState(policy.prompt.prefix)
@@ -3979,6 +4018,55 @@ body[data-ds-dark-theme] .ci-root{
           void writeConfigField('dock', visible).then((ok) => {
             if (ok !== true) notify({ kind: 'error', text: `${t('failed')}：dock` })
           })
+        }
+
+        // Feedback: the diagnostics report is generated on the host from the same
+        // /diag facts but stripped of paths and session ids (lib/diagnostics.js),
+        // so it is safe to paste into a public issue. One click copies it, the
+        // other opens the bug template with it prefilled.
+        const loadDiagnostics = async () => {
+          const payload = await getJson(ROUTES.diag + '?report=1')
+          return payload !== null && typeof payload === 'object' && typeof payload.report === 'string' ? payload.report : ''
+        }
+        const copyDiagnostics = async () => {
+          setFeedbackBusy(true)
+          try {
+            const report = await loadDiagnostics()
+            const ok = await copyToClipboard(report)
+            if (ok === true) {
+              setDiagnostics(null)
+              notify({ kind: 'ok', text: t('diagCopied') })
+            } else {
+              // Clipboard writes can be blocked by browser focus/permission
+              // policy; show the report so the user can still select and copy it.
+              setDiagnostics(report)
+              notify({ kind: 'error', text: t('diagCopyFailed') })
+            }
+          } catch {
+            notify({ kind: 'error', text: t('diagCopyFailed') })
+          } finally {
+            setFeedbackBusy(false)
+          }
+        }
+        const reportIssue = async () => {
+          setFeedbackBusy(true)
+          try {
+            let report = ''
+            try {
+              report = await loadDiagnostics()
+            } catch {
+              /* still open the issue without the diagnostics */
+            }
+            const body = `${report}\n\n<!-- 上面是自动生成的诊断；可直接在这里补充复现步骤。 -->`
+            const url =
+              'https://github.com/IWHBIWHB/dsh-injection-manager/issues/new?template=bug_report.md&title=' +
+              encodeURIComponent('[bug] ') +
+              '&body=' +
+              encodeURIComponent(body)
+            window.open(url, '_blank', 'noopener')
+          } finally {
+            setFeedbackBusy(false)
+          }
         }
 
         const choosePreset = (name, label) => {
@@ -4185,6 +4273,37 @@ body[data-ds-dark-theme] .ci-root{
               ),
             ),
           ),
+          h(
+            'div',
+            { className: 'ci-setrow' },
+            h('span', { className: 'k' }, t('feedback')),
+            h(
+              'span',
+              { className: 'v ci-feedback' },
+              h('button', { type: 'button', className: 'ci-btn', disabled: feedbackBusy, onClick: copyDiagnostics, title: t('feedbackHint') }, t('copyDiagnostics')),
+              h('button', { type: 'button', className: 'ci-btn', disabled: feedbackBusy, onClick: reportIssue, title: t('feedbackHint') }, t('reportIssue')),
+            ),
+          ),
+          diagnostics === null
+            ? null
+            : h(
+                'div',
+                { className: 'ci-setrow ci-setrow-full' },
+                h(
+                  'div',
+                  { className: 'ci-feedback-manual' },
+                  h('div', { className: 'hint' }, t('diagCopyFailed')),
+                  h('textarea', {
+                    className: 'ci-input',
+                    rows: 7,
+                    readOnly: true,
+                    value: diagnostics,
+                    onFocus: (event) => event.target.select(),
+                    style: { width: '100%', resize: 'vertical', fontFamily: 'ui-monospace,Consolas,monospace', fontSize: '11px' },
+                    'aria-label': t('copyDiagnostics'),
+                  }),
+                ),
+              ),
           open === 'details'
             ? h(
                 'div',

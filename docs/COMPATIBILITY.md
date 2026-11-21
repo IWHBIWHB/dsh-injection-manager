@@ -6,13 +6,25 @@
 
 | dsh 版本 | 环境 | 结果 | 验证方式 |
 | --- | --- | --- | --- |
-| `0.2.2-rc.5` | **Desktop**：独立 QA 实例（profile `v2qa`，49811；直接以 Desktop 自带 CLI 启动，不碰用户 GUI） | 通过 | 2.3.0 五入口探针 **16/16**：面板页、会话标签页、右侧栏面板、设置→通用设置偏好行、配置写入回读；0 console error |
+| `0.2.2-rc.5` | **Desktop**：独立 QA 实例（profile `v2qa`，49811；直接以 Desktop 自带 CLI 启动，不碰用户 GUI） | 通过 | 2.3.1 五入口探针 **16/16**：面板页、会话标签页、右侧栏面板、设置→通用设置偏好行、配置写入回读、诊断复制/上报；0 console error |
 | `0.2.2-rc.1` | **CLI**：临时 profile `v2qa` 起的独立 `dsh web` 实例（49801），不碰 Desktop 实例 | 通过 | 2.3.0 五入口探针 **15/15**（该宿主无 tokenMeter，窗口占用显示「窗口未知」）；Playwright 全流程 + 四条 v2 路由探针 |
 | `0.2.2-rc.3` | **Desktop**：用户真实 profile（49711） | 通过 | 真实会话：`/verify` 重新装配、`/diag` 过滤器计数、子智能体实测工具集（2.2.0 轮） |
-| `0.2.2-rc.2` | — | 未验证 | — |
-| `0.2.1` / `0.2.0` | — | 未验证 | 旧版 `dsh-context-preflight` 曾在早期版本上运行，但注入过滤改用 `system-prompt/assemble` 后未复测；右侧栏入口在这类宿主上走 `sidebar.panel` 兜底，未真机确认 |
+| `0.2.1-rc.5` | **CLI**：独立 install（`npm i @deepseek-ai/dsh@0.2.1-rc.5`）+ 隔离 `DSH_HOME` 起的 `dsh web`（49822），插件从 npm 安装 | 通过（读取面 + 策略写入） | 2.3.1 探针：插件激活、`/summary` `apiVersion: 2`、`/diag.host = 0.2.1-rc.5`、preset 写入落盘（`all → minimal` 再恢复）、诊断报告无路径、0 console error；UI boot `slots-registered` |
+| `0.2.0-rc.1` | **CLI**：独立 install（`npm i @deepseek-ai/dsh@0.2.0-rc.1`）+ 隔离 `DSH_HOME` 起的 `dsh web`（49821） | 通过（读取面 + 策略写入） | 2.3.1 探针同上；该版本没有 `workingDirectory` 服务，2.3.1 的 `resolveCwd()` 回退链路是修复点（见 CHANGELOG） |
+| `0.2.2-rc.2` / `-rc.4` | — | 未单独验证 | 与 rc.1/rc.3/rc.5 同代接口；如需可复用同一套 CLI 脚本逐个跑 |
+| `0.2.1` / `0.2.0` 的其余 rc | — | 未逐个验证 | 头尾两个 rc 已测（0.2.0-rc.1、0.2.1-rc.5）；中间 rc 视同同代 |
 
-运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR` 的 `package.json`，或 profile 里的 `@deepseek-ai/dsh`），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。版本读取在桌面 rc.3/rc.5 与 CLI rc.1 两个真实宿主里都验证过（`hostinfo`），`/diag` 的 `host` 字段给出实际读到的版本与来源。
+旧宿主上的降级（0.2.0 / 0.2.1，已实测）：
+
+| 能力 | 0.2.2 上 | 0.2.1-rc.5 / 0.2.0-rc.1 上 |
+| --- | --- | --- |
+| 准入栅栏 `connection.requestRejection` | 有 | **没有**：路由跳过栅栏（宿主也没有该服务，风险与 2.0.0 相同） |
+| 窗口占用 `tokenMeter` | 有 | **没有**：窗口显示「窗口未知」 |
+| 右侧栏 `sidebarRightTabs` | 有 | **没有**：走旧 `sidebar.panel` 兜底（该槽在这两代存在） |
+| 设置 → 通用设置偏好行 `configForms` | 有 | **没有**：偏好行不出现/只读；徽标由默认值控制 |
+| 模板/入口槽 | 五入口 | 面板、内容抽屉、`/inject`、工具、右侧栏兜底可用；会话标签页与设置行是否渲染取决于该 rc 的槽声明 |
+
+运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR`、launcher 入口 `process.argv[1]` 的 `@deepseek-ai/dsh`、或 profile 里的依赖），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。`/diag` 的 `host` 字段给出实际读到的版本与来源，`host.version` 在旧 CLI 宿主上也能正确读出（2.3.1 起）。
 
 ## 五个入口的宿主依赖（2.3.0）
 

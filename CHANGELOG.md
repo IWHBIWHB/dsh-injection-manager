@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.3.1 — 2026-11-21
+
+### Fixed
+
+- **DSH 0.2.0 hosts activate again.** `workingDirectory` was a hard dependency and that service
+  only exists from 0.2.1 on, so 0.2.0-rc.1 reported `pending (waiting for service:
+  workingDirectory)` and the plugin never started. It is now optional: `resolveCwd()` tries the
+  working-directory service, the 0.2.0 workspace registry, the agent/session header, then
+  `process.cwd()`. Verified on 0.2.0-rc.1 and 0.2.1-rc.5: the plugin activates, `/summary` answers
+  with `apiVersion: 2`, preset writes persist, and the panel boots with zero console errors.
+- **Host version is detected on old CLI installs.** 0.2.0/0.2.1 do not set `DSH_INSTALL_DIR` and
+  their profile does not depend on `@deepseek-ai/dsh`, so `/diag.host` used to be `null` there.
+  `hostInfo()` now also walks up from the launcher entry (`process.argv[1]`), and the compatibility
+  line in the panel shows the real version.
+
+### Added
+
+- **Feedback row in Settings.** "Copy diagnostics" copies a sanitized report — versions, slot
+  registration, policy counts; no paths, session ids or conversation text
+  (`lib/diagnostics.js`) — and falls back to a selectable textarea when the browser blocks clipboard
+  writes. "Report a problem" opens the bug template prefilled with that report.
+- `GET /diag?report=1` exposes the same sanitized report for scripts and issue templates.
+- **`node scripts/release.mjs`**: one command runs the same gates as CI, bumps `package.json`,
+  commits only the version + changelog, and creates the annotated tag (`--dry-run` validates first).
+- `docs/GAPS.md`: the honesty ledger (current value, target, action, evidence) for market listing,
+  external feedback, release cadence and host coverage.
+
+### Verification
+
+- 231 tests / 0 fail; self-audit 100/100.
+- Old hosts: 0.2.0-rc.1 and 0.2.1-rc.5 installed from npm into isolated homes; plugin activates,
+  `/summary` returns `apiVersion: 2`, preset write persists, diagnostics report works, no console
+  errors.
+- Feedback: row renders in all eight locales; copy produces a 536-character report without paths;
+  issue popup carries template and body; the 16/16 entry probe still passes on 0.2.2-rc.5.
+
 ## 2.3.0 — 2026-11-20
 
 Five entry points, one snapshot. The panel already told one story; the conversation, the right sidebar

@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -373,6 +373,12 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 ください）。
 
 バージョンサポートと必要な API：[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。
+
+## フィードバック
+
+設定 → フィードバック：**診断をコピー** でサニタイズ済みレポートをクリップボードへ（ブラウザに拒否された場合は選択可能なテキスト欄が開きます）。**問題を報告** は診断を記入済みのバグテンプレートを開きます。レポートはバージョン、スロット登録、ポリシー件数のみで、パス・セッション ID・会話内容は含みません。`GET /plugins/dsh-injection-manager/diag?report=1` から直接取得もできます。
+
+パネルが開けない場合：`dsh --version`、`dsh plugin --profile desktop list | Select-String injection-manager`、起動ログの末尾 30 行を添えてください。詳細：[docs/FEEDBACK.md](docs/FEEDBACK.md)。
 
 ## プラグイン設定
 

@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "宿主没有提供配置表单；下面是当前生效值（只读）。",
     "settingsCard.foot": "改这里等于改插件配置；切换即时生效，不重启插件。",
     "openPanel": "打开面板",
-    "settingsCard.writeFailed": "保存失败：宿主没有接受这次写入。"
+    "settingsCard.writeFailed": "保存失败：宿主没有接受这次写入。",
+    "feedback": "反馈",
+    "feedbackHint": "只有版本、槽位注册与策略计数，不含路径和对话内容。",
+    "copyDiagnostics": "复制诊断",
+    "reportIssue": "报告问题",
+    "diagCopied": "诊断已复制，可直接粘贴到 issue。",
+    "diagCopyFailed": "复制失败：请手动打开 GitHub issue 粘贴。"
   }
 }

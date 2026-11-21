@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "ホストが設定フォームを提供していません。以下は現在の有効値です（読み取り専用）。",
     "settingsCard.foot": "ここでの変更はプラグイン設定を編集し、再起動なしで即時反映されます。",
     "openPanel": "パネルを開く",
-    "settingsCard.writeFailed": "保存できませんでした：ホストが書き込みを受け付けませんでした。"
+    "settingsCard.writeFailed": "保存できませんでした：ホストが書き込みを受け付けませんでした。",
+    "feedback": "フィードバック",
+    "feedbackHint": "バージョン、スロット登録、ポリシー件数のみ。パスや会話内容は含みません。",
+    "copyDiagnostics": "診断をコピー",
+    "reportIssue": "問題を報告",
+    "diagCopied": "診断をコピーしました。issue に貼り付けてください。",
+    "diagCopyFailed": "コピーに失敗しました。GitHub issue を開いて手動で貼り付けてください。"
   }
 }

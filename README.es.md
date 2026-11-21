@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -387,6 +387,12 @@ Desinstalar: quitar el plugin como cualquier otro; los archivos de política, es
 permanecen en `$DSH_HOME/injection-manager/` (borrar ese directorio para empezar de cero).
 
 Compatibilidad de versiones y API necesarias: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+## Comentarios
+
+Ajustes → Comentarios: **Copiar diagnóstico** deja un informe saneado en el portapapeles (si el navegador lo bloquea, aparece un área de texto seleccionable); **Informar de un problema** abre la plantilla de bug con el diagnóstico ya rellenado. El informe solo incluye versiones, registro de slots y recuentos de política — sin rutas, ids de sesión ni contenido de conversación; también puedes pedir `GET /plugins/dsh-injection-manager/diag?report=1`.
+
+Sin panel: adjunta `dsh --version`, `dsh plugin --profile desktop list | Select-String injection-manager` y las últimas 30 líneas del log de arranque. Detalles: [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 ## Configuración del plugin
 

@@ -111,6 +111,27 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
   并发 GitHub Release；GitHub CI 与 release 两条 workflow 均 success；npm 安装路径在干净 profile
   实测五入口 16/16。
 
+## 2026-11-21 这一轮（2.3.1：缩短差距）
+
+- 起点：一页「差距/诚实」把五个数字摆出来——精选目录 0、外部 issue 0、tag 9、真机宿主 2 代、
+  自评 8.6。这一轮不扩功能面，只处理能靠代码/流程消掉的差距。
+- 选中并解决：
+  - **旧宿主**：0.2.0-rc.1 上插件因 `workingDirectory` 是硬依赖而永不激活（`pending`），
+    0.2.1-rc.5 虽能启但 `/diag.host` 是 null（旧 CLI 不设 `DSH_INSTALL_DIR`、profile 也不依赖
+    `@deepseek-ai/dsh`）。改成可选服务 + 回退链路 + 从 `process.argv[1]` 识别版本；两代宿主
+    从 npm 装进隔离 home 实测：激活、`/summary apiVersion 2`、preset 写入落盘、诊断报告、0 console error。
+  - **反馈通道**：设置页内「复制诊断 / 报告问题」，诊断走新的 `lib/diagnostics.js`（只留版本、
+    槽位注册、策略计数，去掉路径/会话 id/对话），浏览器拦剪贴板时展开可选中文本；`/diag?report=1`
+    给脚本用。实测复制 536 字符、无路径、issue 模板+正文预填。
+  - **发布节奏**：`scripts/release.mjs` 把 CI 同款门槛、bump、commit、tag 收成一条命令；SOP 固定
+    patch 每周 / minor 2–4 周；2.3.1 为第一笔。
+  - **目录事实**：awesome-dsh-plugin 条目其实早已存在（此前记录为 0 是旧快照），PR #17255 更新
+    描述与图标，CI pass、等合并。
+- 结果：231 测试 / 0 fail；自审 100/100；tag 10；自评 8.6 → 8.8。外部 issue 仍为 0——这条只能
+  等真实用户，通道已经降到一键。
+- 证据：`docs/COMPATIBILITY.md`、`docs/GAPS.md`、`docs/FEEDBACK.md`、`scripts/release.mjs`、
+  `_research/verify/probe-old-actions.mjs`（开发机）。
+
 ## 下一轮候选（backlog）
 
 - 发布与收录：npm 2.3.0 + GitHub release + 官方精选目录条目（本轮备好 `market-entry.yml`）。

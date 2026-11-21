@@ -75,11 +75,13 @@ export const Config =
       })
 
 // Hard dependencies: the tool needs the registry, the snapshot needs the prompt
-// registry, skills and the working directory, the panel needs a web server, and
-// the routes need to resolve a live agent. `webServer` must be declared here
-// rather than fetched with ctx.get(): during early boot it is undefined and the
-// routes would silently never register.
-export const inject = ['tools', 'systemPrompt', 'skills', 'workingDirectory', 'agents', 'webServer', 'commands']
+// registry, skills and the agent boundary, the panel needs a web server, and the
+// routes need a live agent. `webServer` must be declared here rather than
+// fetched with ctx.get(): during early boot it is undefined and the routes would
+// silently never register. `workingDirectory` is deliberately NOT here: it
+// arrived after 0.2.0-rc.1, and lib/snapshot.js resolves the cwd through
+// optional services so the plugin still activates on 0.2.0 hosts.
+export const inject = ['tools', 'systemPrompt', 'skills', 'agents', 'webServer', 'commands']
 
 const TOOL_NAME = 'context_injection'
 

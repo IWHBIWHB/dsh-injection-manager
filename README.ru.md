@@ -3,7 +3,7 @@
 [![ci](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/IWHBIWHB/dsh-injection-manager/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-4d6bfe.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/dsh-injection-manager.svg)](https://www.npmjs.com/package/dsh-injection-manager)
-[![dsh](https://img.shields.io/badge/dsh-0.2.2--rc.5%2B-18181b.svg)](docs/COMPATIBILITY.md)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0%2B-18181b.svg)](docs/COMPATIBILITY.md)
 [![languages](https://img.shields.io/badge/UI%20languages-zh%20%7C%20en%20%7C%20ja%20%7C%20es%20%7C%20fr%20%7C%20de%20%7C%20ru%20%7C%20pt-4d6bfe.svg)](docs/DETAIL.md)
 
 [English](README.md) · [简体中文](README.zh.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [Português](README.pt.md) · [Русский](README.ru.md)
@@ -376,6 +376,12 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 `$DSH_HOME/injection-manager/` (для чистого старта этот каталог удаляется).
 
 Поддерживаемые версии и требуемые API: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+## Обратная связь
+
+Настройки → Обратная связь: **Скопировать диагностику** кладёт очищенный отчёт в буфер обмена (если браузер блокирует — откроется текстовое поле для ручного копирования); **Сообщить о проблеме** открывает шаблон бага с уже заполненной диагностикой. В отчёте только версии, регистрация слотов и счётчики политики — без путей, id сеансов и текста диалога; также можно запросить `GET /plugins/dsh-injection-manager/diag?report=1`.
+
+Без панели: приложите `dsh --version`, `dsh plugin --profile desktop list | Select-String injection-manager` и последние 30 строк лога запуска. Подробнее: [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 ## Конфигурация плагина
 

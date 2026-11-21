@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "O host não oferece formulário de configuração; os valores abaixo são os efetivos atuais (somente leitura).",
     "settingsCard.foot": "Alterar aqui edita a configuração do plugin e aplica na hora, sem reiniciar.",
     "openPanel": "Abrir painel",
-    "settingsCard.writeFailed": "Não foi possível salvar: o host não aceitou a gravação."
+    "settingsCard.writeFailed": "Não foi possível salvar: o host não aceitou a gravação.",
+    "feedback": "Feedback",
+    "feedbackHint": "Apenas versões, registro de slots e contagens de política — sem caminhos nem conteúdo de conversa.",
+    "copyDiagnostics": "Copiar diagnóstico",
+    "reportIssue": "Relatar um problema",
+    "diagCopied": "Diagnóstico copiado. Cole no issue.",
+    "diagCopyFailed": "Não foi possível copiar; abra o issue no GitHub e cole manualmente."
   }
 }

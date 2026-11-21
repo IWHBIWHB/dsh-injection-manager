@@ -428,6 +428,12 @@
     "settingsCard.readOnly": "The host does not serve a config form; the values below are the current effective ones (read-only).",
     "settingsCard.foot": "Changing these edits the plugin configuration and applies immediately, without a restart.",
     "openPanel": "Open panel",
-    "settingsCard.writeFailed": "Could not save the preference: the host did not accept the write."
+    "settingsCard.writeFailed": "Could not save the preference: the host did not accept the write.",
+    "feedback": "Feedback",
+    "feedbackHint": "Versions, slot registration and policy counts only — no paths or conversation text.",
+    "copyDiagnostics": "Copy diagnostics",
+    "reportIssue": "Report a problem",
+    "diagCopied": "Diagnostics copied; paste them into the issue.",
+    "diagCopyFailed": "Could not copy; open the GitHub issue and paste manually."
   }
 }

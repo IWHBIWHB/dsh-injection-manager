@@ -21,6 +21,23 @@
 官方 Discover（通过 catalog index）都会自动跟上；不存在一个需要单独提交的「官方插件市场」入口
 （官方文档明确 `DSH ships no index source`，官方市场在路线图里，落地前以上面三件为准）。
 
+### 市场可见性验收（发版后 5 分钟）
+
+「发出去」和「看得见」是两件事，发版后要查后者：
+
+1. **npm**：`npm view dsh-injection-manager version` 等于本次版本。
+2. **目录数据**：dsh-market 与官方 Discover 共用 awesome 目录的 `plugins.json`；条目里 `npm` 映射的
+   `version` 才是市场显示的版本。`probe-npm.mjs` 每晚全量刷新，**发布当天大概率还是上一个版本**
+   （2026-11-21 实测：2.3.0 发布约 5 小时后目录仍显示 2.1.1，下一次夜间构建才更新）。
+3. **官方 catalog index**：`npm pack dsh-plugin-catalog` 解包后 `index.json` 里搜本包名；同样由夜间
+   构建生成。
+4. **描述/图标/分类**：只有 awesome PR 合并后重建才变；**截图**由目录的夜间探针从本仓库
+   `screenshots.json` 抓，最多晚一天生效。这些都**不需要**再发版。
+
+另：DSH/pnpm 的供应链策略有最小发布年龄（`minimumReleaseAge`），刚发布的版本在普通用户机器上可能
+一天内装不到；`dsh plugin add dsh-injection-manager@X.Y.Z` 显式钉版本会放行。这是策略行为，不是故障。
+所以 SOP 里固定一条：**发版后第 2 天复查一次市场版本**。
+
 ## 2. 每次发版 SOP
 
 ### T-3 天：准备
@@ -39,12 +56,12 @@
 
 ```powershell
 cd D:\DSH\dsh-injection-manager
-git add <显式文件>
-git commit -m "feat: ... (X.Y.Z)"
-# 本机 github.com:443 不通时用 Git Data API 推送：node _research/release/push-via-api.mjs
+# CHANGELOG 先写好 ## X.Y.Z 一节（脚本拒绝编造 release notes）
+node scripts/release.mjs X.Y.Z --dry-run   # 校验版本/tag/changelog
+node scripts/release.mjs X.Y.Z             # 跑测试+自审+smoke，bump，commit，打 tag
 git push origin master
-git tag vX.Y.Z
-git push origin vX.Y.Z          # 触发 release workflow
+git push origin vX.Y.Z                     # 触发 release workflow
+# github.com:443 不通时：node _research/release/push-via-api.mjs（推 commit+tag）
 ```
 
 CI 会：校验 tag 与 `package.json` 版本一致 → 跑测试 → `npm publish --provenance` → 建 GitHub Release。
@@ -75,27 +92,27 @@ CI 会：校验 tag 与 `package.json` 版本一致 → 跑测试 → `npm publi
 | 描述 / 分类 / 仓库 url / name / icon / 移除条目 | 要，一个只改 `data/plugins/IWHBIWHB__dsh-injection-manager.yml` 的 PR | 合并后下一次构建 |
 | 包名或安装方式 | 要（条目里的 npm/发行包字段） | 合并后 |
 
-## 4. 版本与节奏（建议固定）
+## 4. 版本与节奏（固定约定）
 
-- **patch**：修 bug/文档也能周一发；**minor**：功能攒 2–4 周一次；**major**：尽量少，提前在 CHANGELOG
-  写迁移说明。
-- 目录元数据每季度审计一次（描述是否还准、分类是否还贴切、图标/截图是否过期）。
-- 每次发版后在 `docs/RSI.md` 记一行（本轮固定动作），发版记录就是下一轮自评的输入。
+- **patch**：有真实修复就发，至少每周一次；**minor**：功能攒 2–4 周；**major**：破坏策略文件/路由
+  契约才发，提前在 CHANGELOG 写迁移说明。
+- 每次发版同时留下 CHANGELOG 与验证记录（`docs/RSI.md` 一行、`docs/GAPS.md` 的数字若变则同步）。
+- 目录元数据（描述/分类/图标/截图）每季度审计一次。
+- 发布统一走 `node scripts/release.mjs`，不再手工改版本号和 `git tag`；脚本跑的是 CI 同款门槛。
 
-## 5. 当前状态（2026-11-20）
+## 5. 当前状态（2026-11-21）
 
 | 项 | 状态 |
 | --- | --- |
-| npm | `dsh-injection-manager@2.3.0` 为 latest（provenance 已签） |
-| GitHub | tag `v2.3.0` + Release + tgz 附件；CI/release 两条 workflow success |
-| 目录条目 | 已在 `data/plugins/IWHBIWHB__dsh-injection-manager.yml`（分类 usage）；描述/图标更新 PR #17255 已开、CI pass、等维护者合并 |
-| 截图 | 8 张已重拍（0.2.2-rc.5 隔离实例），`screenshots.json` 合法（1-8 张） |
+| npm | `dsh-injection-manager@2.3.1` 为 latest（provenance 已签） |
+| GitHub | tag `v2.3.1` + Release；CI/release 两条 workflow success；累计 tag 10 个 |
+| 目录条目 | `data/plugins/IWHBIWHB__dsh-injection-manager.yml`（分类 usage）；描述/图标更新 PR #17255 已开、CI pass、等维护者合并 |
+| 截图 | 8 张（0.2.2-rc.5 隔离实例重拍），`screenshots.json` 合法 |
 | 图标 | `docs/images/icon-180.png`（180×180 PNG，raw 200） |
-| 待办 | 自建 index.json（可选）、次级学习列表（可选）、官方市场落地后复核 |
+| 真机矩阵 | 0.2.0-rc.1 / 0.2.1-rc.5 / 0.2.2-rc.1 / 0.2.2-rc.5，证据见 COMPATIBILITY |
 
-## 6. 需要拍板的三件事
+## 6. 需要拍板的两件事
 
 1. **要不要自建 index.json**：做了的话用户可以在官方 Discover 里直接加我们的索引；不做就依赖
    dsh-market + catalog index。默认建议：先不做，等官方市场正式发布再评估。
 2. **次级 awesome 列表要不要投**：曝光有限，建议不做，除非有人主动收录。
-3. **发布节奏**：建议 patch 随时、minor 每 2-4 周；确认后写进本文件第 4 节并当作约定。
