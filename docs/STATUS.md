@@ -18,7 +18,8 @@
 | --- | --- | --- |
 | npm 周下载 | **1,456**（2026-11-13~19） | `api.npmjs.org/downloads`；含 CI、重复安装与镜像，不等于独立用户数 |
 | GitHub 克隆（14 天） | 511 次 / 178 唯一 | 可能含 CI 与自动化 |
-| 外部反馈 | **0** | 已公开发 3 个试用邀请帖，等待回复 |
+| 第三方验证 | dsh.so：**L5 · runtime verified / LowRisk / Gold Trust** | artifact 2.1.1 on dsh 0.2.2-rc.3；2.3.1 复核 ticket #01a1fdf4-2ee5-7a3a-b02d-d64bc6cc3e6e；独立社区站，不等于官方背书 |
+| 外部反馈 | **0** | 已公开发 4 个邀请/提问帖 + 1 条兼容性数据回复，等待回复 |
 
 ## 2. 当前发布
 
@@ -40,9 +41,10 @@
 - **DSH Registry（`dsh-pluginmarket/metadata`）**：bot 于 11-16 自动建 issue #8956 与 PR #8969，
   等该仓库维护者 review；不能替对方合并。
 - **首批真实用户反馈**：产品内通道、[FEEDBACK.md](FEEDBACK.md)、[BETA.md](BETA.md) 已就绪，并已公开发出
-  4 个邀请/提问帖：官方 DSH Show Your Plugins #13984、awesome Show and tell #17474、本仓库 Discussions #1、
-  官方 General「大家怎么量一个插件往首轮上下文里塞了多少」#13985；另在「上下文灾难」#12329 留了同口径测量回复。
-  截至 2026-11-21 17:00 仍 0 条外部回复；npm 周下载 1,456 说明有人在装，但还没有人回失败样本。
+  5 个公开互动：官方 DSH Show Your Plugins #13984、awesome Show and tell #17474、本仓库 Discussions #1、
+  官方 General「大家怎么量一个插件往首轮上下文里塞了多少」#13985、官方 CJK token 估算 bug 帖 #13906 的
+  同口径数据回复；另向 dsh.so 提交了 2.3.1 数据/兼容性复核（ticket #01a1fdf4…）。
+  截至 2026-11-21 20:10 仍 0 条外部回复；npm 周下载 1,456 说明有人在装，但还没有人回失败样本。
 - **上游催办草稿**：`_research/outreach/upstream-issues.md`（Registry PR ping；awesome 构建已自行恢复，
   只剩 Registry 那条），未发。
 
