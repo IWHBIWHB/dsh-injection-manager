@@ -322,7 +322,7 @@ dsh plugin add github:IWHBIWHB/dsh-injection-manager
 
 面板 → 设置 → 最下面的「反馈」一行：**复制诊断** 把一份脱敏报告放进剪贴板（被浏览器拦住时会展开可手动复制的文本框），**报告问题** 直接打开 bug 模板并预填诊断。诊断只含版本、槽位注册与策略计数，不含路径、会话 id 和对话内容；也可以自己取 `GET /plugins/dsh-injection-manager/diag?report=1`。
 
-面板不可用时，贴出 `dsh --version`、`dsh plugin --profile desktop list | Select-String injection-manager` 和启动日志末尾 30 行。详细要求见 [docs/FEEDBACK.md](docs/FEEDBACK.md)；第一次试用可以按 [8 分钟试用脚本](docs/BETA.md) 走一遍。
+面板不可用时，贴出 `dsh --version`、`dsh plugin --profile desktop list | Select-String injection-manager` 和启动日志末尾 30 行。公开试用反馈帖：[discussions/1](https://github.com/IWHBIWHB/dsh-injection-manager/discussions/1)（或直接开 issue）。详细要求见 [docs/FEEDBACK.md](docs/FEEDBACK.md)；第一次试用可以按 [8 分钟试用脚本](docs/BETA.md) 走一遍。
 
 ## 插件设置
 

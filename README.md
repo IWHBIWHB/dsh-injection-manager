@@ -383,8 +383,10 @@ dsh plugin --profile desktop list | Select-String injection-manager
 ```
 
 What helps most: expected vs actual numbers, the switches involved, and whether the session was
-created before or after the policy change. Details: [docs/FEEDBACK.md](docs/FEEDBACK.md); first-time
-testers can follow the 8-minute [beta script](docs/BETA.md).
+created before or after the policy change. Public beta thread:
+[github.com/IWHBIWHB/dsh-injection-manager/discussions/1](https://github.com/IWHBIWHB/dsh-injection-manager/discussions/1)
+(or open an issue). Details: [docs/FEEDBACK.md](docs/FEEDBACK.md); first-time testers can follow the
+8-minute [beta script](docs/BETA.md).
 
 ## Plugin configuration
 
