@@ -40,9 +40,9 @@
 - **DSH Registry（`dsh-pluginmarket/metadata`）**：bot 于 11-16 自动建 issue #8956 与 PR #8969，
   等该仓库维护者 review；不能替对方合并。
 - **首批真实用户反馈**：产品内通道、[FEEDBACK.md](FEEDBACK.md)、[BETA.md](BETA.md) 已就绪，并已公开发出
-  3 个试用邀请（官方 DSH Show Your Plugins #13984、awesome Show and tell #17474、本仓库 Discussions #1），
-  另在「上下文灾难」讨论帖 #12329 留了一条同口径测量的回复。截至 2026-11-21 16:40 仍 0 条外部回复；
-  npm 周下载 1,456 说明有人在装，但还没有人回失败样本。
+  4 个邀请/提问帖：官方 DSH Show Your Plugins #13984、awesome Show and tell #17474、本仓库 Discussions #1、
+  官方 General「大家怎么量一个插件往首轮上下文里塞了多少」#13985；另在「上下文灾难」#12329 留了同口径测量回复。
+  截至 2026-11-21 17:00 仍 0 条外部回复；npm 周下载 1,456 说明有人在装，但还没有人回失败样本。
 - **上游催办草稿**：`_research/outreach/upstream-issues.md`（Registry PR ping；awesome 构建已自行恢复，
   只剩 Registry 那条），未发。
 
