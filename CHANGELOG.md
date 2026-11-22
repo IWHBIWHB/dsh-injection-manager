@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.2 — 2026-11-22
+
+### Fixed
+
+- **Catalog completeness for the tools a real session actually exposes.** working_directory,
+  present, plugin_manager, sk_user_question, 	odo_write, the goal tools, the agent-team
+  tools (gent_team, list_agents, send_message, wait_agent), list_subagent_models and
+  create_worktree now resolve to their owning packages instead of showing up as
+  「unknown tool provider / 只能预览」 in the ledger.
+
+### Verification
+
+- 160 tests / 0 fail; self-audit 100/100; the fix came from the real-session ledger screenshot used
+  in the release deck, which showed three first-party tools labelled unknown.
 ## 3.0.1 — 2026-11-22
 
 ### Fixed
