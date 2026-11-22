@@ -13,7 +13,7 @@
 - **不写 workspace**：`AGENTS.md`、`SKILL.md` 等项目文件只读；所有开关是 Cordis 作用域注册，随会话释放。
 - **写接口**：`POST /action` 要求 JSON content-type、`sec-fetch-site` 不是跨站；若带 `Origin`，必须与 `Host` 一致。响应带 `nosniff` / `DENY` / `no-store`。
 - **读路由不碰工作区与策略**：快照 GET（`/summary`、`/export`、`/health`）会在本机刷新 `stats.json` 里的一行测量缓存（`lib/snapshot.js` → `lib/stats.js`），`/trend`、`/stats` 的后台回填也只补这份统计。除此之外，读路由不改工作区文件，也不改策略；事件流只由策略保存、压缩等真实事件写入。
-- **策略写入串行化**：所有策略读-改-写（`POST /action`、`/inject all|minimal|undo`）走 `lib/lock.js` 的进程内队列，两个窗口同时关两个套件不会丢一个；临时文件名带计数器与随机后缀，写前把当前文件复制成 `policy.json.bak`（有旧文件时）。`policy.json` 解析失败时先读 `.bak` 恢复（返回 `recovered: true`），连备份都没有才回落到全开并在面板明示错误，不会静默删掉一半提示词。
+- **策略写入串行化**：所有策略读-改-写（`POST /action`、`/inject` 弹层里的动作）走 `lib/lock.js` 的进程内队列，两个窗口同时关两个套件不会丢一个；临时文件名带计数器与随机后缀，写前把当前文件复制成 `policy.json.bak`（有旧文件时）。`policy.json` 解析失败时先读 `.bak` 恢复（返回 `recovered: true`），连备份都没有才回落到全开并在面板明示错误，不会静默删掉一半提示词。
 
 ## 已知的、被接受的风险
 

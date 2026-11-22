@@ -130,48 +130,6 @@ test('near the window limit the advice names the biggest suite to close', () => 
   assert.match(renderCard(crowded), /REA，−50/)
 })
 
-test('the health text names a groups action when the suite spans channels', async () => {  const { renderHealthText } = await import('../lib/text.js')
-  const health = {
-    summary: { high: 1, warn: 0, info: 0, checkedAt: 1763300000000 },
-    checks: [
-      {
-        code: 'heavy-suite',
-        severity: 'high',
-        params: { label: 'REA', tokens: 66000, share: 78.6, count: 229, channel: 'tools' },
-        action: {
-          kind: 'switch-group',
-          payload: {
-            channel: 'tools',
-            group: 'tools:mcp:rea',
-            key: 'mcp:rea',
-            enabled: false,
-            op: 'off',
-            parts: [
-              { channel: 'tools', group: 'tools:mcp:rea' },
-              { channel: 'sections', group: 'sections:mcp:rea' },
-            ],
-          },
-        },
-      },
-    ],
-  }
-  const text = renderHealthText(health)
-  assert.match(text, /kind:"groups"/)
-  assert.match(text, /channel:"tools", group:"tools:mcp:rea"/)
-  assert.match(text, /channel:"sections", group:"sections:mcp:rea"/)
-  assert.doesNotMatch(text, /kind:"group",/)
-})
-
-test('an installed suite and the host own suite do not share one verdict', async () => {
-  const { healthCheckText } = await import('../lib/text.js')
-  const plugin = healthCheckText({ code: 'heavy-suite', params: { label: 'REA', tokens: 66000, share: 78.6, count: 229 } })
-  assert.match(plugin, /已安装的插件\/MCP 套件/)
-  assert.match(plugin, /可整套关掉/)
-  assert.doesNotMatch(plugin, /不建议关闭/)
-  const builtin = healthCheckText({ code: 'builtin-heavy', params: { label: 'core', tokens: 6100, share: 34, count: 28 } })
-  assert.match(builtin, /DSH 自带套件，不建议关闭/)
-})
-
 test('the recommendation prefers an installed suite over the host own suite', () => {
   const groups = [
     { id: 'tools:core', channel: 'tools', label: 'core', origin: 'builtin', count: 28, tokens: 6100, savableTokens: 6100, onSavableTokens: 6100 },

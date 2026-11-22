@@ -17,7 +17,7 @@ lleva ahora esta sesión y qué aspecto tiene todo esto después de un interrupt
 
 Cinco puntos de entrada cuentan esa misma historia desde la misma instantánea: la **página del
 panel** (Gestión / Perspectivas / Ajustes), la **pestaña de la conversación**, el **panel de la
-barra lateral derecha**, el **comando `/inject`** y la **fila de preferencias en Ajustes →
+barra lateral derecha**, el **atajo `/inject`** y la **fila de preferencias en Ajustes →
 General**. El chip del compositor y la herramienta de modelo `context_injection` son lecturas
 adicionales de los mismos números: un distintivo ambiental y una superficie de solo lectura para
 el modelo, no funciones aparte.
@@ -96,7 +96,7 @@ escrituras de política serializadas con recuperación desde `.bak`). Historial 
 | **Gestión** | Panel → Gestión | Un cuadro de interruptores: lo que cuesta la próxima sesión nueva, qué parte es conmutable, una fila por suite, un interruptor por fila. Solo números e interruptores; sin gráficos. |
 | **Perspectivas** | Panel → Perspectivas | Un orden fijo: la composición de esta petición → la composición de la inyección y las suites más pesadas → los controles de salud → la tendencia → los cambios y el detalle de la sesión. |
 | **Ajustes** | Panel → Ajustes | Una tarjeta de cinco filas: el archivo de política (ruta, exportar Markdown/JSON, importar), los preajustes, un prefijo/sufijo propio plegado, el interruptor del chip del compositor y acerca de (host, API, idioma, detalles plegados). |
-| **Comandos y herramientas** | Compositor / modelo | `/inject` (+ `health｜all｜minimal｜undo`) para un informe de texto, `context_injection` para una instantánea de solo lectura (opcionalmente el contenido de un elemento) y el chip del compositor para la cifra de la próxima sesión. |
+| **Comandos y herramientas** | Compositor / modelo | `/inject` para una lista de interruptores con búsqueda (abrir panel, preajustes, deshacer, suites individuales), `context_injection` para una instantánea de solo lectura (opcionalmente el contenido de un elemento) y el chip del compositor para la cifra de la próxima sesión. |
 
 ## Pantallas
 
@@ -301,7 +301,7 @@ recibo solo cuenta los eventos desde que se cargó el plugin; su ayuda emergente
 La política vive en `$DSH_HOME/injection-manager/policy.json`, un único archivo.
 
 Las escrituras se serializan mediante `lib/lock.js` (una cola en proceso compartida por
-`POST /action` y `/inject all|minimal|undo`), de modo que dos paneles que cambian dos suites no
+`POST /action` y las acciones de `/inject`), de modo que dos paneles que cambian dos suites no
 pueden perder una de ellas. Cada escritura usa un nombre temporal único, copia el archivo actual a
 `policy.json.bak` (cuando existe uno) y después renombra el nuevo archivo a su sitio. Si
 `policy.json` no se puede analizar, el plugin lee la copia de seguridad e informa de
@@ -354,7 +354,7 @@ propia Config del plugin y no muestra números.
 | **Página de perspectivas** | Lista del panel izquierdo → «Inyección de contexto» → Gestión / Perspectivas / Ajustes | La imagen completa: cuadro de interruptores, composición, salud, tendencia, cambios, detalle de sesión, política |
 | **Pestaña de conversación** | Fila de pestañas de una conversación: Chat / Trayectoria / **Inyección** | Lo que lleva ahora *esta conversación*, lo que llevaría la próxima sesión, qué es conmutable, cuánto está llena la ventana |
 | **Panel de la barra lateral derecha** | Pestaña de la barra lateral derecha «Inyección de contexto» | La versión compacta mientras se trabaja: los dos números, la proporción conmutable, el foco de skills, los interruptores de canal |
-| **Comando `/inject`** | Compositor | Un informe de texto más una línea de salud. Subcomandos: `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **Atajo `/inject`** | Compositor | Un menú con icono y búsqueda: abrir el panel completo, preajuste mínimo / todo activado, deshacer, y las suites conmutables ordenadas por token (hasta 8) |
 | **Fila de preferencias** | Ajustes → General → «Inyección de contexto» | `dock` / `refreshOnFocus` / `showRawNames`, escritos mediante el formulario de configuración del host (volátil: sin reinicio) |
 
 Dos lecturas adicionales no cuentan deliberadamente como entradas: el chip del compositor es un
@@ -422,7 +422,7 @@ en el archivo de política, así que hay exactamente una fuente de verdad para l
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | Modos de canal, nombres, prefijo/sufijo | Acciones del panel y `/inject` (en cola, escritura atómica) |
 | `$DSH_HOME/injection-manager/policy.json.bak` | La política válida anterior, usada cuando `policy.json` no se puede analizar | Cada escritura de política, cuando existe un archivo anterior |
-| `$DSH_HOME/injection-manager/stats.json` | Una fila medida por sesión, con reparto de tokens por canal | Cada instantánea que construyen el panel, la herramienta, el comando, la exportación o la salud, más el relleno de tendencia en segundo plano |
+| `$DSH_HOME/injection-manager/stats.json` | Una fila medida por sesión, con reparto de tokens por canal | Cada instantánea que construyen el panel, la herramienta, la exportación o la salud, más el relleno de tendencia en segundo plano |
 | `$DSH_HOME/injection-manager/events.json` | Flujo de eventos de solo anexar, máximo 300, escritura atómica | Guardados de política, preajustes, importaciones, deshacer, compactaciones |
 | Fila de configuración del plugin | dock / refreshOnFocus / showRawNames | Ajustes → General (tarjeta) o Plugins → Configuration |
 | Almacenamiento local del navegador | Números de línea del visor, rango de perspectivas, tarjetas descartadas | Solo este navegador |

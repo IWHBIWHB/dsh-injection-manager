@@ -41,7 +41,10 @@ const WEIGHTS = {
 // Absolute budgets are a coarse ceiling; the per-round comparison to
 // _research/rsi/baseline-metrics.json is the signal that matters.
 const SIZE_BUDGETS = {
-  clientBytes: 272 * 1024,
+  // 2.3.2 moved the `/inject` surface from the host command registry into
+  // client.js (popup list, actions, suite rows), so the browser half carries
+  // that markup and its bilingual strings now.
+  clientBytes: 276 * 1024,
   enLocaleBytes: 24 * 1024,
   // The 2.3.0 README set is eight languages, so the packaged docs grew by ~210 KB.
   filesBytes: 3 * 1024 * 1024,
@@ -576,6 +579,18 @@ function checkReconcile() {
   const ENTRY_SLOTS = ['sidebar.panellist', 'main', 'conversation.view', 'sidebar.right.pane.tab', 'settings.general.item']
   const entriesMissingInCode = clientSource === null ? ENTRY_SLOTS : ENTRY_SLOTS.filter((slot) => !clientSource.includes(`name: '${slot}'`))
   const entriesMissingInDocs = architectureSource === null ? ENTRY_SLOTS : ENTRY_SLOTS.filter((slot) => !architectureSource.includes(slot))
+  // 2.3.2: `/inject` is no longer a host text command (`commands` has no icon
+  // field, and the popup needs a searchable list), it is a client contribution
+  // on the `commandUi` service. Its registration name lives only in client.js,
+  // so check the service and the name together or the shortcut disappears from
+  // the composer without any slot check noticing.
+  const COMMAND_MARKERS = ['commandUi.register', "name: 'inject'"]
+  const commandMarkersMissingInCode = clientSource === null ? COMMAND_MARKERS : COMMAND_MARKERS.filter((marker) => !clientSource.includes(marker))
+  const entryFindings = []
+  for (const slot of entriesMissingInCode) entryFindings.push(`entry slot not registered in client.js: ${slot}`)
+  for (const slot of entriesMissingInDocs) entryFindings.push(`entry slot missing from docs/ARCHITECTURE.md: ${slot}`)
+  for (const marker of commandMarkersMissingInCode) entryFindings.push(`/inject client registration missing from client.js: ${marker}`)
+  if (architectureSource !== null && !architectureSource.includes('commandUi')) entryFindings.push('/inject client surface (commandUi) missing from docs/ARCHITECTURE.md')
 
   const routes = routeIdsFromCode(routesSource)
   const apiVersionMatch = routesSource.match(/export const API_VERSION\s*=\s*(\d+)/)
@@ -608,13 +623,12 @@ function checkReconcile() {
   for (const field of configCodeOnly) findings.push(`config field in Config but not documented: ${field}`)
   if (!apiVersionDocumented) findings.push(`API_VERSION ${apiVersionLabel} is not documented`)
   if (!Number.isFinite(apiVersion)) findings.push('API_VERSION is missing from lib/routes.js')
-  for (const slot of entriesMissingInCode) findings.push(`entry slot not registered in client.js: ${slot}`)
-  for (const slot of entriesMissingInDocs) findings.push(`entry slot missing from docs/ARCHITECTURE.md: ${slot}`)
+  for (const finding of entryFindings) findings.push(finding)
 
   const docOnlyTotal = routeDocOnly.length + commandDocOnly.length + configDocOnly.length
   const codeOnlyTotal = routeCodeOnly.length + commandCodeOnly.length + configCodeOnly.length
   let status = 'pass'
-  if (docOnlyTotal > 0 || !Number.isFinite(apiVersion)) status = 'fail'
+  if (docOnlyTotal > 0 || entryFindings.length > 0 || !Number.isFinite(apiVersion)) status = 'fail'
   else if (codeOnlyTotal > 0 || !apiVersionDocumented) status = 'warn'
 
   const summary =

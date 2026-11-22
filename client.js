@@ -5085,6 +5085,157 @@ body[data-ds-dark-theme] .ci-root{
           configFormsRef.current = null
         }
 
+        // 2.3.2: /inject is a client-side shortcut with an icon instead of a
+        // host text command. The host command registry has no icon field, and a
+        // client contribution cannot share a name with a host command, so the
+        // host command is not registered at all. The popup reads the same
+        // snapshot as the panel and writes through the same /action route.
+        const COMMAND_TEXT = {
+          zh: {
+            label: '注入快捷开关',
+            description: '看首轮注入、按套件关，或打开完整面板',
+            placeholder: '搜索套件或操作',
+            empty: '没有可切换的套件',
+            noResults: '没有匹配项',
+            actions: '操作',
+            suites: '套件',
+            openPanel: '打开完整面板',
+            openPanelDetail: '全部条目、原文与趋势',
+            presetMinimal: '预设：最小（只留必填）',
+            presetAll: '预设：全部开启',
+            undo: '撤销上一步',
+            canOff: '可关',
+            closed: '已关',
+            plugin: '插件',
+            builtin: '官方',
+          },
+          en: {
+            label: 'Injection switches',
+            description: 'Inspect first-turn injection, switch suites, or open the panel',
+            placeholder: 'Search suites or actions',
+            empty: 'No switchable suites',
+            noResults: 'No matches',
+            actions: 'Actions',
+            suites: 'Suites',
+            openPanel: 'Open full panel',
+            openPanelDetail: 'All items, sources and trends',
+            presetMinimal: 'Preset: minimal (required only)',
+            presetAll: 'Preset: all on',
+            undo: 'Undo last step',
+            canOff: 'can switch off',
+            closed: 'closed',
+            plugin: 'plugin',
+            builtin: 'builtin',
+          },
+        }
+        const commandText = (key) => {
+          const dict = COMMAND_TEXT[UI_LANGUAGE] || COMMAND_TEXT.en
+          return dict[key] !== undefined ? dict[key] : COMMAND_TEXT.en[key]
+        }
+        const summaryUrlFor = (session) => {
+          const sessionId = session && typeof session.sessionId === 'string' ? session.sessionId : ''
+          return ROUTES.summary + '?lang=' + UI_LANGUAGE + (sessionId ? '&session=' + encodeURIComponent(sessionId) : '')
+        }
+        const buildCommandOptions = async (session) => {
+          const data = await getJson(summaryUrlFor(session))
+          const groups = Array.isArray(data.groups) ? data.groups : []
+          const rows = groups
+            .filter((group) => (Number(group.savableTokens) || 0) > 0 || Number(group.onCount) < Number(group.count))
+            .sort((left, right) => (Number(right.tokens) || 0) - (Number(left.tokens) || 0))
+            .slice(0, 8)
+            .map((group) => {
+              const enabled = Number(group.onCount) > 0
+              return {
+                // The suffix is the state this row switches to; the id keeps the
+                // full cluster id (`channel:key`) because POST /action matches it
+                // against snapshot items verbatim.
+                id: 'group|' + String(group.id || '') + '|' + (enabled ? 'off' : 'on'),
+                label: (group.label || group.id || '') + '  ' + token(group.tokens),
+                badge: group.origin === 'plugin' ? commandText('plugin') : commandText('builtin'),
+                detail: Number(group.count) + ' · ' + (enabled ? commandText('canOff') : commandText('closed')),
+                group: { name: 'suites', label: commandText('suites') },
+              }
+            })
+          return [
+            { id: 'action|panel', label: commandText('openPanel'), detail: commandText('openPanelDetail'), group: { name: 'actions', label: commandText('actions') } },
+            { id: 'action|preset:minimal', label: commandText('presetMinimal'), group: { name: 'actions', label: commandText('actions') } },
+            { id: 'action|preset:all', label: commandText('presetAll'), group: { name: 'actions', label: commandText('actions') } },
+            { id: 'action|undo', label: commandText('undo'), group: { name: 'actions', label: commandText('actions') } },
+            ...rows,
+          ]
+        }
+        const runCommandOption = async (option, session) => {
+          const id = String((option && option.id) || '')
+          try {
+            if (id === 'action|panel') {
+              openMainPanel()
+              return
+            }
+            if (id === 'action|undo') {
+              await postJson(ROUTES.action, { kind: 'undo' })
+              window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+              return
+            }
+            if (id.indexOf('action|preset:') === 0) {
+              await postJson(ROUTES.action, { kind: 'preset', name: id.slice('action|preset:'.length) })
+              window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+              return
+            }
+            if (id.indexOf('group|') === 0) {
+              const cut = id.lastIndexOf('|')
+              const groupId = id.slice('group|'.length, cut)
+              const targetEnabled = id.slice(cut + 1) === 'on'
+              if (groupId === '' || groupId.indexOf('|') >= 0) return
+              // One suite can span channels (an MCP kit plus its prompt section),
+              // so re-read the snapshot and switch every part the panel would:
+              // sending the short key silently matched nothing.
+              const data = await getJson(summaryUrlFor(session))
+              const groups = Array.isArray(data.groups) ? data.groups : []
+              const group = groups.find((entry) => String(entry.id || '') === groupId)
+              if (group === undefined) return
+              const parts = Array.isArray(group.parts) ? group.parts.filter((part) => part !== null && typeof part === 'object') : []
+              if (parts.length > 0) {
+                await postJson(ROUTES.action, { kind: 'groups', groups: parts, enabled: targetEnabled })
+              } else {
+                await postJson(ROUTES.action, { kind: 'group', channel: String(group.channel || ''), group: groupId, enabled: targetEnabled })
+              }
+              window.dispatchEvent(new CustomEvent('injection-manager:changed'))
+            }
+          } catch (error) {
+            console.warn('[injection-manager] /inject action failed', error)
+          }
+        }
+        try {
+          ctx.inject(['commandUi'], (scope) => {
+            const commandUi = scope.commandUi
+            if (commandUi === undefined || commandUi === null || typeof commandUi.register !== 'function') return
+            scope.effect(
+              () =>
+                commandUi.register({
+                  name: 'inject',
+                  label: () => commandText('label'),
+                  description: () => commandText('description'),
+                  icon: PanelIcon,
+                  available: () => true,
+                  ui: {
+                    kind: 'popupSelect',
+                    searchMode: 'substring',
+                    searchLabels: () => ({
+                      placeholder: commandText('placeholder'),
+                      empty: commandText('empty'),
+                      noResults: commandText('noResults'),
+                    }),
+                    options: (session) => buildCommandOptions(session),
+                    onSelect: (option, session) => runCommandOption(option, session),
+                  },
+                }),
+              'injection-manager: /inject command',
+            )
+          })
+        } catch (error) {
+          console.warn('[injection-manager] command contribution unavailable', error)
+        }
+
         attempt(
           'sidebar',
           () => {

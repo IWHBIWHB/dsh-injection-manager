@@ -17,7 +17,7 @@ session, que porte cette session maintenant, et à quoi cela ressemble-t-il apr�
 
 Cinq points d’entrée racontent cette même histoire depuis le même instantané : la **page du
 panneau** (Gestion / Analyse / Réglages), l’**onglet Conversation**, le **panneau de la barre
-latérale droite**, la **commande `/inject`** et la **ligne de préférences dans Réglages → Général**.
+latérale droite**, le **raccourci `/inject`** et la **ligne de préférences dans Réglages → Général**.
 La puce du compositeur et l’outil modèle `context_injection` sont des lectures supplémentaires des
 mêmes chiffres — un badge ambiant et une surface modèle en lecture seule, pas des fonctionnalités
 distinctes.
@@ -98,7 +98,7 @@ complet : [CHANGELOG.md](CHANGELOG.md) · [docs/DETAIL.md](docs/DETAIL.md).
 | **Gestion** | Panneau → Gestion | Un tableau de commande : ce que coûte la prochaine nouvelle session, quelle part est désactivable, une ligne par suite, un interrupteur par ligne. Des chiffres et des interrupteurs uniquement — aucun graphique. |
 | **Analyse** | Panneau → Analyse | Un ordre fixe : composition de cette requête → composition de l’injection et suites les plus lourdes → contrôles de santé → tendance → changements et détail de session. |
 | **Réglages** | Panneau → Réglages | Une carte de cinq lignes : le fichier de politique (chemin, export Markdown/JSON, import), les préréglages, un préfixe/suffixe personnalisé replié, l’interrupteur de la puce du compositeur et la section Notes (hôte, API, langue, détails repliés). |
-| **Commandes et outils** | Compositeur / modèle | `/inject` (+ `health｜all｜minimal｜undo`) pour un rapport texte, `context_injection` pour un instantané en lecture seule (éventuellement le contenu d’un élément), et la puce du compositeur pour le chiffre de la prochaine session. |
+| **Commandes et outils** | Compositeur / modèle | `/inject` pour une liste d’interrupteurs avec recherche (ouvrir le panneau, préréglages, annulation, suites individuelles), `context_injection` pour un instantané en lecture seule (éventuellement le contenu d’un élément), et la puce du compositeur pour le chiffre de la prochaine session. |
 
 ## Écrans
 
@@ -304,7 +304,7 @@ précise.
 La politique vit dans `$DSH_HOME/injection-manager/policy.json`, un seul fichier.
 
 Les écritures sont sérialisées via `lib/lock.js` (une file en processus partagée par `POST /action`
-et `/inject all|minimal|undo`), si bien que deux panneaux basculant deux suites ne peuvent pas en
+et les actions de `/inject`), si bien que deux panneaux basculant deux suites ne peuvent pas en
 perdre une. Chaque écriture utilise un nom temporaire unique, copie le fichier courant vers
 `policy.json.bak` (lorsqu’il existe), puis renomme le nouveau fichier en place. Si `policy.json`
 n’est pas analysable, le plugin lit la sauvegarde et signale `recovered: true` avec une erreur qui
@@ -360,7 +360,7 @@ propre au plugin et n’affiche aucun chiffre.
 | **Page d’analyse** | Liste du panneau de gauche → « Injection de contexte » → Gestion / Analyse / Réglages | L’image complète : tableau de commande, composition, santé, tendance, changements, détail de session, politique |
 | **Onglet Conversation** | Ligne d’onglets d’une conversation : Conversation / Trace / **Injection** | Ce que *cette conversation* porte maintenant, ce que porterait la prochaine session, ce qui est désactivable, le remplissage de la fenêtre |
 | **Panneau de la barre latérale droite** | Onglet « Injection de contexte » de la barre latérale droite | La version compacte pendant le travail : les deux chiffres, la part désactivable, le focus skills, les interrupteurs de canal |
-| **Commande `/inject`** | Compositeur | Un rapport texte plus une ligne de santé. Sous-commandes : `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **Raccourci `/inject`** | Compositeur | Un menu avec icône et recherche : ouvrir le panneau complet, préréglages minimal / tout activé, annulation, et les suites commutables triées par tokens (jusqu’à 8) |
 | **Ligne de préférences** | Réglages → Général → « Injection de contexte » | `dock` / `refreshOnFocus` / `showRawNames`, écrits via le formulaire de configuration de l’hôte (volatile : pas de redémarrage) |
 
 Deux lectures supplémentaires ne sont volontairement pas comptées comme entrées : la puce du
@@ -430,7 +430,7 @@ interrupteurs.
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | Modes de canal, noms, préfixe/suffixe | Actions du panneau et `/inject` (écriture en file, atomique) |
 | `$DSH_HOME/injection-manager/policy.json.bak` | La politique valide précédente, utilisée quand `policy.json` n’est pas analysable | À chaque écriture de politique, lorsqu’un fichier précédent existe |
-| `$DSH_HOME/injection-manager/stats.json` | Une ligne mesurée par session, avec une répartition des tokens par canal | Chaque instantané construit par le panneau, l’outil, la commande, l’export ou la santé, plus le complément de tendance en arrière-plan |
+| `$DSH_HOME/injection-manager/stats.json` | Une ligne mesurée par session, avec une répartition des tokens par canal | Chaque instantané construit par le panneau, l’outil, l’export ou la santé, plus le complément de tendance en arrière-plan |
 | `$DSH_HOME/injection-manager/events.json` | Flux d’événements en ajout seul, 300 max, écriture atomique | Enregistrements de politique, préréglages, imports, annulations, compactages |
 | Ligne de configuration du plugin | dock / refreshOnFocus / showRawNames | Réglages → Général (carte), ou Plugins → Configuration |
 | Stockage local du navigateur | Numéros de ligne du tiroir, période de l’analyse, cartes masquées | Ce navigateur uniquement |

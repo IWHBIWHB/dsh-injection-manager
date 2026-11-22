@@ -15,7 +15,7 @@ and browsable down to the real bytes. The panel answers three questions: *what w
 session carry, what is this session carrying now, and what does any of it look like after a switch?*
 
 Five entry points tell that one story from the same snapshot: the **panel page** (Manage / Insights /
-Settings), the **conversation tab**, the **right-sidebar panel**, the **`/inject` command** and the
+Settings), the **conversation tab**, the **right-sidebar panel**, the **`/inject` shortcut** and the
 **preference row in Settings → General**. The composer chip and the `context_injection` model tool are
 extra readings of the same numbers — an ambient badge and a read-only model surface, not separate
 features.
@@ -89,7 +89,7 @@ writes with `.bak` recovery). Full history: [CHANGELOG.md](CHANGELOG.md) · [doc
 | **Manage** | Panel → 管理 | A switchboard: what the next new session costs, how much of it is switchable, one row per suite, one switch per row. Numbers and switches only — no charts. |
 | **Insights** | Panel → 洞察 | One fixed order: this request's composition → injection composition and heaviest suites → health checks → trend → changes and session detail. |
 | **Settings** | Panel → 设置 | One card of five rows: the policy file (path, export Markdown/JSON, import), the presets, a folded custom prefix/suffix, the composer-chip switch, and about (host, API, language, folded details). |
-| **Commands & tools** | Composer / model | `/inject` (+ `health｜all｜minimal｜undo`) for a text report, `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for the next-session number. |
+| **Commands & tools** | Composer / model | `/inject` for a searchable switch list (open panel, presets, undo, per-suite toggles), `context_injection` for a read-only snapshot (optionally one item's content), and the composer chip for the next-session number. |
 
 ## Screens
 
@@ -280,7 +280,7 @@ since the plugin loaded — the tooltip says so.
 The policy lives in `$DSH_HOME/injection-manager/policy.json`, one file.
 
 Writes are serialised through `lib/lock.js` (one in-process queue shared by `POST /action` and
-`/inject all|minimal|undo`), so two panels flipping two suites cannot drop one of them. Each write
+`/inject` actions), so two panels flipping two suites cannot drop one of them. Each write
 uses a unique temp name, copies the current file to `policy.json.bak` (when one exists), and then
 renames the new file into place. If `policy.json` does not parse, the plugin reads the backup and
 reports `recovered: true` with an error that names the backup, rather than quietly returning to
@@ -333,7 +333,7 @@ session gets under the saved policy); the fifth edits the plugin's own Config an
 | **Insight page** | Left panel list → "Context injection" → 管理 / 洞察 / 设置 | The full picture: switchboard, composition, health, trend, changes, session detail, policy |
 | **Conversation tab** | A conversation's tab row: 对话 / 轨迹 / **注入** | What *this conversation* carries now, what the next session would carry, what is switchable, how full the window is |
 | **Right-sidebar panel** | Right sidebar tab "Context injection" | The compact version while working: the two numbers, switchable share, skills focus, channel switches |
-| **`/inject` command** | Composer | A text report plus one health line. Subcommands: `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **`/inject` shortcut** | Composer | An icon-tagged, searchable popup: open the full panel, preset minimal / all-on, undo, plus the switchable suites sorted by token cost (up to 8) |
 | **Preference row** | Settings → General → "Context injection" | `dock` / `refreshOnFocus` / `showRawNames`, written through the host's config form (volatile: no restart) |
 
 Two extra readings are deliberately not counted as entries: the composer chip is an ambient badge of
@@ -413,7 +413,7 @@ Neither is written to the policy file, so there is exactly one source of truth f
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | Channel modes, names, prefix/suffix | Panel actions and `/inject` (queued, atomic write) |
 | `$DSH_HOME/injection-manager/policy.json.bak` | The previous good policy, used when `policy.json` cannot be parsed | Each policy write, when a previous file exists |
-| `$DSH_HOME/injection-manager/stats.json` | One measured row per session, with a per-channel token split | Every snapshot the panel/tool/command/export/health builds, plus the background trend backfill |
+| `$DSH_HOME/injection-manager/stats.json` | One measured row per session, with a per-channel token split | Every snapshot the panel/tool/export/health builds, plus the background trend backfill |
 | `$DSH_HOME/injection-manager/events.json` | Append-only event feed, max 300, atomic write | Policy saves, presets, imports, undos, compactions |
 | Plugin config row | dock / refreshOnFocus / showRawNames | Settings → General card, or Plugins → Configuration |
 | Browser local storage | Drawer line numbers, insights range, dismissed cards | This browser only |

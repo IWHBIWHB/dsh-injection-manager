@@ -1,6 +1,5 @@
 // Model-facing surface: the `context_injection` tool grows an optional
-// {channel,name} mode that returns one item's text, capped at 32KB, and the
-// `/inject` command grows a health subcommand plus a default health line.
+// {channel,name} mode that returns one item's text, capped at 32KB.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { Readable } from 'node:stream'
@@ -12,7 +11,7 @@ const home = await mkdtemp(join(tmpdir(), 'injection-tool-'))
 process.env.DSH_HOME = home
 process.env.DSH_AGENTS_HOME = join(home, 'agents')
 
-const { createCommand, createTool } = await import('../index.js')
+const { createTool } = await import('../index.js')
 const { TOOL_CONTENT_LIMIT } = await import('../lib/content.js')
 const { flushStats } = await import('../lib/stats.js')
 const { createRoutes } = await import('../lib/routes.js')
@@ -137,24 +136,6 @@ test('bad single-item arguments fail without dumping the snapshot', async () => 
   const missing = await run({ channel: 'tools', name: 'not_a_tool' })
   assert.equal(missing.ok, false)
   assert.equal(missing.error, 'not_found')
-})
-
-test('/inject health prints the check list and the default report ends with health', async () => {
-  const command = createCommand(ctx)
-  const healthReport = await command.handler({ agent, rawInput: 'health' })
-  assert.equal(healthReport.kind, 'success')
-  assert.match(healthReport.text, /健康检查：/)
-  assert.match(healthReport.text, /本命令只读/)
-
-  const plain = await command.handler({ agent, rawInput: '' })
-  assert.equal(plain.kind, 'success')
-  const lines = plain.text.trimEnd().split('\n')
-  assert.match(lines[lines.length - 1], /^健康检查：/)
-  assert.match(plain.text, /上下文注入管理/)
-
-  const unknown = await command.handler({ agent, rawInput: 'nonsense' })
-  assert.equal(unknown.kind, 'error')
-  assert.match(unknown.text, /\/inject health/)
 })
 
 test('a /health action payload is directly executable by POST /action', async () => {

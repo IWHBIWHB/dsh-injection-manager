@@ -17,7 +17,7 @@ depois de um interruptor?*
 
 Cinco pontos de entrada contam essa mesma história a partir do mesmo instantâneo: a **página do
 painel** (Gerenciar / Insights / Ajustes), a **aba da conversa**, o **painel da barra lateral
-direita**, o **comando `/inject`** e a **linha de preferência em Ajustes → Geral**. O chip do campo
+direita**, o **atalho `/inject`** e a **linha de preferência em Ajustes → Geral**. O chip do campo
 de entrada e a ferramenta de modelo `context_injection` são leituras extras dos mesmos números — um
 indicador permanente e uma superfície de modelo somente leitura, não recursos separados.
 
@@ -95,7 +95,7 @@ gravações de política serializadas com recuperação por `.bak`). Histórico 
 | **Gerenciar** | Painel → Gerenciar | Um quadro de interruptores: quanto custa a próxima sessão nova, quanto disso é desativável, uma linha por suíte, um interruptor por linha. Só números e interruptores — nenhum gráfico. |
 | **Insights** | Painel → Insights | Uma ordem fixa: composição desta requisição → composição da injeção e suítes mais pesadas → verificações de saúde → tendência → mudanças e detalhe da sessão. |
 | **Ajustes** | Painel → Ajustes | Um cartão de cinco linhas: o arquivo de política (caminho, exportar Markdown/JSON, importar), as predefinições, um prefixo/sufixo personalizado recolhido, o interruptor do chip do campo de entrada e sobre (host, API, idioma, detalhes recolhidos). |
-| **Comandos e ferramentas** | Campo de entrada / modelo | `/inject` (+ `health｜all｜minimal｜undo`) para um relatório em texto, `context_injection` para um instantâneo somente leitura (opcionalmente o conteúdo de um item) e o chip do campo de entrada para o número da próxima sessão. |
+| **Comandos e ferramentas** | Campo de entrada / modelo | `/inject` para uma lista de interruptores com busca (abrir painel, predefinições, desfazer, suítes individuais), `context_injection` para um instantâneo somente leitura (opcionalmente o conteúdo de um item) e o chip do campo de entrada para o número da próxima sessão. |
 
 ## Telas
 
@@ -295,7 +295,7 @@ apenas eventos desde que o plugin carregou — a dica diz isso.
 A política mora em `$DSH_HOME/injection-manager/policy.json`, um único arquivo.
 
 As gravações são serializadas por `lib/lock.js` (uma fila no processo compartilhada por
-`POST /action` e `/inject all|minimal|undo`), então dois painéis acionando duas suítes não
+`POST /action` e as ações de `/inject`), então dois painéis acionando duas suítes não
 conseguem perder uma delas. Cada gravação usa um nome temporário único, copia o arquivo atual para
 `policy.json.bak` (quando ele existe) e então renomeia o novo arquivo para o lugar. Se
 `policy.json` não puder ser interpretado, o plugin lê o backup e informa `recovered: true` com um
@@ -348,7 +348,7 @@ números.
 | **Página de Insights** | Lista do painel esquerdo → "Injeção de contexto" → Gerenciar / Insights / Ajustes | O panorama completo: quadro de interruptores, composição, saúde, tendência, mudanças, detalhe da sessão, política |
 | **Aba da conversa** | Linha de abas de uma conversa: Conversa / Trajetória / **Injeção** | O que *esta conversa* carrega agora, o que a próxima sessão carregaria, o que é desativável, quão cheia está a janela |
 | **Painel da barra lateral direita** | Aba da barra lateral direita "Injeção de contexto" | A versão compacta enquanto você trabalha: os dois números, fatia desativável, foco em skills, interruptores de canal |
-| **Comando `/inject`** | Campo de entrada | Um relatório em texto mais uma linha de saúde. Subcomandos: `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **Atalho `/inject`** | Campo de entrada | Um menu com ícone e busca: abrir o painel completo, predefinição mínima / tudo ligado, desfazer, e as suítes alternáveis ordenadas por token (até 8) |
 | **Linha de preferências** | Ajustes → Geral → "Injeção de contexto" | `dock` / `refreshOnFocus` / `showRawNames`, gravados pelo formulário de configuração do host (voláteis: sem reinício) |
 
 De propósito, duas leituras extras não contam como entradas: o chip do campo de entrada é um
@@ -413,7 +413,7 @@ arquivo de política, então existe exatamente uma fonte de verdade para os inte
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | Modos de canal, nomes, prefixo/sufixo | Ações do painel e `/inject` (enfileirado, gravação atômica) |
 | `$DSH_HOME/injection-manager/policy.json.bak` | A última política boa, usada quando `policy.json` não pode ser interpretado | Cada gravação de política, quando existe um arquivo anterior |
-| `$DSH_HOME/injection-manager/stats.json` | Uma linha medida por sessão, com divisão de tokens por canal | Todo instantâneo que o painel/ferramenta/comando/exportação/saúde monta, mais o preenchimento de tendência em segundo plano |
+| `$DSH_HOME/injection-manager/stats.json` | Uma linha medida por sessão, com divisão de tokens por canal | Todo instantâneo que o painel/ferramenta/exportação/saúde monta, mais o preenchimento de tendência em segundo plano |
 | `$DSH_HOME/injection-manager/events.json` | Feed de eventos somente de acréscimo, máximo 300, gravação atômica | Gravações de política, predefinições, importações, desfazer, compactações |
 | Linha de configuração do plugin | dock / refreshOnFocus / showRawNames | Ajustes → Geral (cartão) ou Plugins → Configuration |
 | Armazenamento local do navegador | Números de linha do painel de conteúdo, período dos Insights, cartões dispensados | Somente este navegador |

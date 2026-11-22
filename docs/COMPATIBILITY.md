@@ -22,7 +22,7 @@
 | 窗口占用 `tokenMeter` | 有 | **没有**：窗口显示「窗口未知」 |
 | 右侧栏 `sidebarRightTabs` | 有 | **没有**：走旧 `sidebar.panel` 兜底（该槽在这两代存在） |
 | 设置 → 通用设置偏好行 `configForms` | 有 | **没有**：偏好行不出现/只读；徽标由默认值控制 |
-| 模板/入口槽 | 五入口 | 面板、内容抽屉、`/inject`、工具、右侧栏兜底可用；会话标签页与设置行是否渲染取决于该 rc 的槽声明 |
+| 模板/入口槽 | 五入口 | 面板、内容抽屉、工具可用；`/inject` 弹层依赖客户端的 `commandUi` 服务（0.2.x 两代宿主未单独验证该服务，缺失时该入口不出现）；右侧栏走旧槽兜底；会话标签页与设置行是否渲染取决于该 rc 的槽声明 |
 
 运行时自检：插件会读宿主版本（`DSH_INSTALL_DIR`、launcher 入口 `process.argv[1]` 的 `@deepseek-ai/dsh`、或 profile 里的依赖），低于 `0.2.2` 时面板顶部提示「部分开关可能不生效」；版本读不到时按未知处理，不猜。`/diag` 的 `host` 字段给出实际读到的版本与来源，`host.version` 在旧 CLI 宿主上也能正确读出（2.3.1 起）。
 
@@ -33,7 +33,7 @@
 | 面板页 | `sidebar.panellist` + `main` 槽、`webServer` | 插件不激活（web 组合必需） |
 | 会话标签页 | `conversation.view` 槽（0.2.2 全系） | 该入口不注册，其余四个照常 |
 | 右侧边栏面板 | `ctx.get('sidebarRightTabs')` + `sidebar.right.pane.tab`（.title） | 退到旧 `sidebar.panel` 槽（仅当宿主声明了它）；两者都没有时无侧栏入口 |
-| 斜杠命令 | 宿主 `commands` | 插件不激活 |
+| 斜杠命令 `/inject` | 客户端 `commandUi` 服务 | 这个入口不注册，其余四个照常 |
 | 偏好行 | `settings.general.item` 槽 + `configForms`（entry id `injection-manager`） | 槽缺失则该行不出现；`configForms` 缺失则该行只读显示生效值 |
 
 

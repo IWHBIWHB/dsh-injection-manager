@@ -14,7 +14,7 @@
 它只回答三件事：**下一个新会话会带什么、本会话现在带着什么、关掉之后长什么样。**
 
 五个入口讲同一件事，数字全部来自同一份快照：**面板页**（管理 / 洞察 / 设置）、**会话标签页**、
-**右侧边栏面板**、**`/inject` 命令**、**设置 → 通用设置里的偏好行**。输入框徽标与
+**右侧边栏面板**、**`/inject` 快捷清单**、**设置 → 通用设置里的偏好行**。输入框徽标与
 `context_injection` 模型工具是同一组数字的另外两种读法——一个常驻徽标、一个只读模型接口，
 不单独算入口。
 
@@ -76,7 +76,7 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 | **管理** | 面板 → 管理 | 开关板：下一个新会话首轮多少、能关掉多少，按套件列出来，一行一个开关。只有数字和开关，没有图。 |
 | **洞察** | 面板 → 洞察 | 固定顺序：本次请求构成 → 注入构成与最重套件 → 健康检查 → 趋势 → 会话明细。 |
 | **设置** | 面板 → 设置 | 一张卡五行：策略文件（路径、导出 Markdown/JSON、导入）、预设、折叠的自定义前言后记、输入框摘要开关、关于（版本与接口，详细说明再折叠）。 |
-| **命令与工具** | 输入框 / 模型 | `/inject`（含 `health｜all｜minimal｜undo`）打文本报告；`context_injection` 给只读快照（可选单条原文）；输入框徽标给新会话首轮的常驻数字。 |
+| **命令与工具** | 输入框 / 模型 | `/inject` 给可搜索的开关清单（打开面板、预设、撤销、逐套件开关）；`context_injection` 给只读快照（可选单条原文）；输入框徽标给新会话首轮的常驻数字。 |
 
 ## 界面
 
@@ -242,7 +242,7 @@ code 永远不会出现（`duplicate-skill`、`tool-name-collision`）：这版�
 
 策略存在 `$DSH_HOME/injection-manager/policy.json`，只有一个文件。
 
-写入走 `lib/lock.js` 的进程内队列（`POST /action` 与 `/inject all|minimal|undo` 共用），两个
+写入走 `lib/lock.js` 的进程内队列（`POST /action` 与 `/inject` 的动作共用），两个
 面板同时关两个套件不会丢掉其中一个。每次写用唯一临时文件名，先把当前文件复制成
 `policy.json.bak`（首次写没有旧文件就跳过），再把新文件改名到位；`policy.json` 解析失败时先
 读 `.bak` 恢复并报 `recovered: true`，只有连备份都读不到才回落到全开。
@@ -287,7 +287,7 @@ Config，不显示数字。
 | **洞察页面** | 左侧面板「上下文注入」→ 管理 / 洞察 / 设置 | 全貌：开关板、构成、健康检查、趋势、变更、会话明细、策略 |
 | **会话标签页** | 对话顶部标签行：对话 / 轨迹 / **注入** | 本会话现在带着多少、新会话会带多少、可关闭多少、窗口多满 |
 | **右侧边栏面板** | 右侧栏标签「上下文注入」 | 工作时的紧凑版：两个数、可关占比、技能焦点、通道开关 |
-| **`/inject` 命令** | 输入框 | 文本清单 + 一行健康摘要。子命令：`/inject health`、`/inject minimal`、`/inject all`、`/inject undo` |
+| **`/inject` 快捷清单** | 输入框 | 带图标、可搜索的弹层：打开完整面板、最小 / 全开预设、撤销，以及按 token 排序列出的可动套件（最多 8 个） |
 | **偏好行** | 设置 → 通用设置 →「上下文注入管理」 | `dock` / `refreshOnFocus` / `showRawNames`，走宿主配置表单写入（volatile，不重启） |
 
 另外两种读法刻意不算入口：输入框徽标是 `numbers.next` 的常驻展示（可在偏好行隐藏），
@@ -347,7 +347,7 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | 通道模式、名单、前言后记 | 面板动作与 `/inject`（串行、原子写） |
 | `$DSH_HOME/injection-manager/policy.json.bak` | 上一份能解析的策略，`policy.json` 损坏时用来恢复 | 每次写策略（已有旧文件时） |
-| `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量，含通道分解 | 面板/工具/命令/导出/健康检查每次取快照，以及趋势后台回填 |
+| `$DSH_HOME/injection-manager/stats.json` | 每个会话一行测量，含通道分解 | 面板/工具/导出/健康检查每次取快照，以及趋势后台回填 |
 | `$DSH_HOME/injection-manager/events.json` | 追加式事件流，上限 300，原子写 | 策略保存、预设、导入、撤销、压缩 |
 | 插件行 `config` | dock / refreshOnFocus / showRawNames | 设置 → 通用设置行，或 Plugins → Configuration |
 | 浏览器 localStorage | 抽屉行号、洞察范围、被关掉的提示卡 | 只在这个浏览器 |

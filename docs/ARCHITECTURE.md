@@ -119,7 +119,7 @@ agent/created (source=startup|clear)
 `policy.json` 的每一次修改都是读-改-写，2.2.0 起由 `lib/lock.js` 的进程内队列串行化：
 
 - `withPolicyLock(task)` 把任务排在前一个任务之后，前一个失败不会卡住队列，每个调用仍拿到自己的结果或错误；
-- `POST /action` 的「读策略 → 应用动作 → 读回状态」整体在队列里，`/inject all|minimal|undo` 也走同一把锁，所以同一个 DSH 进程里两个窗口各关一个套件时两次修改都会保留；
+- `POST /action` 的「读策略 → 应用动作 → 读回状态」整体在队列里，`/inject` 快捷清单里的预设、撤销和单个套件开关也走同一把锁，所以同一个 DSH 进程里两个窗口各关一个套件时两次修改都会保留；
 - 锁只覆盖本进程：两个 DSH 进程共享同一个 `DSH_HOME` 不在保证范围内，原子 rename 至少保证不会写出半个文件；
 - `lib/policy.js` 的 `writePolicy()` 自己还有一条写链，即使调用方不在队列里也不会并发写同一个文件；
 - 临时文件名是 `policy.json.tmp-<pid>-<计数器>-<随机后缀>`，同一毫秒内的两次写不会撞名；
@@ -138,13 +138,13 @@ agent/created (source=startup|clear)
 | `lib/compaction.js` 的摘要/剪枝回执 | `compaction` / `prune` | 宿主的 `compaction/summary`、`compaction/prune` 事件 |
 | `lib/compaction.js` 的失败回执 | `diagnostic` | 宿主报告 `compaction/*` 带 `error` 时写一条：`params {phase:'compaction', error, compactionId}`，用于解释"这次压缩失败了" |
 
-`model-switch` / `mode-toggle` 目前在枚举里预留、本版本不会主动产生（还没有对应的宿主事件入口）；`/inject health` 这类只读命令也不写事件。也就是说：**写策略、压缩/剪枝、压缩失败、新会话**会留下事件，其余读取不会。
+`model-switch` / `mode-toggle` 目前在枚举里预留、本版本不会主动产生（还没有对应的宿主事件入口）；`/inject` 清单只读快照，也不写事件。也就是说：**写策略、压缩/剪枝、压缩失败、新会话**会留下事件，其余读取不会。
 
 去重键 = `时间戳｜kind｜params 的稳定哈希`（压缩事件可由调用方给显式 `dedupeKey`，如 `seq/compactionId`），因此同一条宿主事件被观察两次不会变成两行。`params` 只收原始值：嵌套对象直接丢弃，数组最多 20 项，字符串截到 200 字符——会话正文没有路径能进这个文件。
 
 ## 健康检查
 
-`lib/health.js` 的 `buildHealth(snapshot)` 是纯函数：输入一份快照，输出 `{summary, checks}`；唯一的时钟值是 `snapshot.generatedAt`，所以同一份快照两次调用逐字节一致。面板、`/health` 路由、`/inject health` 都调它。
+`lib/health.js` 的 `buildHealth(snapshot)` 是纯函数：输入一份快照，输出 `{summary, checks}`；唯一的时钟值是 `snapshot.generatedAt`，所以同一份快照两次调用逐字节一致。面板的健康页、`/health` 路由都调它。
 
 - 固定 9 个 code 的枚举，当前实现实际会产生 7 个：`heavy-suite`（策略生效后，**安装的插件 / MCP 套件**仍占 ≥25% 或 ≥30k token）、`builtin-heavy`（同类阈值但来源是 DSH 自带套件：只报 info、不给 action——关宿主的工具族不是合理默认）、`catalog-truncated`（描述被目录行截断）、`locked-items`（不可关项 ≥10%）、`unknown-window`（无测量）、`no-policy`（从没保存过策略且全开）、`empty-catalog`（目录为空且完整）。来源取自 `group.origin`：`plugin` 才进 `heavy-suite`，`builtin` 进 `builtin-heavy`；没有 `origin` 的旧快照按可行动处理，行为不变。
 - 检查一律读**有效投影**（`groups.onTokens` / `groups.onSavableTokens` / `snapshot.effective.totals`），不是当前会话冻结的全量装配：当前会话里已经关掉的套件条目还在（本会话不受新策略影响），但它的有效 token 是 0，所以关掉一套之后它自己的告警立刻消失。快照没有 `on*` 字段时回退到全量口径，旧宿主行为不变。
@@ -182,7 +182,7 @@ agent/created (source=startup|clear)
 | 洞察页面（管理/洞察/设置） | `sidebar.panellist` + `main` | `GET /summary` | 开关、预设、导入、撤销（`POST /action`） |
 | 会话标签页「注入」 | `conversation.view` | `GET /summary?session=<id>` | 只读 |
 | 右侧边栏面板 | `sidebarRightTabs.register({id, kind, title, guide})` + `sidebar.right.pane.tab` + `sidebar.right.pane.tab.title` | `GET /summary` | 开关（`POST /action`） |
-| 斜杠命令 `/inject` | 宿主 `commands` | 同一 `buildSnapshot()` 的文本渲染 | `/inject all｜minimal｜undo` |
+| 斜杠命令 `/inject` | 客户端 `commandUi` 服务（`ctx.inject(['commandUi'])`） | `GET /summary` | 预设、撤销、逐套件开关（`POST /action`） |
 | 设置 → 通用设置偏好行 | `settings.general.item` + `configForms.get('injection-manager')` | 插件行 `Config` | 三个 volatile 字段 |
 
 规则：
@@ -196,11 +196,16 @@ agent/created (source=startup|clear)
    `sidebarRightTabs`；在既没有该服务、又声明了旧槽的旧宿主上才保留旧注册（同一屏只出现一个面板）。
 4. **偏好行走宿主配置表单。** `Config` 三个字段是 `.volatile()`，写后原地更新、不重启插件；
    `configForms` 是可选客户端服务，缺失时偏好行只读显示生效值并在文案里说明。
+5. **`/inject` 走客户端 `commandUi`，不是宿主 `commands`。** 宿主命令只有一个 name/description 加
+   handler、返回纯文本，没有 icon 字段（图标是客户端 presentation 里写死的），所以 2.3.2 起 `/inject`
+   注册在 `client.js`：带图标、可搜索的弹层，前四行是动作（打开面板 / 最小预设 / 全开 / 撤销），
+   后面按 token 排序列出可动套件（最多 8 个），点一角即写 `POST /action`。数据和面板同源
+   （`GET /summary`），宿主没提供 `commandUi` 服务时这个入口不出现，其余入口不受影响。
 
 ## 包结构
 
 ```
-index.js            插件入口：Config、工具（含单条内容模式）、/inject、路由、agent/created
+index.js            插件入口：Config、工具（含单条内容模式）、路由、agent/created
 lib/snapshot.js     快照、套件聚类、来源分类、行内预览、策略预览
 lib/apply.js        四通道生效 + 策略保存（含事件埋点）
 lib/group.js        套件聚类
@@ -214,11 +219,11 @@ lib/health.js       健康检查：纯函数、固定 code 集
 lib/stats.js        历史记录、通道分解、日志定价回填
 lib/history.js      撤销栈
 lib/settings.js     Config 归一化
-lib/text.js         模型卡片、文本报告、健康摘要
+lib/text.js         模型卡片、文本报告
 lib/instructions.js 工作区规则只读探测
 lib/pressure.js     窗口占用（tokenMeter / contextBreakdown / llm 容量）
 lib/compaction.js   压缩回执（session/event 上的 compaction/*）
-client.js           浏览器半包：面板三页、侧栏、输入框徽标、内容抽屉
+client.js           浏览器半包：面板三页、侧栏、输入框徽标、内容抽屉、`/inject` 弹层
 locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 ```
 

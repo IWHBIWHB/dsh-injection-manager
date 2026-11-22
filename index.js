@@ -20,13 +20,8 @@ import { buildSnapshot } from './lib/snapshot.js'
 import { watchCompaction } from './lib/compaction.js'
 import { CONTENT_CHANNELS, TOOL_CONTENT_LIMIT, collectContent } from './lib/content.js'
 import { appendEvent } from './lib/events.js'
-import { buildHealth } from './lib/health.js'
-import { presetPolicy } from './lib/presets.js'
-import { readPolicy } from './lib/policy.js'
 import { setSettings } from './lib/settings.js'
-import { pushUndo, undoLastPolicy } from './lib/actions.js'
-import { withPolicyLock } from './lib/lock.js'
-import { renderCard, renderHealthLine, renderHealthText, renderText } from './lib/text.js'
+import { renderCard, renderText } from './lib/text.js'
 
 export const name = 'injection-manager'
 
@@ -81,7 +76,7 @@ export const Config =
 // silently never register. `workingDirectory` is deliberately NOT here: it
 // arrived after 0.2.0-rc.1, and lib/snapshot.js resolves the cwd through
 // optional services so the plugin still activates on 0.2.0 hosts.
-export const inject = ['tools', 'systemPrompt', 'skills', 'agents', 'webServer', 'commands']
+export const inject = ['tools', 'systemPrompt', 'skills', 'agents', 'webServer']
 
 const TOOL_NAME = 'context_injection'
 
@@ -169,75 +164,10 @@ export function createTool(ctx) {
   }
 }
 
-export function createCommand(ctx) {
-  return {
-    name: 'inject',
-    description: '查看首轮上下文注入清单；`/inject health` 看健康检查，`/inject minimal|all` 切换预设，`/inject undo` 撤销上一步。',
-    async handler(invocation) {
-      const agent = invocation?.agent
-      const sessionId = typeof agent?.id === 'string' && agent.id.length > 0 ? agent.id : undefined
-      const raw = typeof invocation?.rawInput === 'string' ? invocation.rawInput.trim() : ''
-      const snapshot = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
-      try {
-        const [command, value] = raw.split(/\s+/).filter((part) => part.length > 0)
-        if (command === undefined) {
-          // The full report plus a single health line: the line is the "should I
-          // care?" answer, and `/inject health` is the detail behind it.
-          return { kind: 'success', text: `${renderText(snapshot)}\n\n${renderHealthLine(buildHealth(snapshot))}` }
-        }
-
-        if (command === 'health') {
-          return { kind: 'success', text: renderHealthText(buildHealth(snapshot)) }
-        }
-
-        if (command === 'all' || command === 'minimal') {
-          const names = {
-            sections: snapshot.items.filter((item) => item.channel === 'sections').map((item) => item.name),
-            contexts: snapshot.items.filter((item) => item.channel === 'contexts').map((item) => item.name),
-            skills: snapshot.items.filter((item) => item.channel === 'skills').map((item) => item.name),
-            tools: snapshot.items.filter((item) => item.channel === 'tools').map((item) => item.name),
-          }
-          // Same queue as the panel's writes: a slash command racing a click
-          // must not lose either change.
-          await withPolicyLock(async () => {
-            const state = await readPolicy()
-            pushUndo(state.policy)
-            const next = presetPolicy(command, names)
-            next.prompt = state.policy.prompt
-            await savePolicy(next, { sessionId, kind: 'preset', params: { name: command, via: 'command' } })
-          })
-          const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
-          return {
-            kind: 'success',
-            text: `已切换预设：${command}\n新会话首轮 ≈ ${after.policy.preview.after} token（−${after.policy.preview.savedTokens}）\n\n${renderText(after)}`,
-          }
-        }
-
-        if (command === 'undo') {
-          await withPolicyLock(() => undoLastPolicy({ sessionId, params: { via: 'command' } }))
-          const after = await buildSnapshot(ctx, agent, 'command', invocation?.signal)
-          return {
-            kind: 'success',
-            text: `已撤销上一步策略。新会话首轮 ≈ ${after.policy.preview.after} token。`,
-          }
-        }
-
-        return {
-          kind: 'error',
-          text: '可用：/inject · /inject health · /inject all · /inject minimal · /inject undo',
-        }
-      } catch (error) {
-        return { kind: 'error', text: `注入策略操作失败：${error?.message ?? error}` }
-      }
-    },
-  }
-}
-
 export function apply(ctx, config) {
   setSettings(config)
   ctx.tools.register(createTool(ctx))
 
-  ctx.effect(() => ctx.commands.register(createCommand(ctx)), 'injection-manager command')
 
   const routes = createRoutes(ctx)
   for (const [key, path] of Object.entries(ROUTES)) {

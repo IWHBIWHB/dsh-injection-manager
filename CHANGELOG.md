@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.3.2 — 2026-11-22
+
+### Changed
+
+- **`/inject` is a client shortcut now: plugin icon plus a searchable switch list.** The host command
+  registry has no icon field and its plain-text report only repeated numbers the panel already shows,
+  so the host command is gone. `client.js` registers the surface on the client `commandUi` service
+  (`commandUi.register({ name: 'inject', icon: PanelIcon, ui: { kind: 'popupSelect' } })`). Typing
+  `/inject` opens one popup: open the full panel, preset minimal / all-on, undo, then the switchable
+  suites sorted by token cost (up to 8, plugin/builtin badge, count and state). Picking a row writes
+  `POST /action` immediately; the data still comes from `GET /summary`.
+- The host `commands` dependency is gone from the plugin's `inject` list, and the now-unused text
+  renderers `renderHealthLine` / `renderHealthText` / `healthCheckText` were removed from
+  `lib/text.js` with their tests. The panel's health page and `/health` were never using them.
+- The eight READMEs, `docs/ARCHITECTURE.md`, `docs/COMPATIBILITY.md` and `SECURITY.md` no longer
+  advertise `/inject health|all|minimal|undo`; the entry is described as a popup, and
+  `COMPATIBILITY.md` now states that the shortcut depends on the client `commandUi` service (not
+  verified on the 0.2.0/0.2.1 hosts, where it simply does not appear).
+
+### Fixed
+
+- **A suite row in the popup sent the short key (`core`) instead of the cluster id (`tools:core`), so
+  `POST /action` matched zero items and the click looked like it did nothing.** Rows now carry the
+  full cluster id; multi-channel suites go through the panel's `parts` path, and the policy really
+  flips.
+- The self-audit reconcile item now checks the client registration (`commandUi.register` and
+  `name: 'inject'` in `client.js`, `commandUi` in `docs/ARCHITECTURE.md`), so a host rename cannot
+  drop the shortcut unnoticed. The client size budget moved 272 KB → 276 KB because the browser half
+  carries this surface now.
+
+### Verification
+
+- 225 tests / 0 fail; self-audit 100/100 (7/7 checks).
+- 0.2.2-rc.5 QA instance, `/inject` probe 12/12: the slash menu lists `注入快捷开关 inject` with an
+  SVG icon; Enter opens the popup (action group + suite group + search box); clicking `core` dropped
+  its `onCount` 23 → 0 through `/action`; popup closed; zero console errors.
+  Screenshots: `_research/verify/desk-dev/shots/inject-232/`.
+
 ## 2.3.1 — 2026-11-21
 
 ### Fixed

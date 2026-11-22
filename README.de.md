@@ -17,7 +17,7 @@ gerade mit, und wie sieht das nach einem Schalter aus?*
 
 Fünf Einstiegspunkte erzählen diese eine Geschichte aus demselben Snapshot: die **Panelseite**
 (Verwalten / Einblicke / Einstellungen), der **Gesprächs-Tab**, das **Panel in der rechten
-Seitenleiste**, der **Befehl `/inject`** und die **Einstellungszeile unter Einstellungen →
+Seitenleiste**, der **`/inject`-Kurzbefehl** und die **Einstellungszeile unter Einstellungen →
 Allgemein**. Der Chip am Eingabefeld und das Modellwerkzeug `context_injection` sind weitere
 Lesarten derselben Zahlen — ein ständig sichtbares Badge und eine schreibgeschützte
 Modell-Oberfläche, keine eigenständigen Funktionen.
@@ -98,7 +98,7 @@ serialisierte Richtlinien-Schreibvorgänge mit `.bak`-Wiederherstellung). Vollst
 | **Verwalten** | Panel → Verwalten | Ein Schaltpult: was die nächste neue Sitzung kostet, wie viel davon abschaltbar ist, eine Zeile pro Suite, ein Schalter pro Zeile. Nur Zahlen und Schalter — keine Diagramme. |
 | **Einblicke** | Panel → Einblicke | Eine feste Reihenfolge: Zusammensetzung dieser Anfrage → Injektionszusammensetzung und größte Suites → Gesundheitsprüfungen → Verlauf → Änderungen und Sitzungsdetails. |
 | **Einstellungen** | Panel → Einstellungen | Eine Karte mit fünf Zeilen: die Richtliniendatei (Pfad, Export Markdown/JSON, Import), die Voreinstellungen, ein eingeklappter eigener Präfix/Suffix, der Schalter für den Chip am Eingabefeld und Hinweise (Host, API, Sprache, eingeklappte Details). |
-| **Befehle & Werkzeuge** | Eingabefeld / Modell | `/inject` (+ `health｜all｜minimal｜undo`) für einen Textbericht, `context_injection` für einen schreibgeschützten Snapshot (optional der Inhalt eines Eintrags) und der Chip am Eingabefeld für die Zahl der nächsten Sitzung. |
+| **Befehle & Werkzeuge** | Eingabefeld / Modell | `/inject` für ein durchsuchbares Umschaltmenü mit Symbol (Panel öffnen, Voreinstellungen, Rückgängig, einzelne Suites), `context_injection` für einen schreibgeschützten Snapshot (optional der Inhalt eines Eintrags) und der Chip am Eingabefeld für die Zahl der nächsten Sitzung. |
 
 ## Ansichten
 
@@ -306,7 +306,7 @@ nur Ereignisse seit dem Laden des Plugins — der Tooltip sagt das.
 Die Richtlinie liegt in `$DSH_HOME/injection-manager/policy.json`, in einer einzigen Datei.
 
 Schreibvorgänge werden über `lib/lock.js` serialisiert (eine prozessinterne Warteschlange, die
-`POST /action` und `/inject all|minimal|undo` gemeinsam nutzen), damit zwei Panels, die zwei Suites
+`POST /action` und `/inject`-Aktionen gemeinsam nutzen), damit zwei Panels, die zwei Suites
 umschalten, keine davon verlieren. Jeder Schreibvorgang nutzt einen eindeutigen temporären Namen,
 kopiert die aktuelle Datei nach `policy.json.bak` (wenn eine existiert) und benennt anschließend die
 neue Datei an ihren Platz um. Lässt sich `policy.json` nicht parsen, liest das Plugin das Backup und
@@ -363,7 +363,7 @@ des Plugins und zeigt keine Zahlen.
 | **Einblicke-Seite** | Linke Panelliste → „Kontext-Injektion“ → Verwalten / Einblicke / Einstellungen | Das vollständige Bild: Schaltpult, Zusammensetzung, Gesundheit, Verlauf, Änderungen, Sitzungsdetails, Richtlinie |
 | **Gesprächs-Tab** | Tab-Zeile eines Gesprächs: Chat / Verlauf / **Injektion** | Was *diese Unterhaltung* jetzt mitführt, was die nächste Sitzung mitführen würde, was abschaltbar ist, wie voll das Kontextfenster ist |
 | **Panel in der rechten Seitenleiste** | Tab „Kontext-Injektion“ in der rechten Seitenleiste | Die kompakte Version bei der Arbeit: die beiden Zahlen, abschaltbarer Anteil, Skill-Fokus, Kanalschalter |
-| **Befehl `/inject`** | Eingabefeld | Ein Textbericht plus eine Gesundheitszeile. Unterbefehle: `/inject health`, `/inject minimal`, `/inject all`, `/inject undo` |
+| **`/inject`-Kurzbefehl** | Eingabefeld | Ein durchsuchbares Menü mit Symbol: Panel öffnen, Voreinstellung minimal / alles an, Rückgängig, dazu die umschaltbaren Suites nach Token sortiert (bis zu 8) |
 | **Einstellungszeile** | Einstellungen → Allgemein → „Kontext-Injektion“ | `dock` / `refreshOnFocus` / `showRawNames`, geschrieben über das Konfigurationsformular des Hosts (volatil: kein Neustart) |
 
 Zwei weitere Lesarten zählen bewusst nicht als Einstiegspunkte: Der Chip am Eingabefeld ist ein
@@ -430,7 +430,7 @@ die Richtliniendatei geschrieben, es gibt also genau eine Quelle der Wahrheit f�
 | --- | --- | --- |
 | `$DSH_HOME/injection-manager/policy.json` | Kanalmodi, Namen, Präfix/Suffix | Panel-Aktionen und `/inject` (eingereiht, atomares Schreiben) |
 | `$DSH_HOME/injection-manager/policy.json.bak` | Die letzte gültige Richtlinie, genutzt wenn `policy.json` nicht geparst werden kann | Jeder Richtlinien-Schreibvorgang, wenn eine vorherige Datei existiert |
-| `$DSH_HOME/injection-manager/stats.json` | Eine gemessene Zeile pro Sitzung, mit Token-Aufteilung pro Kanal | Jeder Snapshot, den Panel/Werkzeug/Befehl/Export/Gesundheitsprüfung aufbaut, plus das Hintergrund-Nachfüllen des Verlaufs |
+| `$DSH_HOME/injection-manager/stats.json` | Eine gemessene Zeile pro Sitzung, mit Token-Aufteilung pro Kanal | Jeder Snapshot, den Panel/Werkzeug/Export/Gesundheitsprüfung aufbaut, plus das Hintergrund-Nachfüllen des Verlaufs |
 | `$DSH_HOME/injection-manager/events.json` | Nur anhängendes Ereignis-Feed, max. 300, atomares Schreiben | Richtlinien-Speicherungen, Voreinstellungen, Importe, Rückgängig, Komprimierungen |
 | Plugin-Konfigurationszeile | dock / refreshOnFocus / showRawNames | Einstellungen → Allgemein (Karte) oder Plugins → Konfiguration |
 | Browser-Lokalspeicher | Zeilennummern der Schublade, Zeitraum der Einblicke, ausgeblendete Karten | Nur dieser Browser |
