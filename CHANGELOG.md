@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.5 — 2026-11-22
+
+### Fixed
+
+- **Tool rows understated their own tokens by about half.** A tool schema was measured from
+  its description only; the `parameters` JSON — most of the tokens — was never counted, so a
+  328-tool request read ≈41k while the host-side measurement of the same tools is ≈85k. The row
+  now measures `name + description + parameters` (the serialized schema) while the preview keeps
+  showing the human description; the measurement text is not persisted to `ledger.jsonl`.
+- The ledger total now sits on the same scale as the 洞察 page instead of being a second,
+  quieter number.
+
+### Verification
+
+- New test: a schema with parameters measures larger than its description alone, the stored
+  preview never contains raw JSON, and `measureText` is stripped before persisting.
+- 165 tests / 0 fail.
+
 ## 3.0.4 — 2026-11-22
 
 ### Fixed

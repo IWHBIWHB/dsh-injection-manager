@@ -15,6 +15,11 @@ test('catalog: sections, contexts, tools and messages classify to the owning pac
   assert.equal(sectionOwner('tool:read').control, 'plugin')
   assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
   assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
   assert.equal(sectionOwner('mcp:rea').control, 'plugin')
   assert.equal(sectionOwner('harness:identity').owner, 'dsh-system-prompt')
   assert.equal(contextOwner('working-directory:current').control, 'protected')
@@ -194,6 +199,40 @@ test('ledger: message text and variables are preview-only, not stored', async ()
     assert.equal(entry.variables[0].previewOnly, true)
     assert.equal(entry.messages[0].hash, null)
     assert.equal(entry.messages[0].previewOnly, true)
+  } finally {
+    await rm(home, { recursive: true, force: true })
+  }
+})
+
+test('ledger: a tool row counts its full schema, not just the description', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'ledger-tool-'))
+  try {
+    const ledger = createLedger({ directory: home, maxEntries: 5 })
+    const description = 'Read a UTF-8 text file and return line-numbered content.'
+    const parameters = { type: 'object', properties: { path: { type: 'string' }, offset: { type: 'number' } }, required: ['path'] }
+    const summary = ledger.record({
+      session: 'session-tool',
+      offered: {},
+      admitted: { sections: [], contexts: [] },
+      variables: {},
+      tools: [
+        { name: 'read', description, hasParameters: true, measureText: `read\n${description}\n${JSON.stringify(parameters)}` },
+        { name: 'no_params', description: 'tiny' },
+      ],
+      messages: [],
+    })
+    const entry = ledger.get(summary.id).entry
+    const read = entry.tools.find((tool) => tool.name === 'read')
+    const plain = entry.tools.find((tool) => tool.name === 'no_params')
+    // the parameters dominate the schema: the row must count them
+    assert.ok(read.tokens > Math.ceil(description.length / 4), `expected more than the description alone, got ${read.tokens}`)
+    assert.ok(read.chars > description.length)
+    // the UI preview stays the human description, never raw JSON
+    assert.ok(read.preview.startsWith(description.slice(0, 40)))
+    assert.equal(/\{"type"/.test(read.preview), false)
+    // the internal measurement text is not persisted
+    assert.equal(Object.prototype.hasOwnProperty.call(read, 'measureText'), false)
+    assert.equal(plain.tokens, 1)
   } finally {
     await rm(home, { recursive: true, force: true })
   }
