@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.1 — 2026-11-22
+
+### Fixed
+
+- **Required runtime contexts are not "blocked".** `working-directory:current` and `subagent:identity`
+  are `required: true`, and the host's `refreshContext` puts them back even after a waterfall listener
+  removes them (`dsh-system-prompt/src/index.ts:589-609`). The ledger now records such a dropped copy
+  as `status: "restored"` with a separate `counts.restoredContexts` and a 「宿主还原」/「restored by
+  host」 badge, instead of claiming the policy blocked something the request actually carried.
+- **Panorama source references corrected** after an independent review (29 spot-checks). The section /
+  context / variable / waterfall line numbers had been taken from the sibling
+  `docs/subsystems/system-prompt.md` and are now the real `dsh-system-prompt/src/index.ts` ranges
+  (PromptSection 52-76, PromptContext 78-90, `variable()` 568-577, `suppressRuntimeContext` 537-543,
+  `refreshContext` 589-609, `assemble` 621-696, event declaration 18-31). Tool guidance now cites the
+  real files (`read.ts`/`write.ts`/`edit.ts`/`apply-patch.ts`, `glob.ts`/`grep.ts`), MCP instructions
+  cite `dsh-mcp-client/src/server-context.ts:33-38`, AGENTS.md text cites `state.ts:88`, and
+  `contextBreakdown` is attributed to `dsh-token-meter/src/projection.ts:52-68` (not
+  session-projection). The per-step order is corrected to `assemble → agent/pre-step →
+  refreshContext → render/project → buildRequest`, the compaction checkpoint source kind
+  (`compact-checkpoint`) is named, and the "pre-step filtering might be re-offered" claim is labelled
+  an unproven design assumption instead of a fact.
+
+### Verification
+
+- 160 tests / 0 fail (new restored-context case); self-audit 100/100; ledger persistence across a host
+  restart verified in the isolated 0.2.2-rc.5 instance (records reload from `ledger.jsonl` for the
+  recorded session); panorama review results are recorded in `docs/INJECTION-PANORAMA.md` §7.1.
+
 ## 3.0.0 — 2026-11-22
 
 ### Added

@@ -67,6 +67,9 @@ test('ledger: records offered vs admitted, blocked items, tool schemas and text'
     const full = ledger.get(summary.id)
     assert.equal(full.ok, true)
     assert.equal(full.entry.blocked.sections[0].name, 'tool:read')
+    // Required contexts are restored by the host, never "blocked by policy".
+    assert.deepEqual(full.entry.blocked.restored, [])
+    assert.equal(full.entry.counts.restoredContexts, 0)
     assert.equal(full.entry.sections[0].control, 'plugin')
     assert.equal(full.entry.contexts[0].control, 'protected')
     assert.equal(full.entry.tools[1].owner, 'MCP server "rea"')
@@ -127,6 +130,36 @@ test('ledger: message rows keep the host source kind next to the semantic kind',
     assert.equal(entry.messages[0].control, 'plugin')
   } finally {
     await rm(home, { recursive: true, force: true })
+  }
+})
+
+test('ledger: a dropped required context is recorded as restored, not blocked', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'ledger-unit4-'))
+  try {
+    const ledger = createLedger({ directory: home })
+    const summary = ledger.record({
+      session: 's',
+      offered: {
+        sections: [],
+        contexts: [
+          { name: 'working-directory:current', order: 100, text: '/work' },
+          { name: 'sandbox:policy', order: 110, text: 'sandbox: workspace-write' },
+        ],
+      },
+      admitted: { sections: [], contexts: [] },
+      tools: [],
+    })
+    const entry = ledger.get(summary.id).entry
+    const restored = entry.blocked.restored
+    assert.equal(restored.length, 1)
+    assert.equal(restored[0].name, 'working-directory:current')
+    assert.equal(restored[0].status, 'restored')
+    assert.equal(entry.counts.restoredContexts, 1)
+    assert.equal(entry.blocked.contexts.length, 1)
+    assert.equal(entry.blocked.contexts[0].name, 'sandbox:policy')
+    assert.equal(entry.counts.blockedContexts, 1)
+  } finally {
+    await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 60 })
   }
 })
 

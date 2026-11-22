@@ -3584,6 +3584,7 @@ body[data-ds-dark-theme] .ci-root{
           noSelection: '选一条记录看明细',
           userManage: '用户管理',
           rejected: '未发出',
+          restored: '宿主还原',
           stats: '台账',
         },
         en: {
@@ -3619,6 +3620,7 @@ body[data-ds-dark-theme] .ci-root{
           noSelection: 'Pick a record to see its items',
           userManage: 'managed by you',
           rejected: 'not sent',
+          restored: 'restored by host',
           stats: 'ledger',
         },
       }
@@ -3758,6 +3760,7 @@ body[data-ds-dark-theme] .ci-root{
             h('span', { className: 'nm' }, row.name),
             h('span', { className: 'ow' }, row.owner || ''),
             row.control ? h('span', { className: 'ci-ledger-tag ' + row.control }, control) : null,
+            row.status === 'restored' ? h('span', { className: 'ci-ledger-tag protected' }, lt.restored) : null,
             h('span', { className: 'tk' }, token(row.tokens || 0)),
           )
         }
@@ -3851,12 +3854,12 @@ body[data-ds-dark-theme] .ci-root{
                         : (entry[key] || []).map((row) => renderItem(key, row)),
                     ),
                   ),
-                  countOf('blockedSections') + countOf('blockedContexts') > 0
+                  countOf('blockedSections') + countOf('blockedContexts') + countOf('restoredContexts') > 0
                     ? h(
                         'div',
                         { className: 'ci-ledger-group' },
-                        h('div', { className: 'hd' }, h('span', null, lt.blocked), h('span', { className: 'grow' }), h('span', null, String(countOf('blockedSections') + countOf('blockedContexts')))),
-                        [...(entry.blocked?.sections || []), ...(entry.blocked?.contexts || [])].map((row) => renderItem('blocked', row)),
+                        h('div', { className: 'hd' }, h('span', null, lt.blocked), h('span', { className: 'grow' }), h('span', null, String(countOf('blockedSections') + countOf('blockedContexts')) + (countOf('restoredContexts') > 0 ? ' · ' + lt.restored + ' ' + countOf('restoredContexts') : ''))),
+                        [...(entry.blocked?.sections || []), ...(entry.blocked?.contexts || []), ...(entry.blocked?.restored || [])].map((row) => renderItem('blocked', row)),
                       )
                     : null,
                   item !== null
