@@ -14,11 +14,25 @@
 | --- | --- | --- | --- |
 | 旧宿主验证 | 0.2.0/0.2.1 标「预期可用」 | **四个版本真机通过**：0.2.0-rc.1、0.2.1-rc.5、0.2.2-rc.1、0.2.2-rc.5 | `docs/COMPATIBILITY.md`；修复 `workingDirectory` 硬依赖与旧 CLI 版本识别（`lib/snapshot.js`、`lib/hostinfo.js`） |
 | 外部反馈通道 | 只有 issue 模板 | 设置页内「复制诊断 / 报告问题」，诊断脱敏、浏览器拦截剪贴板时可手动复制；`/diag?report=1` 可脚本取 | `client.js` 反馈行、`lib/diagnostics.js`、`docs/FEEDBACK.md`；面板实测：复制 536 字符、无路径、issue 预填成功 |
-| 发布节奏 | 9 个 tag，手工 bump | `scripts/release.mjs` 一条命令（CI 同门槛 + 版本 + tag），节奏写进 SOP；2.3.1 起按 patch 每周 / minor 2–4 周走 | `scripts/release.mjs`、`docs/DISTRIBUTION.md` §4；tag `v2.3.1` |
+| 发布节奏 | 9 个 tag，手工 bump | `scripts/release.mjs` 一条命令（CI 同门槛 + 版本 + tag），节奏写进 SOP；2.3.1 起按 patch 每周 / minor 2–4 周走 | `scripts/release.mjs`、`docs/DISTRIBUTION.md` §4；tag `v2.3.1`、`v2.3.2` |
 | 目录收录数字 | 记录为 0 | **已收录 1**（awesome-dsh-plugin `data/plugins/IWHBIWHB__dsh-injection-manager.yml`，分类 usage）；描述/图标更新 PR #17255 待合并 | `docs/GAPS.md` |
 
 仍然为 0、且不能靠代码解决的：**真实用户反馈**（通道已建，等外部使用）、**官方市场收录**（官方市场
 未上线，无提交入口）。这两项如实留在 `docs/GAPS.md`。
+
+## 2.3.2 更新（2026-11-22）
+
+**总分仍 8.8 / 10。** 这一版来自本人试用后的一句差评：「斜杠菜单里的 inject 没用」。不加分，但把
+「入口名不副实」这条补上：
+
+- `/inject` 从宿主文本命令改成客户端 `commandUi` 弹层——带插件图标、可搜索，前四行是动作
+  （打开面板 / 最小预设 / 全开 / 撤销），后面按 token 排序列出可动套件；点一行即写策略。
+- 顺手修了同一次改动里的真 bug：弹层发给 `/action` 的是去掉通道前缀的短 key（`core`），路由按
+  完整 group id（`tools:core`）匹配，点了等于没点。
+- 五入口仍然成立，只是第 4 个入口的形态变了（`docs/ARCHITECTURE.md` 规则 5、`COMPATIBILITY.md`
+  已注明它依赖客户端 `commandUi`，0.2.x 两代未单独验证）。
+- 证据：0.2.2-rc.5 QA 探针 12/12（斜杠行带 SVG 图标、弹层动作/套件分组、点 `core` 后 `onCount`
+  23→0、弹层关闭、0 console error）；225 测试 / 0 fail；自审 100/100；npm 2.3.2 + tag `v2.3.2`。
 
 ## 产品层
 

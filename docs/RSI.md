@@ -1,4 +1,4 @@
-﻿# RSI：可重复的自审计
+# RSI：可重复的自审计
 
 一句话：每次改数字、改开关或改文案，跑一次 `node scripts/self-audit.mjs`，把代码、面板和文档对一遍；对不上就红，不靠人眼。
 
@@ -131,6 +131,29 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
   等真实用户，通道已经降到一键。
 - 证据：`docs/COMPATIBILITY.md`、`docs/GAPS.md`、`docs/FEEDBACK.md`、`scripts/release.mjs`、
   `_research/verify/probe-old-actions.mjs`（开发机）。
+
+## 2026-11-22 这一轮（2.3.2：把"没用"的入口重做）
+
+- 起点不是自审表，是本人用完之后的一句「斜杠菜单里的 inject 没用，删掉或升级」。回头核对：
+  `/inject` 是宿主文本命令——宿主 `commands` 注册项没有 icon 字段（图标在客户端 presentation 里
+  写死），而且它的输出只是把面板已有的数字再打一遍，确实没有存在理由。
+- 选中并解决：
+  - **形态重做**：删掉宿主命令，改成客户端 `commandUi` 弹层——插件图标、可搜索、四行动作
+    （打开面板 / 最小预设 / 全开 / 撤销）+ 按 token 排序的套件开关（最多 8 个）；数据仍
+    `GET /summary`，写入仍 `POST /action`，锁不变。
+  - **修掉同一次改动里的真 bug**：弹层发给路由的是去掉通道前缀的短 key（`core`），路由按完整
+    group id（`tools:core`）匹配，点了等于没点；现在按面板同款 payload，多通道套件走 `parts`。
+  - **自审补一条对账**：`commandUi.register` + `name: 'inject'` + ARCHITECTURE 里的 `commandUi`，
+    宿主改名导致入口消失会先失败；客户端体积预算 272 KB → 276 KB 并写明原因。
+  - **删死代码**：`lib/text.js` 的健康文本渲染（`renderHealthLine` / `renderHealthText` /
+    `healthCheckText`）随命令一起去掉，连带 3 条用例；八语言 README、ARCHITECTURE、COMPATIBILITY、
+    SECURITY 里过时的四条子命令（health / all / minimal / undo）全部改掉。
+- 结果：225 测试 / 0 fail；自审 100/100（7/7）；0.2.2-rc.5 QA 实例探针 12/12（斜杠行带 SVG 图标、
+  弹层动作/套件分组、点 `core` 后 `onCount` 23→0、0 console error）；npm 2.3.2 + tag `v2.3.2`。
+- 没做：0.2.x 两代宿主上 `commandUi` 是否存在未单独验证（缺失时该入口不出现，已在 COMPATIBILITY
+  标注）；2.3.2 未重跑整包干净安装（改动只在客户端与文档）。
+- 证据：`_research/verify/desk-dev/probe-inject.mjs`、`shots/inject-232/`（开发机）、
+  `CHANGELOG.md` 2.3.2、`docs/ARCHITECTURE.md` 规则 5。
 
 ## 下一轮候选（backlog）
 
