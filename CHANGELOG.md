@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.3 — 2026-11-22
+
+### Fixed
+
+- **Exact ledger text survived only in memory.** The content-addressed store wrote
+  `ledger-text/<hash>.txt` without ever creating the directory, so the write failed silently (caught and
+  logged as a warning) and `GET /ledger-text?hash=` could only serve text captured in the current
+  process. The queued write now creates the directory first; a test flushes the queue and re-reads the
+  file through `readStored()` instead of trusting the memory cache.
+
+### Verification
+
+- 160 tests / 0 fail; real 0.2.2-rc.5 instance: after one request `ledger-text/<hash>.txt` exists on
+  disk, and the same hash returns the exact text after a host restart.
+
 ## 3.0.2 — 2026-11-22
 
 ### Fixed

@@ -80,6 +80,13 @@ test('ledger: records offered vs admitted, blocked items, tool schemas and text'
     assert.equal(text.text, 'You are an AI agent.')
     assert.equal(ledger.text('ffffffffffffffffffff').ok, false)
 
+    // The content-addressed file must really exist on disk, so the exact text
+    // survives a host restart instead of only living in memory.
+    await ledger.flush()
+    const stored = await ledger.readStored(item.hash)
+    assert.equal(stored.ok, true)
+    assert.equal(stored.text, 'You are an AI agent.')
+
     // finalize attaches the step's turn/step and decided message-level entries
     const final = ledger.finalize(summary.id, {
       turn: 1,
