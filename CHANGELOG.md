@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.4 — 2026-11-22
+
+### Fixed
+
+- **The ledger tab clipped its own content.** `.ci-ledger` was a shrinkable column
+  (`flex:1 1 auto` with `min-height:0`) inside a `height:100%` wrapper, so a real
+  328-tool request was squeezed into the viewport: item rows and group headers were
+  cut in half and the tab body never scrolled. The ledger now sizes to its content
+  and the tab body scrolls normally; the request list keeps its own 220px scroll.
+- **Tool owners resolved for the long tail of host tools.** Owners now come from a
+  generated map of every `tools.register(defineTool({ name }))` site in the shipped
+  harness sources (67 tools: MCP resource endpoints, workspace dependencies, session
+  queries, office/terminal tools, agent-team task tools, plugin market, ralph, cordis
+  inspect, str_replace_editor, …), not a hand-typed list. Tools registered by a
+  third-party plugin are matched against the profile's installed package names
+  (`agentero_list_papers` → `agentero-dsh`) and the label says it is inferred.
+  Anything still unknown reads `unlisted source` with note 「归属目录里没有这条来源，只展示不改」
+  instead of the old English `unknown tool provider / 只能预览`.
+
+### Verification
+
+- Isolated real instance (profile `v2qa`, port 49815): one real request produced a
+  2,848px-tall ledger inside a 788px tab body (`scrollHeight 2874 > clientHeight 788`),
+  mouse wheel scrolls it, `clippedGroups: 0`, 67 rows rendered, owners include
+  `dsh-tool-fs`, `dsh-mcp-resources`, `dsh-tool-subagent-control`; 0 console errors.
+- Records captured before 3.0.4 keep their old owner labels; new requests show the
+  resolved packages.
+
 ## 3.0.3 — 2026-11-22
 
 ### Fixed

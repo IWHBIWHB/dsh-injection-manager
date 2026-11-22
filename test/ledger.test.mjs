@@ -11,8 +11,10 @@ import { describeItem, catalogRows, sectionOwner, contextOwner, toolOwner, messa
 import { createLedger } from '../lib/ledger.js'
 
 test('catalog: sections, contexts, tools and messages classify to the owning package', () => {
-  assert.equal(sectionOwner('tool:read').owner, 'tool package (dsh-tool-*)')
+  assert.equal(sectionOwner('tool:read').owner, 'dsh-tool-fs')
   assert.equal(sectionOwner('tool:read').control, 'plugin')
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
+  assert.match(sectionOwner('tool:unresolved').owner, /tool package/)
   assert.equal(sectionOwner('mcp:rea').control, 'plugin')
   assert.equal(sectionOwner('harness:identity').owner, 'dsh-system-prompt')
   assert.equal(contextOwner('working-directory:current').control, 'protected')

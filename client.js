@@ -3626,20 +3626,29 @@ body[data-ds-dark-theme] .ci-root{
       }
       const ledgerTextOf = () => LEDGER_TEXT[UI_LANGUAGE] || LEDGER_TEXT.en
       const LEDGER_STYLE =
-        '.ci-ledger{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1 1 auto}' +
+        '.ci-ledger{display:flex;flex-direction:column;gap:12px;flex:0 0 auto}' +
+        // The tab body is the scroll container (`.ci-tab .ci-body`); the ledger
+        // must size to its content and let the body scroll. As a shrinkable
+        // column inside a height:100% wrapper it used to be squeezed to the
+        // viewport height, clipping rows and group headers.
+        '.ci-ledger-page{height:auto;min-height:auto;flex:0 0 auto}' +
         '.ci-ledger-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
         '.ci-ledger-head h3{margin:0;font-size:13px;font-weight:600}' +
         '.ci-ledger-head .s{color:var(--ci-fg3);font-size:11px}' +
-        '.ci-ledger-list{display:flex;flex-direction:column;gap:4px;max-height:190px;overflow:auto;padding-right:2px}' +
+        '.ci-ledger-list{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto;padding-right:2px;flex:0 0 auto}' +
         '.ci-ledger-row{display:flex;align-items:baseline;gap:8px;padding:5px 8px;border:1px solid var(--ci-line);border-radius:7px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}' +
         '.ci-ledger-row:hover{border-color:var(--ci-accent)}' +
         '.ci-ledger-row.on{border-color:var(--ci-accent);background:var(--ci-accent-soft,rgba(77,107,254,.08))}' +
         '.ci-ledger-row .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;font-size:11px}' +
         '.ci-ledger-row .n{font-variant-numeric:tabular-nums;font-size:11px;color:var(--ci-fg2)}' +
         '.ci-ledger-row .k{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}' +
-        '.ci-ledger-detail{display:flex;flex-direction:column;gap:8px;min-height:0}' +
+        '.ci-ledger-detail{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}' +
         '.ci-ledger-meta{color:var(--ci-fg3);font-size:11px;display:flex;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}' +
-        '.ci-ledger-group{border:1px solid var(--ci-line);border-radius:8px;overflow:hidden}' +
+        '.ci-ledger-group{border:1px solid var(--ci-line);border-radius:8px;overflow:hidden;flex:0 0 auto}' +
+        '.ci-ledger-group > .hd{cursor:pointer;user-select:none}' +
+        '.ci-ledger-group > .hd .cv{color:var(--ci-fg3);font-size:9px;width:9px;flex:none}' +
+        '.ci-ledger-group.collapsed > .hd{border-radius:0}' +
+        '.ci-ledger-group.collapsed .ci-ledger-item{display:none}' +
         '.ci-ledger-group > .hd{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--ci-fill,rgba(0,0,0,.02));font-size:11px;color:var(--ci-fg2)}' +
         '.ci-ledger-item{display:flex;align-items:baseline;gap:8px;padding:5px 9px;border-top:1px solid var(--ci-line);font-size:11.5px;width:100%;background:transparent;border-left:0;border-right:0;border-bottom:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer}' +
         '.ci-ledger-item:hover{background:var(--ci-fill,rgba(0,0,0,.03))}' +
@@ -3666,6 +3675,7 @@ body[data-ds-dark-theme] .ci-root{
         const [item, setItem] = useState(null)
         const [catalog, setCatalog] = useState(null)
         const [busy, setBusy] = useState(false)
+        const [collapsed, setCollapsed] = useState({})
 
         const loadList = useCallback(
           async (preferred) => {
@@ -3768,7 +3778,7 @@ body[data-ds-dark-theme] .ci-root{
 
         return h(
           'div',
-          { className: 'ci-root' },
+          { className: 'ci-root ci-ledger-page' },
           h('style', null, LEDGER_STYLE),
           h(
             'div',
@@ -3841,10 +3851,23 @@ body[data-ds-dark-theme] .ci-root{
                   ...groups.map(([key, label]) =>
                     h(
                       'div',
-                      { className: 'ci-ledger-group', key },
+                      { className: 'ci-ledger-group' + (collapsed[key] ? ' collapsed' : ''), key },
                       h(
                         'div',
-                        { className: 'hd' },
+                        {
+                          className: 'hd',
+                          role: 'button',
+                          tabIndex: 0,
+                          'aria-expanded': collapsed[key] ? 'false' : 'true',
+                          onClick: () => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] })),
+                          onKeyDown: (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }))
+                            }
+                          },
+                        },
+                        h('span', { className: 'cv' }, collapsed[key] ? '\u25B8' : '\u25BE'),
                         h('span', null, label),
                         h('span', { className: 'grow' }),
                         h('span', null, String(countOf(key))),
