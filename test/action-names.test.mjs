@@ -101,5 +101,7 @@ test('a tool name batch off also records a real restriction', async () => {
 })
 
 test('cleanup', async () => {
-  await rm(home, { recursive: true, force: true })
+  // Windows can still hold the temp policy file for a few ms after the last
+  // write; retry instead of failing the suite on a timing flake.
+  await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 60 })
 })

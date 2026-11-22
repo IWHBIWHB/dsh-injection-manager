@@ -127,7 +127,7 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
     patch 每周 / minor 2–4 周；2.3.1 为第一笔。
   - **目录事实**：awesome-dsh-plugin 条目其实早已存在（此前记录为 0 是旧快照），PR #17255 更新
     描述与图标，CI pass、等合并。
-- 结果：231 测试 / 0 fail；自审 100/100；tag 11；自评 8.6 → 8.8。外部 issue 仍为 0——这条只能
+- 结果：156 测试 / 0 fail（修正后口径）；自审 100/100；tag 11；自评 8.6 → 8.8。外部 issue 仍为 0——这条只能
   等真实用户，通道已经降到一键。
 - 证据：`docs/COMPATIBILITY.md`、`docs/GAPS.md`、`docs/FEEDBACK.md`、`scripts/release.mjs`、
   `_research/verify/probe-old-actions.mjs`（开发机）。
@@ -148,7 +148,7 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
   - **删死代码**：`lib/text.js` 的健康文本渲染（`renderHealthLine` / `renderHealthText` /
     `healthCheckText`）随命令一起去掉，连带 3 条用例；八语言 README、ARCHITECTURE、COMPATIBILITY、
     SECURITY 里过时的四条子命令（health / all / minimal / undo）全部改掉。
-- 结果：225 测试 / 0 fail；自审 100/100（7/7）；0.2.2-rc.5 QA 实例探针 12/12（斜杠行带 SVG 图标、
+- 结果：150 测试 / 0 fail（修正后口径）；自审 100/100（7/7）；0.2.2-rc.5 QA 实例探针 12/12（斜杠行带 SVG 图标、
   弹层动作/套件分组、点 `core` 后 `onCount` 23→0、0 console error）；npm 2.3.2 + tag `v2.3.2`。
 - 没做：0.2.x 两代宿主上 `commandUi` 是否存在未单独验证（缺失时该入口不出现，已在 COMPATIBILITY
   标注）；2.3.2 未重跑整包干净安装（改动只在客户端与文档）。
@@ -162,7 +162,7 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
 - 实现：`lib/ledger.js`（内容寻址原文 + 每请求记录）、`lib/ledger-capture.js`（装配瀑布 offered/admitted + pre-step 补全）、`lib/catalog.js`（归属/可控性目录）、3 条路由、第 4 个面板分区、`context_injection {ledger:true}`、Config `ledger` 开关。
 - 验证：0.2.2-rc.5 隔离实例真实请求 → 24 段落 / 8 上下文 / 11 工具 schema / 2 条消息级注入；精确原文回读；面板探测 14/14；控制闭环（关闭段落与工具 → 新会话 blocked + schema 消失）10/10。
 - 过程中发现并修复：批量 `names` 关闭在默认模式下静默无效（原有 bug，被控制闭环测试暴露）；客户端路由表漏 3 条台账路由（404）。
-- 结果：测试 234 / 0 fail；自审对账通过；`API_VERSION=3`、18 条路由；自评 8.8 → 8.9。
+- 结果：测试 159 / 0 fail（修正此前本地重复发现 `_research` 副本导致的虚增计数）；自审对账通过；`API_VERSION=3`、18 条路由；自评 8.8 → 8.9。
 - 未做：消息级注入的可控化（默认不做，避免与宿主重发逻辑打架）；跨会话台账聚合；0.2.x 两代宿主的新代码实测。
 
 ## 下一轮候选（backlog）

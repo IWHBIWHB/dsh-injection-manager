@@ -42,7 +42,11 @@
 
 ### Verification
 
-- 234 tests / 0 fail (six new ledger/catalog tests plus three batch-action transition tests).
+- 159 tests / 0 fail (six new ledger/catalog tests plus three batch-action transition tests).
+- **Test-count correction:** earlier local runs added a duplicated tree under `_research/` to the
+  discovered test files (75 extra), so local counts since 2.3.x were inflated (2.3.1 saw 231, 2.3.2 saw
+  225). The repository suite — what CI runs — is the 24 files under `test/`: 156 tests at 2.3.1, 150 at
+  2.3.2, **159 at 3.0.0**. The duplicate copy was moved out of the repository.
 - 0.2.2-rc.5 isolated web instance, live request: ledger recorded 24 sections, 8 contexts, 11 tool
   schemas and 2 message-level injections; exact section text round-trips by content hash; the last
   four failing panel checks (404s from a missing client route table) were fixed and the probe is
@@ -82,7 +86,7 @@
 
 ### Verification
 
-- 225 tests / 0 fail; self-audit 100/100 (7/7 checks).
+- 150 tests / 0 fail; self-audit 100/100 (7/7 checks).
 - 0.2.2-rc.5 QA instance, `/inject` probe 12/12: the slash menu lists `注入快捷开关 inject` with an
   SVG icon; Enter opens the popup (action group + suite group + search box); clicking `core` dropped
   its `onCount` 23 → 0 through `/action`; popup closed; zero console errors.
@@ -117,7 +121,7 @@
 
 ### Verification
 
-- 231 tests / 0 fail; self-audit 100/100.
+- 156 tests / 0 fail (local count corrected in 3.0.0); self-audit 100/100.
 - Old hosts: 0.2.0-rc.1 and 0.2.1-rc.5 installed from npm into isolated homes; plugin activates,
   `/summary` returns `apiVersion: 2`, preset write persists, diagnostics report works, no console
   errors.
@@ -158,7 +162,7 @@ and the settings row now tell the same story from the same payload.
 
 ### Verification
 
-- 226 tests / 0 fail; self-audit 100/100 (including the new five-entry check and refreshed size
+- 151 tests / 0 fail (local count corrected in 3.0.0); self-audit 100/100 (including the new five-entry check and refreshed size
   baseline).
 - DSH 0.2.2-rc.1 (CLI) 15/15 browser checks, DSH 0.2.2-rc.5 (Desktop) 16/16; zero console errors.
 - Performance (rc.5): `/summary` median 46 ms (p90 206 ms cold), panel open 220 ms, conversation tab

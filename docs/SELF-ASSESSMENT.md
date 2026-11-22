@@ -46,7 +46,7 @@
 - 五入口仍然成立，只是第 4 个入口的形态变了（`docs/ARCHITECTURE.md` 规则 5、`COMPATIBILITY.md`
   已注明它依赖客户端 `commandUi`，0.2.x 两代未单独验证）。
 - 证据：0.2.2-rc.5 QA 探针 12/12（斜杠行带 SVG 图标、弹层动作/套件分组、点 `core` 后 `onCount`
-  23→0、弹层关闭、0 console error）；225 测试 / 0 fail；自审 100/100；npm 2.3.2 + tag `v2.3.2`。
+  23→0、弹层关闭、0 console error）；150 测试 / 0 fail（修正后口径）；自审 100/100；npm 2.3.2 + tag `v2.3.2`。
 
 ## 产品层
 
@@ -71,7 +71,7 @@
 | 门槛 | 分 | 证据 | 差距 |
 | --- | --- | --- | --- |
 | 类型安全 | 7 | 纯 JS；边界有校验（策略 schema、`Config`、HTTP 契约 `apiVersion`），226 条测试与自审护栏兜底。 | 无 TypeScript / JSDoc typecheck；客户端只靠浏览器验收，没有单测。 |
-| 测试覆盖核心逻辑 | 8 | 226 tests / 0 fail；新增 volatile 设置三组测试；自审把五入口契约变成硬检查。 | `SessionView`/`SettingsCard` 两个新组件没有 DOM 级单测，靠 rc.1+rc.5 的 Playwright 探针。 |
+| 测试覆盖核心逻辑 | 8 | 151 tests / 0 fail（修正后口径）；新增 volatile 设置三组测试；自审把五入口契约变成硬检查。 | `SessionView`/`SettingsCard` 两个新组件没有 DOM 级单测，靠 rc.1+rc.5 的 Playwright 探针。 |
 | 性能有基准 | 8 | `docs/PERFORMANCE.md`：快照/路由/展开/趋势回填的实测数；本轮补五个入口的打开耗时。 | 没有 CI 级性能回归门禁；数字靠手工脚本复跑。 |
 | 兼容性文档 | 9 | rc.1 CLI 与 rc.5 Desktop 两代实测；每个入口的宿主依赖与降级写在 COMPATIBILITY；`dsh.compatibility` 字段随 2.3.0 补上。 | 0.2.0 / 0.2.1 仍标「预期可用」，无真机证据。 |
 | 代码组织与提交历史 | 8 | lib 按职责拆分、client 单文件但有清晰分区；本轮提交按「入口 / 设置 / 文档 / 发布物料」分开。 | client.js 已 4900+ 行，早晚要拆（宿主模块加载器约束允许按需拆）；本轮没做。 |
@@ -134,7 +134,7 @@ README 八语言的「五个入口都读快照」口径（改为「四种读法 
 
 | 证据 | 位置 |
 | --- | --- |
-| 226 tests / 0 fail | `node --test` |
+| 151 tests / 0 fail | `node --test test/`（当前口径 159） |
 | 自审 100/100（含五入口契约） | `node scripts/self-audit.mjs`，基线 `_research/rsi/baseline-metrics.json`（开发机，不随包发布） |
 | rc.1 五入口 15/15、rc.5 五入口 16/16、评审修复 10/10 | 开发机 QA 脚本 `_research/verify/probe-entries.mjs`、`_research/verify/desk/probe-entries.mjs`、`_research/verify/desk/probe-review.mjs`（不随包发布） |
 | 五入口截图（rc.5，已去个人信息） | `docs/images/session-tab.png`、`sidebar-panel.png`、`settings-general.png` |
