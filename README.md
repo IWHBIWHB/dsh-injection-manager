@@ -237,7 +237,7 @@ Every row can answer the obvious follow-up: *show me what that actually says.*
   returns to the row you opened it from.
 
 The only paths the host will open are the ones the snapshot itself registered — the request cannot
-name a path. Token figures are estimates (ASCII ÷ 4, other characters ÷ 1.6), not tokenizer output.
+name a path. Token figures are estimates (by character class: prose / JSON punctuation / CJK / other), not tokenizer output.
 
 ## Health checks
 

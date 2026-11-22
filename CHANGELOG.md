@@ -1,5 +1,41 @@
 # Changelog
 
+## 3.0.6 — 2026-11-22
+
+### Changed
+
+- **Token estimation is now a measured class table, not one magic ratio.** The old rule
+  (`ASCII ÷ 4 + non-ASCII ÷ 1.6`) priced JSON punctuation at a quarter of its real cost and
+  over-priced English prose by ~29%. Densities were measured against the provider's own
+  prompt tokens on DSH 0.2.2-rc.5 with type-separated payloads (9 observations, worst
+  residual ±6.3%):
+
+  | class | tokens/char | chars/token |
+  | --- | --- | --- |
+  | ASCII prose | 0.176 | 5.7 |
+  | JSON punctuation `{ } [ ] " : ,` | 0.977 | 1.02 |
+  | CJK (ideographs, CJK punctuation, fullwidth, kana, hangul) | 0.609 | 1.64 |
+  | other unicode (emoji, symbols) | 1.0 | ~1.0 (small sample) |
+
+  Practical effect: JSON- or tool-schema-heavy content reads ~1.3–2× larger, plain English
+  prose ~25% smaller, Chinese stays where it was. `measureText()` also returns the class
+  histogram now, so a number can be explained instead of just printed.
+
+- Protocol, segmentation rules and the cross-check against the upstream incident (3.29M chars
+  → 2,133,162 provider tokens) are written down in `docs/TOKENS.md`, with the measured table
+  posted to the upstream discussion:
+  <https://github.com/deepseek-ai/deepseek-harness/discussions/13906#discussioncomment-19811615>
+
+- User-facing copy (panel strings, README ×8) no longer promises the old formula; it says
+  the numbers are estimates by character class and points at `docs/TOKENS.md`.
+
+### Verification
+
+- 174 tests / 0 fail, including new class tests (JSON denser than prose, CJK stays ~1.6,
+  classes disjoint and covering every code unit) and a copy guard against the old formula.
+- Calibration run is reproducible: two rounds, one fresh QA session each, provider prompt
+  sizes read back from the session log's `usage` records.
+
 ## 3.0.5 — 2026-11-22
 
 ### Fixed

@@ -54,10 +54,10 @@ test('locked items are never excluded and never counted as savings', () => {
 
 test('custom persona text replaces the persona section instead of stacking', () => {
   const policy = defaultPolicy()
-  policy.prompt.prefix = 'x'.repeat(40) // 10 estimated tokens
+  policy.prompt.prefix = 'x'.repeat(40) // 40 ASCII prose chars -> ~7 estimated tokens
   const preview = previewPolicy(policy, items, names)
-  // persona-prefix (20) is replaced by 10 tokens: net -10.
-  assert.equal(preview.savedTokens, 10)
+  // persona-prefix (20) is replaced by ~7 tokens: net -13.
+  assert.equal(preview.savedTokens, 13)
   assert.ok(preview.replaced.includes('deployment:persona-prefix'))
 })
 

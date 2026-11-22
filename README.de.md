@@ -242,7 +242,7 @@ Jede Zeile beantwortet die naheliegende Rückfrage: *Was steht da tatsächlich?*
   zum Schließen, der Fokus kehrt in die Zeile zurück, aus der geöffnet wurde.
 
 Die einzigen Pfade, die der Host öffnet, sind die, die der Snapshot selbst registriert hat — die
-Anfrage kann keinen Pfad benennen. Token-Zahlen sind Schätzungen (ASCII ÷ 4, andere Zeichen ÷ 1.6),
+Anfrage kann keinen Pfad benennen. Token-Zahlen sind Schätzungen (nach Zeichenklasse: Fließtext / JSON-Interpunktion / CJK / sonstige),
 keine Tokenizer-Ergebnisse.
 
 ## Gesundheitsprüfungen

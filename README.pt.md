@@ -234,7 +234,7 @@ Toda linha consegue responder à continuação óbvia: *me mostre o que isso diz
   truncado", Esc para fechar, e o foco volta para a linha de onde você o abriu.
 
 Os únicos caminhos que o host abre são os que o próprio instantâneo registrou — a requisição não
-pode indicar um caminho. Os números de token são estimativas (ASCII ÷ 4, outros caracteres ÷ 1.6),
+pode indicar um caminho. Os números de token são estimativas (por classe de caractere: texto / pontuação JSON / CJK / outros),
 não saída de tokenizador.
 
 ## Verificações de saúde

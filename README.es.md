@@ -238,7 +238,7 @@ Toda fila puede responder a la pregunta obvia que viene después: *¿qué dice e
   256 KB, truncado», Esc para cerrar y el foco vuelve a la fila desde la que se abrió.
 
 Las únicas rutas que el host abre son las que registró la propia instantánea: la petición no puede
-nombrar una ruta. Las cifras de tokens son estimaciones (ASCII ÷ 4, otros caracteres ÷ 1.6), no la
+nombrar una ruta. Las cifras de tokens son estimaciones (por clase de carácter: texto / puntuación JSON / CJK / otros), no la
 salida de un tokenizador.
 
 ## Controles de salud

@@ -240,8 +240,7 @@ Chaque ligne peut répondre à la question évidente qui suit : *montrer ce qu�
   KB, tronqué », Échap pour fermer, retour du focus sur la ligne d’origine.
 
 Les seuls chemins que l’hôte ouvre sont ceux que l’instantané a lui-même enregistrés — la requête ne
-peut pas désigner un chemin. Les chiffres de tokens sont des estimations (ASCII ÷ 4, autres
-caractères ÷ 1.6), pas une sortie de tokenizer.
+peut pas désigner un chemin. Les chiffres de tokens sont des estimations (par classe de caractères : texte / ponctuation JSON / CJK / autres), pas une sortie de tokenizer.
 
 ## Contrôles de santé
 
