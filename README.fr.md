@@ -55,6 +55,18 @@ ligne** et applique les interrupteurs sans toucher aux fichiers.
 > il peut citer des chiffres et le contenu complet d’un élément, mais c’est un humain qui actionne
 > l’interrupteur.
 
+## Nouveautés de la 3.0.0
+
+2.x répondait « ce qu’une nouvelle session va recevoir, et ce que je peux couper ». 3.0 répond à la question difficile : **ce que cette requête a réellement injecté, point par point, et à qui cela appartient.**
+
+- **Registre d’injection (台账)** — quatrième onglet du panneau, une entrée par requête au modèle, capturée au waterfall `system-prompt/assemble` de l’hôte : sections, contextes d’exécution et schémas d’outils admis, ce que la politique a bloqué (offered − admitted), les injections de niveau message de l’étape et la répartition estimée des tokens.
+- **Texte exact par entrée** — sections/contextes stockés par adresse de contenu (`ledger-text/`) ; le niveau message reste volontairement en aperçu, le texte de conversation n’entre pas dans les fichiers du plugin.
+- **Origine pour chaque ligne** — paquet, contrôlabilité (`plugin` / `protected` / `preview` / `user`) et ligne source de l’hôte ; l’inconnu est signalé unknown.
+- **La frontière dans l’UI** — une carte permanente liste ce que le plugin ne contrôle pas et comment le modifier.
+- **Mode outil** — `context_injection {ledger:true}` renvoie les dernières requêtes.
+
+Mécanique : [panorama](docs/INJECTION-PANORAMA.md) ; conception : [DESIGN-v3](docs/DESIGN-v3.md).
+
 ## Nouveautés de la 2.3.0
 
 La version 2.3.0 complète les cinq points d’entrée. Le panneau racontait déjà une histoire ;
@@ -448,7 +460,7 @@ chemins enregistrés par l’instantané, et rien de ce qui y est lu n’est per
 
 ## Auto-contrôle
 
-Le plugin expose 15 routes sous `/plugins/dsh-injection-manager` : 12 GET qui ne modifient jamais la
+Le plugin expose 18 routes sous `/plugins/dsh-injection-manager` : 15 GET qui ne modifient jamais la
 politique ni un fichier de l’espace de travail (les routes d’instantané et le complément de tendance
 ne rafraîchissent que le `stats.json` local), plus trois points de terminaison POST uniquement —
 `/action` modifie la politique, et `/boot` + `/registrations` sont des auto-déclarations du client
@@ -457,7 +469,7 @@ ne rafraîchissent que le `stats.json` local), plus trois points de terminaison 
 | Route | Ce qu’elle prouve |
 | --- | --- |
 | `/ping` | Le plugin a enregistré ses routes |
-| `/summary?session=<id>[&lang=<code>]` | L’instantané que rend le panneau (`apiVersion: 2`, `healthSummary`, aperçus d’éléments, `numbers`) ; avec `lang`, ce dictionnaire plus l’anglais — sans, les huit (ce qu’utilise `/locale`) |
+| `/summary?session=<id>[&lang=<code>]` | L’instantané que rend le panneau (`apiVersion: 3`, `healthSummary`, aperçus d’éléments, `numbers`) ; avec `lang`, ce dictionnaire plus l’anglais — sans, les huit (ce qu’utilise `/locale`) |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | Le contenu d’origine derrière une ligne (UTF-8 sûr, plafond de 256 KB, budget de 2 s) |
 | `/trend?range=all｜30d｜7d&limit=120` | Tendance du premier tour inter-sessions + agrégats + couverture + `backfilling` |
 | `/events?session=<id>&limit=60` | Le flux d’événements de la session avec sa fenêtre |
@@ -466,6 +478,9 @@ ne rafraîchissent que le `stats.json` local), plus trois points de terminaison 
 | `/verify?session=<id>` | Réassemble une session active et renvoie les sections, contextes et noms d’outils **effectifs** |
 | `/diag` | Présence du module client, dernier résultat d’application, nombre d’exécutions du filtre d’assemblage |
 | `/policy`, `/export`, `/locale` | État du fichier de politique, exports, les huit dictionnaires |
+| `/ledger?session=<id>&limit=20` | Registre d’injection : une entrée par requête au modèle avec totaux, deltas et éléments bloqués ; `?entry=<id>` renvoie la liste de cette requête |
+| `/ledger-text?hash=<hash>` | Texte exact d’une entrée enregistrée (adressé par contenu ; le niveau message reste en aperçu) |
+| `/ledger-catalog` | Catalogue d’origine et de contrôlabilité derrière les lignes du registre |
 | `POST /boot`, `POST /registrations` | Auto-déclarations du client (en mémoire seulement ; GET renvoie 405) |
 | `POST /action` | L’unique chemin d’écriture de la politique : interrupteur, préréglage, import, annulation (JSON de même origine uniquement) |
 

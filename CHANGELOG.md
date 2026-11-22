@@ -1,5 +1,55 @@
 # Changelog
 
+## 3.0.0 — 2026-11-22
+
+### Added
+
+- **Injection ledger (注入台账): one record per model request, captured at the assembly.** The plugin
+  now listens on the global `system-prompt/assemble` waterfall, calls `next()`, and records the
+  **offered** (before other listeners) and **admitted** (after this plugin's own policy filter)
+  sections, contexts and interpolation variables together with the exact tool schemas of that
+  assembly (`ctx.tools.schemas`). A second global listener on `agent/pre-step` (which the host runs
+  *after* the assembly — `dsh-agent-loop/src/agent.ts:300,302`) finalises the same record with the
+  step's `turn`/`step` and the decided message-level injections (`source.kind`: skill catalog,
+  AGENTS.md, time, plan, goal, reminders, compaction summary). Assemblies without an `agent` (the
+  panel's own snapshots, diagnostics) are ignored, so opening the panel never pollutes the ledger.
+- **Attribution catalog (`lib/catalog.js`)** for every surface: registering package, kind,
+  controllability (`plugin` / `protected` / `preview` / `user`), how a user changes it, and the host
+  source line that proves it. Prefixes and kinds without a row are reported as unknown/preview instead
+  of claiming control. Covers the real 0.2.2-rc.5 surfaces, including `subagent:identity`,
+  `tool:*:depth`, `job_*`, `schedule_*`, `web_*` and eleven message source kinds.
+- **Fourth panel tab 台账 / Ledger**: per-request history with estimated tokens, delta against the
+  previous request, the blocked-by-policy list, item detail with owner/control badges, and the exact
+  text of any section/context on demand (content-addressed; message-level text stays preview-only).
+  A resident reference card lists the injected content this plugin cannot control and where the user
+  changes it.
+- **Routes `/ledger`, `/ledger-text?hash=`, `/ledger-catalog`** and the model-facing
+  `context_injection {ledger:true, entry?, limit?}` read-only mode. `API_VERSION` is now 3; the plugin
+  exposes 18 routes (15 GET + 3 POST-only).
+- Volatile Config switch `ledger` (default on) in the plugin's settings card.
+- `docs/INJECTION-PANORAMA.md`: the source-level panorama of every injection surface (six surfaces,
+  section/context order tables, message source kinds, precedence rules, visibility channels,
+  controllable boundary, unknowns and doc/source conflicts).
+- `docs/DESIGN-v3.md`: how the ledger and the catalog are built, what they deliberately do not do.
+
+### Changed
+
+- Snapshot payload and tool card report `apiVersion: 3`; the ledger's token counts are labelled
+  estimates (ASCII÷4 + other÷1.6), never provider billing.
+- README (en/zh) documents the three new routes and the ledger; `ARCHITECTURE.md`,
+  `COMPATIBILITY.md` and the fence/route tests move to 18 routes and apiVersion 3.
+- Client size budget 276 KB → 304 KB for the ledger tab (documented in the self-audit).
+
+### Verification
+
+- 234 tests / 0 fail (six new ledger/catalog tests plus three batch-action transition tests).
+- 0.2.2-rc.5 isolated web instance, live request: ledger recorded 24 sections, 8 contexts, 11 tool
+  schemas and 2 message-level injections; exact section text round-trips by content hash; the last
+  four failing panel checks (404s from a missing client route table) were fixed and the probe is
+  14/14 with zero console errors. Offline/blocked-items probe: switching `tool:jobs` off and
+  `job_list` off makes the next session's ledger list the section under `blocked` and drop the tool
+  from the admitted schema set.
+
 ## 2.3.2 — 2026-11-22
 
 ### Changed

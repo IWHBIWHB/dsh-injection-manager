@@ -24,6 +24,10 @@
     registrations: BASE + '/registrations',
     stats: BASE + '/stats',
     diag: BASE + '/diag',
+    // v3 injection ledger: per-request records captured at the assembly.
+    ledger: BASE + '/ledger',
+    ledgerText: BASE + '/ledger-text',
+    ledgerCatalog: BASE + '/ledger-catalog',
     // v2 read-only surfaces. All GET + JSON, same origin; the host owns every
     // number and every byte these return.
     content: BASE + '/content',
@@ -1824,7 +1828,7 @@ body[data-ds-dark-theme] .ci-root{
             const row = snapshot.channels.find((entry) => entry.id === channel)
             return h(
               'div',
-              { className: 'ci-mini', key: channel },
+              { className: 'ci-btn ci-sm', key: channel },
               h(Dot, { channel }),
               h('span', { className: 'n', title: `${t(channel)} · ${info.names.join(', ')}` }, `${t(channel)} · ${info.included}/${info.total}`),
               h('span', { className: 't' }, token(row ? row.tokens : 0)),
@@ -3541,6 +3545,370 @@ body[data-ds-dark-theme] .ci-root{
       // A right-hand overlay that shows one item's raw content. Everything here
       // is plain React text: no raw-HTML injection anywhere, so a tool
       // description or an AGENTS.md that contains HTML reads as text.
+      // ---------------------------------------------------------------- ledger
+      // Injection ledger tab: one row per model request, straight from the
+      // assembly-capture records (not re-derived from services). Text is
+      // content-addressed and fetched on demand; message-level surfaces are
+      // preview-only on purpose.
+      const LEDGER_TEXT = {
+        zh: {
+          tabLedger: '台账',
+          tabLedgerHint: '每次请求实际注入的逐项清单（精确原文、归属、被拦截项）',
+          title: '注入台账',
+          subtitle: '每次模型请求一条记录，来自 systemPrompt 装配现场',
+          refresh: '刷新',
+          empty: '本会话还没有请求记录。发一条消息后，这里会出现这次请求实际注入的每一项。',
+          requests: '次请求',
+          latest: '最近',
+          sections: '提示词段落',
+          contexts: '运行时上下文',
+          tools: '工具 schema',
+          messages: '消息级注入',
+          blocked: '被策略拦下',
+          delta: '与上次相比',
+          added: '新增',
+          removed: '消失',
+          none: '无',
+          owner: '归属',
+          tokens: 'token',
+          chars: '字符',
+          exact: '看原文',
+          previewOnly: '仅预览',
+          noText: '这条记录没有保存原文（消息级内容不落盘）',
+          estimate: 'token 为估算（ASCII÷4 + 其他÷1.6），不是计费口径',
+          unmanaged: '这些注入不归插件管，怎么处理',
+          unmanagedHint: '插件只能预览与说明；改法写在每一项后面',
+          controls: { plugin: '插件可管', protected: '宿主保护', preview: '只能预览', user: '用户内容' },
+          itemTitle: '条目原文',
+          close: '关闭',
+          noSelection: '选一条记录看明细',
+          userManage: '用户管理',
+          rejected: '未发出',
+          stats: '台账',
+        },
+        en: {
+          tabLedger: 'Ledger',
+          tabLedgerHint: 'Per-request record of what was actually injected: exact text, owner, blocked items',
+          title: 'Injection ledger',
+          subtitle: 'One record per model request, captured at the prompt assembly',
+          refresh: 'Refresh',
+          empty: 'No requests yet in this session. Send one message and this page lists everything that request really injected.',
+          requests: 'requests',
+          latest: 'latest',
+          sections: 'Prompt sections',
+          contexts: 'Runtime contexts',
+          tools: 'Tool schemas',
+          messages: 'Message-level injections',
+          blocked: 'Blocked by policy',
+          delta: 'vs previous request',
+          added: 'added',
+          removed: 'gone',
+          none: 'none',
+          owner: 'owner',
+          tokens: 'tokens',
+          chars: 'chars',
+          exact: 'exact text',
+          previewOnly: 'preview only',
+          noText: 'This record kept no exact text (message-level content is not stored)',
+          estimate: 'Token counts are estimates (ASCII÷4 + other÷1.6), not billing data',
+          unmanaged: 'Injected content this plugin cannot control',
+          unmanagedHint: 'The plugin can preview and explain these; how to change them is listed per row',
+          controls: { plugin: 'plugin-controlled', protected: 'host-protected', preview: 'preview only', user: 'user content' },
+          itemTitle: 'Item text',
+          close: 'Close',
+          noSelection: 'Pick a record to see its items',
+          userManage: 'managed by you',
+          rejected: 'not sent',
+          stats: 'ledger',
+        },
+      }
+      const ledgerTextOf = () => LEDGER_TEXT[UI_LANGUAGE] || LEDGER_TEXT.en
+      const LEDGER_STYLE =
+        '.ci-ledger{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1 1 auto}' +
+        '.ci-ledger-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
+        '.ci-ledger-head h3{margin:0;font-size:13px;font-weight:600}' +
+        '.ci-ledger-head .s{color:var(--ci-fg3);font-size:11px}' +
+        '.ci-ledger-list{display:flex;flex-direction:column;gap:4px;max-height:190px;overflow:auto;padding-right:2px}' +
+        '.ci-ledger-row{display:flex;align-items:baseline;gap:8px;padding:5px 8px;border:1px solid var(--ci-line);border-radius:7px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}' +
+        '.ci-ledger-row:hover{border-color:var(--ci-accent)}' +
+        '.ci-ledger-row.on{border-color:var(--ci-accent);background:var(--ci-accent-soft,rgba(77,107,254,.08))}' +
+        '.ci-ledger-row .t{color:var(--ci-fg3);font-variant-numeric:tabular-nums;font-size:11px}' +
+        '.ci-ledger-row .n{font-variant-numeric:tabular-nums;font-size:11px;color:var(--ci-fg2)}' +
+        '.ci-ledger-row .k{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}' +
+        '.ci-ledger-detail{display:flex;flex-direction:column;gap:8px;min-height:0}' +
+        '.ci-ledger-meta{color:var(--ci-fg3);font-size:11px;display:flex;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}' +
+        '.ci-ledger-group{border:1px solid var(--ci-line);border-radius:8px;overflow:hidden}' +
+        '.ci-ledger-group > .hd{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--ci-fill,rgba(0,0,0,.02));font-size:11px;color:var(--ci-fg2)}' +
+        '.ci-ledger-item{display:flex;align-items:baseline;gap:8px;padding:5px 9px;border-top:1px solid var(--ci-line);font-size:11.5px;width:100%;background:transparent;border-left:0;border-right:0;border-bottom:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer}' +
+        '.ci-ledger-item:hover{background:var(--ci-fill,rgba(0,0,0,.03))}' +
+        '.ci-ledger-item .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Consolas,monospace}' +
+        '.ci-ledger-item .ow{color:var(--ci-fg3);max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+        '.ci-ledger-item .tk{color:var(--ci-fg3);font-variant-numeric:tabular-nums;white-space:nowrap}' +
+        '.ci-ledger-tag{font-size:10px;padding:1px 5px;border-radius:5px;border:1px solid var(--ci-line);color:var(--ci-fg3);white-space:nowrap}' +
+        '.ci-ledger-tag.plugin{color:var(--ci-ok,#1a7f37);border-color:currentColor}' +
+        '.ci-ledger-tag.protected{color:var(--ci-warn,#9a6700);border-color:currentColor}' +
+        '.ci-ledger-text{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;max-height:260px;overflow:auto;border:1px solid var(--ci-line);border-radius:8px;padding:8px;background:var(--ci-fill,rgba(0,0,0,.02));margin:0}' +
+        '.ci-ledger-help{color:var(--ci-fg3);font-size:11px;margin:0}' +
+        '.ci-ledger-unmanaged{display:flex;flex-direction:column;gap:6px}' +
+        '.ci-ledger-unmanaged .row{display:flex;gap:8px;font-size:11.5px;align-items:baseline}' +
+        '.ci-ledger-unmanaged .row b{font-weight:600}' +
+        '.ci-ledger-unmanaged .row span{color:var(--ci-fg3)}'
+
+      function LedgerTab({ sessionId }) {
+        const lt = ledgerTextOf()
+        const [list, setList] = useState(null)
+        const [stats, setStats] = useState(null)
+        const [failure, setFailure] = useState('')
+        const [selected, setSelected] = useState('')
+        const [entry, setEntry] = useState(null)
+        const [item, setItem] = useState(null)
+        const [catalog, setCatalog] = useState(null)
+        const [busy, setBusy] = useState(false)
+
+        const loadList = useCallback(
+          async (preferred) => {
+            setBusy(true)
+            try {
+              const query = ROUTES.ledger + '?limit=20' + (sessionId ? '&session=' + encodeURIComponent(sessionId) : '')
+              const payload = await getJson(query)
+              setList(payload)
+              setStats(payload.stats ?? null)
+              setFailure('')
+              const latest = payload.latest && payload.latest.id ? payload.latest.id : ''
+              const next = preferred || selected || latest
+              if (next && next !== selected) setSelected(next)
+              else if (!next) {
+                setSelected('')
+                setEntry(null)
+              }
+              return payload
+            } catch (error) {
+              setFailure(String((error && error.message) || error))
+              return null
+            } finally {
+              setBusy(false)
+            }
+          },
+          [sessionId, selected],
+        )
+
+        useEffect(() => {
+          void loadList('')
+          getJson(ROUTES.ledgerCatalog)
+            .then((payload) => setCatalog(payload.catalog ?? null))
+            .catch(() => setCatalog(null))
+          const onChange = () => {
+            void loadList('')
+          }
+          window.addEventListener('injection-manager:changed', onChange)
+          return () => window.removeEventListener('injection-manager:changed', onChange)
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [sessionId])
+
+        useEffect(() => {
+          if (!selected) {
+            setEntry(null)
+            return undefined
+          }
+          let alive = true
+          getJson(ROUTES.ledger + '?entry=' + encodeURIComponent(selected))
+            .then((payload) => {
+              if (alive) setEntry(payload.entry ?? null)
+            })
+            .catch(() => {
+              if (alive) setEntry(null)
+            })
+          return () => {
+            alive = false
+          }
+        }, [selected])
+
+        const openText = async (target) => {
+          if (!target || !target.hash) return
+          setItem({ name: target.name, text: '', loading: true })
+          try {
+            const payload = await getJson(ROUTES.ledgerText + '?hash=' + encodeURIComponent(target.hash))
+            setItem({ name: target.name, text: payload.ok === true ? payload.text : '', loading: false, absent: payload.ok !== true })
+          } catch {
+            setItem({ name: target.name, text: '', loading: false, absent: true })
+          }
+        }
+
+        const groups = [
+          ['sections', lt.sections],
+          ['contexts', lt.contexts],
+          ['tools', lt.tools],
+          ['messages', lt.messages],
+        ]
+        const controls = lt.controls || {}
+        const renderItem = (group, row, options = {}) => {
+          const control = controls[row.control] || row.control || ''
+          const clickable = row.hash !== undefined && row.hash !== null
+          return h(
+            'button',
+            {
+              key: group + '|' + row.name + '|' + (row.hash || ''),
+              type: 'button',
+              className: 'ci-ledger-item',
+              title: row.preview || row.name,
+              onClick: () => {
+                if (clickable) void openText(row)
+              },
+            },
+            h('span', { className: 'nm' }, row.name),
+            h('span', { className: 'ow' }, row.owner || ''),
+            row.control ? h('span', { className: 'ci-ledger-tag ' + row.control }, control) : null,
+            h('span', { className: 'tk' }, token(row.tokens || 0)),
+          )
+        }
+        const countOf = (key) => (entry && entry.counts ? Number(entry.counts[key]) || 0 : 0)
+
+        return h(
+          'div',
+          { className: 'ci-root' },
+          h('style', null, LEDGER_STYLE),
+          h(
+            'div',
+            { className: 'ci-ledger' },
+            h(
+              'div',
+              { className: 'ci-ledger-head' },
+              h('h3', null, lt.title),
+              h('span', { className: 's' }, lt.subtitle),
+              h('span', { className: 'grow' }),
+              stats ? h('span', { className: 's' }, `${stats.entries} ${lt.requests}`) : null,
+              h(
+                'button',
+                { type: 'button', className: 'ci-btn ci-sm', disabled: busy, onClick: () => void loadList('') },
+                lt.refresh,
+              ),
+            ),
+            failure ? h('div', { className: 'ci-note warn' }, failure) : null,
+            list === null
+              ? h('div', { className: 'ci-note' }, lt.empty)
+              : Number(list.total) === 0
+                ? h('div', { className: 'ci-note' }, lt.empty)
+                : h(
+                    'div',
+                    { className: 'ci-ledger-list' },
+                    (list.entries || []).map((row) =>
+                      h(
+                        'button',
+                        {
+                          key: row.id,
+                          type: 'button',
+                          className: 'ci-ledger-row' + (row.id === selected ? ' on' : ''),
+                          onClick: () => setSelected(row.id),
+                        },
+                        h('span', { className: 't' }, new Date(row.at).toLocaleTimeString()),
+                        h('span', { className: 'n' }, '#' + row.seq),
+                        h(
+                          'span',
+                          { className: 'k' },
+                          `${row.turn === null || row.turn === undefined ? '' : 'T' + row.turn + '·S' + (row.step ?? '') + '  '}` +
+                            `${lt.sections} ${row.counts.sections} · ${lt.contexts} ${row.counts.contexts} · ${lt.tools} ${row.counts.tools}`,
+                        ),
+                        row.counts.blockedSections + row.counts.blockedContexts > 0
+                          ? h('span', { className: 'ci-ledger-tag protected' }, `${lt.blocked} ${row.counts.blockedSections + row.counts.blockedContexts}`)
+                          : null,
+                        h('span', { className: 'n' }, token(row.totals.tokens)),
+                        row.rejected ? h('span', { className: 'ci-ledger-tag' }, lt.rejected) : null,
+                      ),
+                    ),
+                  ),
+            entry === null
+              ? h('div', { className: 'ci-note' }, lt.noSelection)
+              : h(
+                  'div',
+                  { className: 'ci-ledger-detail' },
+                  h(
+                    'div',
+                    { className: 'ci-ledger-meta' },
+                    h('span', null, '#' + entry.seq + '  ' + new Date(entry.at).toLocaleString()),
+                    entry.turn === null || entry.turn === undefined ? null : h('span', null, 'T' + entry.turn + ' · S' + (entry.step ?? '')),
+                    entry.model ? h('span', null, entry.model) : null,
+                    h('span', null, `≈ ${token(entry.totals.tokens)} ${lt.tokens}`),
+                    h('span', null, `${entry.totals.chars} ${lt.chars}`),
+                  ),
+                  h(
+                    'p',
+                    { className: 'ci-ledger-help' },
+                    `${lt.delta}：+${(entry.delta && entry.delta.added ? entry.delta.added.length : 0)} ${lt.added} / -${(entry.delta && entry.delta.removed ? entry.delta.removed.length : 0)} ${lt.removed} · ${lt.estimate}`,
+                  ),
+                  ...groups.map(([key, label]) =>
+                    h(
+                      'div',
+                      { className: 'ci-ledger-group', key },
+                      h(
+                        'div',
+                        { className: 'hd' },
+                        h('span', null, label),
+                        h('span', { className: 'grow' }),
+                        h('span', null, String(countOf(key))),
+                      ),
+                      (entry[key] || []).length === 0
+                        ? h('div', { className: 'ci-ledger-item', style: { cursor: 'default' } }, h('span', { className: 'nm' }, lt.none))
+                        : (entry[key] || []).map((row) => renderItem(key, row)),
+                    ),
+                  ),
+                  countOf('blockedSections') + countOf('blockedContexts') > 0
+                    ? h(
+                        'div',
+                        { className: 'ci-ledger-group' },
+                        h('div', { className: 'hd' }, h('span', null, lt.blocked), h('span', { className: 'grow' }), h('span', null, String(countOf('blockedSections') + countOf('blockedContexts')))),
+                        [...(entry.blocked?.sections || []), ...(entry.blocked?.contexts || [])].map((row) => renderItem('blocked', row)),
+                      )
+                    : null,
+                  item !== null
+                    ? h(
+                        'div',
+                        { className: 'ci-ledger-group' },
+                        h(
+                          'div',
+                          { className: 'hd' },
+                          h('span', null, `${lt.itemTitle} · ${item.name}`),
+                          h('span', { className: 'grow' }),
+                          h(
+                            'button',
+                            { type: 'button', className: 'ci-btn ci-sm', onClick: () => setItem(null) },
+                            lt.close,
+                          ),
+                        ),
+                        h(
+                          'pre',
+                          { className: 'ci-ledger-text' },
+                          item.loading ? '…' : item.text || (item.absent ? lt.noText : ''),
+                        ),
+                      )
+                    : null,
+                  catalog && Array.isArray(catalog.messages)
+                    ? h(
+                        'div',
+                        { className: 'ci-ledger-group' },
+                        h('div', { className: 'hd' }, h('span', null, lt.unmanaged), h('span', { className: 'grow' }), h('span', null, lt.unmanagedHint)),
+                        h(
+                          'div',
+                          { className: 'ci-ledger-unmanaged', style: { padding: '8px 9px' } },
+                          catalog.messages
+                            .filter((row) => row.control !== 'plugin')
+                            .map((row, index) =>
+                              h(
+                                'div',
+                                { className: 'row', key: row.kind + index },
+                                h('b', null, row.owner),
+                                h('span', { className: 'ci-ledger-tag ' + row.control, style: { marginLeft: '2px' } }, controls[row.control] || row.control),
+                                h('span', null, (row.manage && row.manage[UI_LANGUAGE === 'zh' ? 'zh' : 'en']) || ''),
+                              ),
+                            ),
+                        ),
+                      )
+                    : null,
+                ),
+            h('p', { className: 'ci-ledger-help' }, lt.estimate),
+          ),
+        )
+      }
+
       function ContentDrawer({ target, sessionId, t, onClose }) {
         const open = target !== null && target !== undefined
         const content = useContent(open ? target : null, sessionId)
@@ -4579,7 +4947,7 @@ body[data-ds-dark-theme] .ci-root{
                   // the row says 已关闭 and its switch is the way back.
                   return h(
                     'div',
-                    { className: 'ci-mini', key: group.id },
+                    { className: 'ci-btn ci-sm', key: group.id },
                     h(Dot, { channel: group.channel }),
                     h(
                       'span',
@@ -4637,6 +5005,7 @@ body[data-ds-dark-theme] .ci-root{
                 ? [
                     ['manage', t('tabManage'), t('v2.tabManageHint')],
                     ['insights', t('v2.tabInsights'), t('v2.tabInsightsHint')],
+                    ['ledger', ledgerTextOf().tabLedger, ledgerTextOf().tabLedgerHint],
                     ['settings', t('tabSettings'), t('v2.tabSettingsHint')],
                   ]
                 : [
@@ -4659,7 +5028,7 @@ body[data-ds-dark-theme] .ci-root{
                     onClick: () => setTab(key),
                     onKeyDown: (event) => {
                       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
-                      const keys = v2 === true ? ['manage', 'insights', 'settings'] : ['manage', 'settings']
+                      const keys = v2 === true ? ['manage', 'insights', 'ledger', 'settings'] : ['manage', 'settings']
                       const index = keys.indexOf(activeTab)
                       const next = keys[(index + (event.key === 'ArrowRight' ? 1 : keys.length - 1)) % keys.length]
                       event.preventDefault()
@@ -4699,7 +5068,9 @@ body[data-ds-dark-theme] .ci-root{
                   )
                 : activeTab === 'insights'
                   ? h(InsightsTab, { snapshot, t, sessionId, onOpenContent: openContent, onOpenTab: openTab, onPickSuite: openSuite, act })
-                  : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
+                  : activeTab === 'ledger'
+                    ? h(LedgerTab, { sessionId })
+                    : h(SettingsPage, { snapshot, t, act, sessionId, notify: showNotice }),
             ),
           ),
           h(Toast, { notice, t, onUndo: () => { setNotice(null); act({ kind: 'undo' }, t('undone')) } }),

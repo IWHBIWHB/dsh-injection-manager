@@ -50,6 +50,32 @@ applies the switches without touching your files.
 > and 38 collected skills cost 3.6%. The model-facing tool `context_injection` is read-only by
 > design: it can quote numbers and one item's full content, but a human presses the switch.
 
+## What's new in 3.0.0
+
+2.x answered "what will a new session be given, and which of it can I switch off". 3.0 answers the
+harder question: **what did this request actually inject, item by item, and who owns it.**
+
+- **Injection ledger (台账)** — a fourth panel tab with one record per model request, captured at the
+  host's `system-prompt/assemble` waterfall instead of being re-derived from services. Each record
+  shows the prompt sections, runtime contexts and tool schemas that were admitted, the ones the saved
+  policy blocked (offered − admitted), the message-level injections of that step (skill catalog,
+  AGENTS.md, time, plan/goal/reminders, compaction summary), and its estimated token split.
+- **Exact text per item** — sections/contexts are stored content-addressed (`ledger-text/`), so the
+  panel can show the exact bytes that request carried, and the same text only exists once. Message-level
+  content stays preview-only on purpose: conversation text does not go into the plugin's files.
+- **Attribution for everything** — every row carries an owner (registering package), a controllability
+  badge (`plugin` / `protected` / `preview` / `user`) and the host source line it comes from; rows with
+  no catalog entry are reported as unknown instead of being claimed as switchable.
+- **The boundary stated in the UI** — a resident reference card lists the injected content this plugin
+  cannot control (time, tmux, plan/goal notices, AGENTS.md, skill catalog, compaction summary) and how
+  the user changes each one.
+- **Tool mode** — `context_injection {ledger:true}` returns the last requests; `{ledger:true,
+  entry:"<id>"}` returns one request's item list.
+
+Read [the panorama](docs/INJECTION-PANORAMA.md) for the source-level mechanism (six injection
+surfaces, order tables, precedence rules, what is controllable at all) and
+[the v3 design](docs/DESIGN-v3.md) for how the ledger is captured.
+
 ## What's new in 2.3.0
 
 2.3.0 completes the five entry points. The panel already told one story; now the conversation, the
@@ -431,7 +457,7 @@ snapshot registered, and nothing read there is persisted.
 
 ## Self-check
 
-The plugin exposes 15 routes under `/plugins/dsh-injection-manager`: 12 GETs that never change the
+The plugin exposes 18 routes under `/plugins/dsh-injection-manager`: 15 GETs that never change the
 policy or a workspace file (snapshot routes and the trend backfill only refresh the local
 `stats.json`), plus three POST-only endpoints — `/action` changes the policy, and `/boot` +
 `/registrations` are client self-reports (a GET on those two returns 405):
@@ -439,7 +465,7 @@ policy or a workspace file (snapshot routes and the trend backfill only refresh 
 | Route | What it proves |
 | --- | --- |
 | `/ping` | The plugin registered its routes |
-| `/summary?session=<id>[&lang=<code>]` | The snapshot the panel renders (`apiVersion: 2`, `healthSummary`, item previews, `numbers`); with `lang`, that dictionary plus English — without it, all eight (what `/locale` uses) |
+| `/summary?session=<id>[&lang=<code>]` | The snapshot the panel renders (`apiVersion: 3`, `healthSummary`, item previews, `numbers`); with `lang`, that dictionary plus English — without it, all eight (what `/locale` uses) |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | Original content behind one row (UTF-8 safe, 256 KB cap, 2 s budget) |
 | `/trend?range=all｜30d｜7d&limit=120` | Cross-session first-turn trend + aggregate + coverage + `backfilling` |
 | `/events?session=<id>&limit=60` | The session's event feed with its window |
@@ -448,6 +474,9 @@ policy or a workspace file (snapshot routes and the trend backfill only refresh 
 | `/verify?session=<id>` | Re-assembles a live session and returns the **effective** sections, contexts and tool names |
 | `/diag` | Client module presence, last application result, how many times the assemble filter ran |
 | `/policy`、`/export`、`/locale` | Policy file state, exports, all eight dictionaries |
+| `/ledger?session=<id>&limit=20` | Injection ledger: one row per model request with totals, deltas and blocked counts; `?entry=<id>` returns that request's item list |
+| `/ledger-text?hash=<hash>` | Exact text of one recorded item (content-addressed; message-level text stays preview-only) |
+| `/ledger-catalog` | Ownership and controllability catalog behind each ledger row |
 | `POST /boot`、`POST /registrations` | Client self-reports (in memory only; GET returns 405) |
 | `POST /action` | The one policy write path: switch, preset, import, undo (same-origin JSON only) |
 

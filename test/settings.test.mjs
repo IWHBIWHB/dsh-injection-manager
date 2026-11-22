@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 
 import { getSettings, normalizeSettings, readField, setSettings } from '../lib/settings.js'
 
-const defaults = { dock: true, refreshOnFocus: true, showRawNames: true }
+const defaults = { dock: true, refreshOnFocus: true, showRawNames: true, ledger: true }
 const volatile = (value) => ({ get: () => value })
 
 test('missing or malformed config keeps the defaults', () => {
@@ -21,12 +21,12 @@ test('missing or malformed config keeps the defaults', () => {
 
 test('booleans are honoured and unknown keys are dropped', () => {
   const next = normalizeSettings({ dock: false, refreshOnFocus: false, showRawNames: false, budgetTokens: 24000 })
-  assert.deepEqual(next, { dock: false, refreshOnFocus: false, showRawNames: false })
+  assert.deepEqual(next, { dock: false, refreshOnFocus: false, showRawNames: false, ledger: true })
 })
 
 test('volatile references are unwrapped so a card toggle is live', () => {
   const next = normalizeSettings({ dock: volatile(false), refreshOnFocus: volatile(true), showRawNames: volatile(false) })
-  assert.deepEqual(next, { dock: false, refreshOnFocus: true, showRawNames: false })
+  assert.deepEqual(next, { dock: false, refreshOnFocus: true, showRawNames: false, ledger: true })
 })
 
 test('readField accepts plain values, volatile references and junk', () => {

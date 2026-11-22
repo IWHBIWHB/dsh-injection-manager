@@ -155,6 +155,16 @@ Check 的三样证据要能复查：self-audit 的 JSON、截图目录、`node -
 - 证据：`_research/verify/desk-dev/probe-inject.mjs`、`shots/inject-232/`（开发机）、
   `CHANGELOG.md` 2.3.2、`docs/ARCHITECTURE.md` 规则 5。
 
+## 2026-11-22 第二轮（3.0.0：从"开关板"到"注入台账"）
+
+- 起点：用户要求「把上下文注入的范围做大：插件能管的接管，不能管的教会用户或提供预览，清晰度要极其完整」。v2 的读法是从服务里推导快照，看不到消息级注入，也无法证明"这次请求实际注入了什么"。
+- 先读源码再动手：派出源码解读 worker（`_research/inject-panorama/A01-A06/B01-B04`；其中 A5/A2 落盘成文，其余以本机脚本与源码核对补齐），产出 `docs/INJECTION-PANORAMA.md`：六个注入面、段落/上下文 order 全表、消息级 kind 全表、优先级规则、可见性渠道、可控边界、未验证项、文档/源码冲突（如 plan.md 写 order 50、源码 PLAN_POLICY=500）。
+- 实现：`lib/ledger.js`（内容寻址原文 + 每请求记录）、`lib/ledger-capture.js`（装配瀑布 offered/admitted + pre-step 补全）、`lib/catalog.js`（归属/可控性目录）、3 条路由、第 4 个面板分区、`context_injection {ledger:true}`、Config `ledger` 开关。
+- 验证：0.2.2-rc.5 隔离实例真实请求 → 24 段落 / 8 上下文 / 11 工具 schema / 2 条消息级注入；精确原文回读；面板探测 14/14；控制闭环（关闭段落与工具 → 新会话 blocked + schema 消失）10/10。
+- 过程中发现并修复：批量 `names` 关闭在默认模式下静默无效（原有 bug，被控制闭环测试暴露）；客户端路由表漏 3 条台账路由（404）。
+- 结果：测试 234 / 0 fail；自审对账通过；`API_VERSION=3`、18 条路由；自评 8.8 → 8.9。
+- 未做：消息级注入的可控化（默认不做，避免与宿主重发逻辑打架）；跨会话台账聚合；0.2.x 两代宿主的新代码实测。
+
 ## 下一轮候选（backlog）
 
 - 发布与收录：npm 2.3.0 + GitHub release + 官方精选目录条目（本轮备好 `market-entry.yml`）。

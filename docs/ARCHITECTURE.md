@@ -78,12 +78,12 @@ agent/created (source=startup|clear)
 
 ## HTTP 面
 
-全部挂在 `/plugins/dsh-injection-manager` 下，共 15 条路由：**12 条 GET + 3 条 POST-only**（`/action` 改策略；`/boot`、`/registrations` 是客户端自报诊断，二者收到 GET 会返回 405）。GET 不改策略、不改工作区；快照路由会刷新本机 `stats.json`，见「安全边界」。
+全部挂在 `/plugins/dsh-injection-manager` 下，共 18 条路由：**15 条 GET + 3 条 POST-only**（`/action` 改策略；`/boot`、`/registrations` 是客户端自报诊断，二者收到 GET 会返回 405）。GET 不改策略、不改工作区；快照路由会刷新本机 `stats.json`，见「安全边界」。
 
 | 路由 | 方法 | 作用 | 响应要点 |
 | --- | --- | --- | --- |
 | `/ping` | GET | 注册自检 | 路由清单、策略文件路径 |
-| `/summary` | GET | 面板快照 | `apiVersion: 2`、`healthSummary {high,warn,info}`、`items[].preview`、`items[].origin`、`groups[].on*`、`numbers {session,next}`、`settings`、`locale`；`?lang=zh｜en｜…` 只回该语言 + en 兜底，不带 `lang` 回全部 8 份（`/locale` 用） |
+| `/summary` | GET | 面板快照 | `apiVersion: 3`、`healthSummary {high,warn,info}`、`items[].preview`、`items[].origin`、`groups[].on*`、`numbers {session,next}`、`settings`、`locale`；`?lang=zh｜en｜…` 只回该语言 + en 兜底，不带 `lang` 回全部 8 份（`/locale` 用） |
 | `/content` | GET | 单条原文 | `?channel=&id=[&session=]`；`contentType`、`content`、`bytes`、`truncated`、`sourcePath`、`note`；256KB 上限、2 秒预算、404/400 分支 |
 | `/trend` | GET | 跨会话趋势 | `?range=all｜30d｜7d&limit=120`（上限 500）；`points[]`、`aggregate`、`coverage {recorded, known}`、`backfilling` |
 | `/events` | GET | 事件流 | `?session=&limit=60`（上限 300）；`events[]`、`coverage {from, count, limit}` |
@@ -211,7 +211,7 @@ lib/apply.js        四通道生效 + 策略保存（含事件埋点）
 lib/group.js        套件聚类
 lib/policy.js       策略 schema、串行原子写、`.bak` 恢复、旧目录迁移
 lib/lock.js         策略读-改-写队列（进程内，POST /action 与 /inject 共用）
-lib/routes.js       HTTP 面（15 条路由、同源写校验、安全头）
+lib/routes.js       HTTP 面（18 条路由、同源写校验、安全头）
 lib/content.js      内容透视：白名单读取、UTF-8 安全截断
 lib/events.js       事件流：校验、去重、封顶、原子写
 lib/trend.js        跨会话趋势：stats + 有界日志回填合并
@@ -219,6 +219,9 @@ lib/health.js       健康检查：纯函数、固定 code 集
 lib/stats.js        历史记录、通道分解、日志定价回填
 lib/history.js      撤销栈
 lib/settings.js     Config 归一化
+lib/catalog.js      注入面归属与可控性目录（按宿主源码包/行号标注）
+lib/ledger.js       注入台账：内容寻址原文、每请求记录、只读 API
+lib/ledger-capture.js 装配瀑布与 pre-step 的采集层（记录 offered/admitted）
 lib/text.js         模型卡片、文本报告
 lib/instructions.js 工作区规则只读探测
 lib/pressure.js     窗口占用（tokenMeter / contextBreakdown / llm 容量）
@@ -227,9 +230,30 @@ client.js           浏览器半包：面板三页、侧栏、输入框徽标、
 locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 ```
 
+## 注入台账（3.0.0）
+
+面板第 4 个分区「台账」回答的是**每次请求实际注入了什么**，数据不是从服务再推一遍，而是装配现场
+直接采下来的：
+
+| 采集点 | 拿到的内容 | 证据 |
+| --- | --- | --- |
+| 插件级 `system-prompt/assemble` waterfall（先注册，先跑，`await next()` 之后记录） | `offered`（其它监听器之前）与 `admitted`（本插件策略过滤之后）的 sections / contexts / variables；同一次装配的 `ctx.tools.schemas()` | `dsh-system-prompt/src/index.ts:125-134,205-233`；`dsh-agent-loop/src/agent.ts:300` |
+| 插件级 `agent/pre-step` waterfall（`await next()` 之后） | 该步的 turn/step 与决定注入的消息级内容（技能目录、AGENTS.md、时间、计划/目标/提醒等 `source.kind`） | `dsh-agent-loop/src/agent.ts:302,448-483`；`dsh-tool-skill/src/index.ts:281` |
+
+边界与诚实说明：
+
+- 装配 waterfall 拿到的是 `PromptPresentation`（sections/contexts/variables），**不含 tools**；
+  工具 schema 是另取 `ctx.tools.schemas(agent)`，与 `buildRequest(assembly.tools)` 同一个来源。
+- 没有 `agent` 字段的装配（面板自己的快照、诊断）**不记录**，所以打开面板不会污染台账。
+- 段落/上下文的原文写进内容寻址的 `ledger-text/<sha1>.txt`（同文只存一份，512KB 上限）；
+  消息级内容与变量**只留预览不落盘**，因为那是对话内容。
+- token 是估算（ASCII÷4 + 其他÷1.6），不是 provider 计费口径；provider usage 是另一个数。
+- 「插件能不能管」由 `lib/catalog.js` 的静态归属表给出，每条都写宿主源码包与行号；目录里没有的
+  来源一律标 `preview`，不假装能关。
+
 ## 安全边界
 
-- **所有 15 条路由入口先过宿主的准入栅栏。** `webServer.register` 前统一包一层
+- **所有 18 条路由入口先过宿主的准入栅栏。** `webServer.register` 前统一包一层
   `makeFencedHandler(ctx, handler)`：每个请求先问 `ctx.connection.requestRejection(req)`
   （DSH 自己的 Host/Origin 准入 + 浏览器/API 凭据）。宿主返回 `401/403` 时由栅栏直接应答
   （空 body + `nosniff`/`no-referrer`/frame-deny/`no-store`），路由逻辑、文件与策略都不执行；
@@ -264,4 +288,4 @@ locale/*.json       八语言字典（宿主展示用 meta + 客户端词条）
 | `test/health.test.mjs` | 每个 code 的触发条件、排序、summary、不产生的 code |
 | `test/tool-content.test.mjs` | 模型工具单条模式：参数校验、32KB 上限、错误 JSON |
 | `test/command.test.mjs` | `/inject` 子命令（含 health）与错误分支 |
-| `test/fence.test.mjs` | 准入栅栏：缺服务/无方法/undefined/抛错放行，401/403 拒绝且 handler 不执行，15 条路由全包，旧宿主路径仍可用 |
+| `test/fence.test.mjs` | 准入栅栏：缺服务/无方法/undefined/抛错放行，401/403 拒绝且 handler 不执行，18 条路由全包，旧宿主路径仍可用 |

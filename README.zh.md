@@ -44,6 +44,24 @@ MCP 的环境，230 个工具声明就能吃掉首轮 84k 里的约 67k。这些
 > 参考机器上关掉 REA 就砍掉新会话首轮请求的 79.6%，38 个收藏技能占 3.6%。
 > 模型侧工具 `context_injection` 按设计是只读的：它能引用数字、能读单条原文，但开关要人来点。
 
+## 3.0.0 有什么新东西
+
+2.x 回答「下一个新会话会拿到什么、哪些能关」；3.0 回答更难的那半：**这次请求实际注入了什么、逐项归谁、谁改得动。**
+
+- **注入台账**：面板第 4 个分区，每次模型请求一条记录。数据在宿主 `system-prompt/assemble` 装配
+  瀑布现场采集，不是从服务再推一遍。每条记录列出被放行的段落/上下文/工具 schema、被已保存策略
+  拦下的项（offered − admitted）、该步的消息级注入（技能目录、AGENTS.md、时间、计划/目标/提醒、
+  压缩摘要），以及估算 token 构成。
+- **逐项精确原文**：段落/上下文按内容寻址存进 `ledger-text/`，面板按需取，同一段文本只存一份；
+  **消息级内容刻意只留预览**——对话正文不落进插件的文件。
+- **每一行都有归属**：注册包、可控性（`plugin` / `protected` / `preview` / `user`）、宿主源码行号；
+  目录里没有的来源标 unknown，不假装能关。
+- **边界写在界面上**：常驻卡片列出插件管不了的注入（时间、tmux、计划/目标通知、AGENTS.md、
+  技能目录、压缩摘要）与各自的人工改法。
+- **工具模式**：`context_injection {ledger:true}` 读最近请求，`{ledger:true, entry:"<id>"}` 读单条明细。
+
+机制细节看 [全景图](docs/INJECTION-PANORAMA.md)，采集设计看 [v3 设计](docs/DESIGN-v3.md)。
+
 ## 2.3.0 有什么新东西
 
 2.3.0 把五个入口补齐。面板早就在讲同一件事，现在会话、右侧栏和设置行也从同一份快照讲同一件事，
@@ -360,14 +378,14 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
 
 ## 自查
 
-插件在 `/plugins/dsh-injection-manager` 下共 15 条路由：12 条 GET（不改策略、不改工作区文件；
+插件在 `/plugins/dsh-injection-manager` 下共 18 条路由：15 条 GET（不改策略、不改工作区文件；
 快照路由与趋势回填只会刷新本机 `stats.json`），加 3 条 POST-only——`/action` 改策略，`/boot` 与
 `/registrations` 是客户端自报诊断（这两条收到 GET 返回 405）：
 
 | 路由 | 证明什么 |
 | --- | --- |
 | `/ping` | 插件路由已注册 |
-| `/summary?session=<id>[&lang=<code>]` | 面板渲染的完整快照（`apiVersion: 2`、`healthSummary`、行内预览、`numbers`）；带 `lang` 时只回该语言加英文兜底，不带时回全部 8 份（`/locale` 用） |
+| `/summary?session=<id>[&lang=<code>]` | 面板渲染的完整快照（`apiVersion: 3`、`healthSummary`、行内预览、`numbers`）；带 `lang` 时只回该语言加英文兜底，不带时回全部 8 份（`/locale` 用） |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | 某一行背后的原文（UTF-8 安全、256KB 上限、2 秒预算） |
 | `/trend?range=all｜30d｜7d&limit=120` | 跨会话首轮趋势 + 聚合 + 覆盖率 + `backfilling` |
 | `/events?session=<id>&limit=60` | 本会话事件流与窗口信息 |
@@ -376,6 +394,9 @@ Plugins → dsh-injection-manager → Configuration 里也有）：
 | `/verify?session=<id>` | 对活着的会话重新装配一次，返回**生效后**的段落、上下文与工具名 |
 | `/diag` | 客户端模块是否进了 boot 表、最近一次应用结果、过滤器调用次数 |
 | `/policy`、`/export`、`/locale` | 策略文件状态、导出、全部 8 份字典 |
+| `/ledger?session=<id>&limit=20` | 注入台账：每次模型请求一条，含估算 token、与上次的差异、被策略拦下的项；`?entry=<id>` 返回该次请求的逐项明细 |
+| `/ledger-text?hash=<hash>` | 台账里某一项的精确原文（内容寻址；消息级内容只存预览） |
+| `/ledger-catalog` | 台账行背后的归属/可控性目录 |
 | `POST /boot`、`POST /registrations` | 客户端自报诊断（仅内存；GET 返回 405） |
 | `POST /action` | 唯一改策略入口：开关、预设、导入、撤销（仅同源 JSON） |
 

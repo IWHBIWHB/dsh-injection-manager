@@ -80,7 +80,7 @@ function invoke(handler, { method = 'GET', url = '/', headers = {}, body = '' } 
 test('without arguments the tool still returns the whole snapshot', async () => {
   const result = await run({})
   assert.equal(result.ok, true)
-  assert.equal(result.apiVersion, 2)
+  assert.equal(result.apiVersion, 3)
   assert.ok(Array.isArray(result.items) && result.items.length > 0)
   for (const item of result.items) assert.equal(typeof item.on, 'boolean', `${item.id} carries the policy on-flag`)
   assert.equal(typeof result.text, 'string')

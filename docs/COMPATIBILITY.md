@@ -48,7 +48,7 @@
 | `ctx.tools.schemas(agent)` / `restrict({ deny })` | 工具 schema 清单与裁剪 | 工具无法关闭 |
 | `ctx.agents.get(id)` / `currentInitiator()` | 面板对会话取数 | 退回到最近活跃会话 |
 | `ctx.webServer.register({ kind: 'exact' })` | 面板路由 | 面板无数据（工具与命令仍可用） |
-| `ctx.connection.requestRejection(req)` | 15 条路由入口的 Host/Origin 准入栅栏（2.0.1 起） | 跳过栅栏，路由保持 2.0.0 的旧行为（可降级，不是硬依赖） |
+| `ctx.connection.requestRejection(req)` | 18 条路由入口的 Host/Origin 准入栅栏（2.0.1 起） | 跳过栅栏，路由保持 2.0.0 的旧行为（可降级，不是硬依赖） |
 | `agent/created` 事件的 `source` | 区分新会话与恢复/压缩 | 只按 `startup` / `clear` 兜底 |
 | `ctx.get('tokenMeter').contextPressure(session)` | 窗口占用：分子（provider 报的 prompt）与分母（`contextWindow`） | 窗口卡片显示「窗口未知」，其余功能不受影响 |
 | `ctx.get('sessionProjections').snapshot(session)` 的 `contextBreakdown` | 系统 / 工具 / 消息构成 | 只显示占用条，不显示构成 |
@@ -57,7 +57,7 @@
 
 ## v2 HTTP 契约（2.0.0 起）
 
-面板与宿主之间多了一层版本协商：`GET /summary` 返回 `apiVersion: 2`。新版面板读到 v1 时显示可关掉的 gate 卡（新版洞察/内容透视/健康检查需要 v2 宿主），管理、设置与开关不受影响；v1 面板连 v2 宿主则照常工作（新增字段都是追加的）。
+面板与宿主之间多了一层版本协商：`GET /summary` 返回 `apiVersion: 3`。新版面板读到 v1 时显示可关掉的 gate 卡（新版洞察/内容透视/健康检查需要 v2 宿主），管理、设置与开关不受影响；v1 面板连 v2 宿主则照常工作（新增字段都是追加的）。
 
 v2 新增的四条只读路由与它们的宿主侧依赖：
 
@@ -70,7 +70,7 @@ v2 新增的四条只读路由与它们的宿主侧依赖：
 
 宿主版本无关：这些路由全部由插件自己实现，只用到 `0.2.2` 已有的公开服务（`agents`、`webServer`、`sessionQuery`）。
 
-**准入栅栏（2.0.1 起）**：15 条路由的每个入口先过 `ctx.connection.requestRejection(req)`——DSH 自己的 Host/Origin 准入与浏览器/API 凭据校验，不符直接 401/403 且不执行路由逻辑。`connection` 不是硬依赖：服务缺失（旧宿主/启动早期）、方法缺失或调用抛错时跳过栅栏，路由保持 2.0.0 的行为。
+**准入栅栏（2.0.1 起）**：18 条路由的每个入口先过 `ctx.connection.requestRejection(req)`——DSH 自己的 Host/Origin 准入与浏览器/API 凭据校验，不符直接 401/403 且不执行路由逻辑。`connection` 不是硬依赖：服务缺失（旧宿主/启动早期）、方法缺失或调用抛错时跳过栅栏，路由保持 2.0.0 的行为。
 
 ## 明确不可管（不是兼容性问题）
 

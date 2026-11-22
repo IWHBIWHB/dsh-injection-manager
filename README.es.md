@@ -54,6 +54,18 @@ fila** y aplica los interruptores sin tocar los archivos del usuario.
 > orientada al modelo `context_injection` es de solo lectura por diseño: puede citar números y el
 > contenido completo de un elemento, pero el interruptor lo pulsa una persona.
 
+## Novedades en 3.0.0
+
+2.x respondía «qué recibirá una sesión nueva y qué puedo desactivar». 3.0 responde la pregunta difícil: **qué inyectó realmente esta petición, punto por punto, y a quién pertenece.**
+
+- **Registro de inyección (台账)** — cuarta pestaña del panel, una entrada por petición al modelo, capturada en el waterfall `system-prompt/assemble` del host: secciones, contextos de ejecución y esquemas de herramientas admitidos, lo bloqueado por la política (offered − admitted), las inyecciones de nivel de mensaje del paso y el reparto estimado de tokens.
+- **Texto exacto por entrada** — secciones/contextos se guardan direccionados por contenido (`ledger-text/`); el nivel de mensaje queda solo como vista previa a propósito.
+- **Autoría para todo** — cada fila lleva paquete, controlabilidad (`plugin` / `protected` / `preview` / `user`) y la línea de origen del host; lo desconocido se marca unknown.
+- **El límite en la UI** — una tarjeta permanente lista lo que el plugin no controla y cómo cambiarlo.
+- **Modo herramienta** — `context_injection {ledger:true}` devuelve las últimas peticiones.
+
+Mecánica: [panorama](docs/INJECTION-PANORAMA.md); diseño: [DESIGN-v3](docs/DESIGN-v3.md).
+
 ## Novedades en 2.3.0
 
 2.3.0 completa los cinco puntos de entrada. El panel ya contaba una historia; ahora la conversación,
@@ -440,7 +452,7 @@ nada de lo leído allí se persiste.
 
 ## Autocomprobación
 
-El plugin expone 15 rutas bajo `/plugins/dsh-injection-manager`: 12 GET que nunca cambian la
+El plugin expone 18 rutas bajo `/plugins/dsh-injection-manager`: 15 GET que nunca cambian la
 política ni un archivo del workspace (las rutas de instantánea y el relleno de tendencia solo
 actualizan el `stats.json` local), más tres endpoints solo POST: `/action` cambia la política, y
 `/boot` + `/registrations` son autoinformes del cliente (un GET sobre esos dos devuelve 405):
@@ -448,7 +460,7 @@ actualizan el `stats.json` local), más tres endpoints solo POST: `/action` camb
 | Ruta | Qué demuestra |
 | --- | --- |
 | `/ping` | El plugin registró sus rutas |
-| `/summary?session=<id>[&lang=<code>]` | La instantánea que renderiza el panel (`apiVersion: 2`, `healthSummary`, vistas previas de elementos, `numbers`); con `lang`, ese diccionario más inglés; sin él, los ocho (lo que usa `/locale`) |
+| `/summary?session=<id>[&lang=<code>]` | La instantánea que renderiza el panel (`apiVersion: 3`, `healthSummary`, vistas previas de elementos, `numbers`); con `lang`, ese diccionario más inglés; sin él, los ocho (lo que usa `/locale`) |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | El contenido original detrás de una fila (seguro para UTF-8, límite de 256 KB, presupuesto de 2 s) |
 | `/trend?range=all｜30d｜7d&limit=120` | Tendencia del primer turno entre sesiones + agregado + cobertura + `backfilling` |
 | `/events?session=<id>&limit=60` | El flujo de eventos de la sesión con su ventana |
@@ -457,6 +469,9 @@ actualizan el `stats.json` local), más tres endpoints solo POST: `/action` camb
 | `/verify?session=<id>` | Vuelve a ensamblar una sesión activa y devuelve las secciones, los contextos y los nombres de herramientas **efectivos** |
 | `/diag` | Presencia del módulo de cliente, último resultado de aplicación, cuántas veces se ejecutó el filtro de ensamblado |
 | `/policy`, `/export`, `/locale` | Estado del archivo de política, exportaciones, los ocho diccionarios |
+| `/ledger?session=<id>&limit=20` | Registro de inyección: una entrada por petición al modelo con totales, deltas y bloqueados; `?entry=<id>` devuelve la lista de esa petición |
+| `/ledger-text?hash=<hash>` | Texto exacto de una entrada registrada (direccionado por contenido; el nivel de mensaje solo guarda vista previa) |
+| `/ledger-catalog` | Catálogo de autoría y controlabilidad detrás de las filas del registro |
 | `POST /boot`, `POST /registrations` | Autoinformes del cliente (solo en memoria; GET devuelve 405) |
 | `POST /action` | La única vía de escritura de política: interruptor, preajuste, importación, deshacer (solo JSON del mismo origen) |
 

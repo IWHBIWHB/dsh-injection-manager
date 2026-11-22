@@ -55,6 +55,18 @@ und setzt die Schalter um, ohne Dateien anzufassen.
 > schreibgeschützt: Es kann Zahlen und den Volltext eines Eintrags zitieren, aber den Schalter
 > drückt ein Mensch.
 
+## Neu in 3.0.0
+
+2.x beantwortete „was bekommt eine neue Sitzung, und was davon kann ich abschalten“. 3.0 beantwortet die schwierigere Frage: **was hat diese Anfrage tatsächlich injiziert, Punkt für Punkt, und wem gehört es.**
+
+- **Injection-Ledger (台账)** — ein vierter Panel-Tab, ein Datensatz pro Modellanfrage, erfasst am `system-prompt/assemble`-Waterfall des Hosts: aufgenommene Abschnitte, Laufzeit-Kontexte und Tool-Schemas, die von der Richtlinie blockierten Einträge (offered − admitted), die nachrichtenebenen Injektionen des Schritts und die geschätzte Token-Aufteilung.
+- **Exakter Text pro Eintrag** — Abschnitte/Kontexte werden inhaltsadressiert gespeichert (`ledger-text/`); Nachrichtenebene bleibt bewusst nur Vorschau, Gesprächstext landet nicht in Plugin-Dateien.
+- **Herkunft für alles** — jede Zeile trägt Paket, Kontrollierbarkeit (`plugin` / `protected` / `preview` / `user`) und die Host-Quellzeile; Unbekanntes wird als unknown gemeldet statt als schaltbar behauptet.
+- **Die Grenze in der UI** — eine ständige Karte listet, was das Plugin nicht steuern kann (Zeit, tmux, Plan-/Ziel-Hinweise, AGENTS.md, Skill-Katalog, Kompaktierungs-Zusammenfassung) und wie man es ändert.
+- **Werkzeugmodus** — `context_injection {ledger:true}` liefert die letzten Anfragen, `{ledger:true, entry:"<id>"}` eine Anfrage im Detail.
+
+Mechanik: [Panorama](docs/INJECTION-PANORAMA.md), Entwurf: [DESIGN-v3](docs/DESIGN-v3.md).
+
 ## Neu in 2.3.0
 
 2.3.0 vervollständigt die fünf Einstiegspunkte. Das Panel erzählte bereits eine Geschichte; nun
@@ -448,7 +460,7 @@ registriert hat, und nichts davon Gelesenes wird persistiert.
 
 ## Selbstprüfung
 
-Das Plugin stellt 15 Routen unter `/plugins/dsh-injection-manager` bereit: 12 GETs, die nie die
+Das Plugin stellt 18 Routen unter `/plugins/dsh-injection-manager` bereit: 15 GETs, die nie die
 Richtlinie oder eine Workspace-Datei ändern (Snapshot-Routen und das Nachfüllen des Verlaufs
 aktualisieren nur die lokale `stats.json`), plus drei reine POST-Endpunkte — `/action` ändert die
 Richtlinie, und `/boot` + `/registrations` sind Selbstmeldungen des Clients (ein GET auf die beiden
@@ -457,7 +469,7 @@ liefert 405):
 | Route | Was sie belegt |
 | --- | --- |
 | `/ping` | Das Plugin hat seine Routen registriert |
-| `/summary?session=<id>[&lang=<code>]` | Der Snapshot, den das Panel rendert (`apiVersion: 2`, `healthSummary`, Eintrags-Vorschauen, `numbers`); mit `lang` jenem Wörterbuch plus Englisch — ohne es alle acht (was `/locale` nutzt) |
+| `/summary?session=<id>[&lang=<code>]` | Der Snapshot, den das Panel rendert (`apiVersion: 3`, `healthSummary`, Eintrags-Vorschauen, `numbers`); mit `lang` jenem Wörterbuch plus Englisch — ohne es alle acht (was `/locale` nutzt) |
 | `/content?channel=<id>&id=<itemId>[&session=<id>]` | Originalinhalt hinter einer Zeile (UTF-8-sicher, Obergrenze 256 KB, 2 s Budget) |
 | `/trend?range=all｜30d｜7d&limit=120` | Sitzungsübergreifender Verlauf der ersten Runde + Aggregat + Abdeckung + `backfilling` |
 | `/events?session=<id>&limit=60` | Das Ereignis-Feed der Sitzung mit seinem Zeitfenster |
@@ -466,6 +478,9 @@ liefert 405):
 | `/verify?session=<id>` | Setzt eine laufende Sitzung neu zusammen und liefert die **wirksamen** Abschnitte, Kontexte und Werkzeugnamen |
 | `/diag` | Vorhandensein des Client-Moduls, letztes Anwendungsergebnis, wie oft der Assemble-Filter lief |
 | `/policy`, `/export`, `/locale` | Zustand der Richtliniendatei, Exporte, alle acht Wörterbücher |
+| `/ledger?session=<id>&limit=20` | Injection-Ledger: ein Datensatz pro Modellanfrage mit Summen, Deltas und blockierten Einträgen; `?entry=<id>` liefert die Liste des Datensatzes |
+| `/ledger-text?hash=<hash>` | Exakter Text eines erfassten Eintrags (inhaltsadressiert; Nachrichtenebene nur Vorschau) |
+| `/ledger-catalog` | Katalog von Herkunft und Kontrollierbarkeit hinter den Ledger-Zeilen |
 | `POST /boot`, `POST /registrations` | Selbstmeldungen des Clients (nur im Speicher; GET liefert 405) |
 | `POST /action` | Der einzige Schreibpfad der Richtlinie: Schalter, Voreinstellung, Import, Rückgängig (nur Same-Origin-JSON) |
 

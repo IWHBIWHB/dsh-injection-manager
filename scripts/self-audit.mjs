@@ -44,7 +44,9 @@ const SIZE_BUDGETS = {
   // 2.3.2 moved the `/inject` surface from the host command registry into
   // client.js (popup list, actions, suite rows), so the browser half carries
   // that markup and its bilingual strings now.
-  clientBytes: 276 * 1024,
+  // 3.0.0 adds the ledger tab: per-request history, item detail, exact-text
+  // panel and the unmanaged-surface reference (about 20 KB of client code).
+  clientBytes: 304 * 1024,
   enLocaleBytes: 24 * 1024,
   // The 2.3.0 README set is eight languages, so the packaged docs grew by ~210 KB.
   filesBytes: 3 * 1024 * 1024,

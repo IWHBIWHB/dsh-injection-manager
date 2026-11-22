@@ -117,7 +117,7 @@ test('makeFencedHandler skips the handler on rejection and passes through otherw
   assert.equal(runs, 2)
 })
 
-test('apply() registers exactly the 15 routes and every one is fenced', async () => {
+test('apply() registers exactly the documented routes and every one is fenced', async () => {
   const registered = []
   let rejections = 0
   const connection = {
@@ -147,7 +147,7 @@ test('apply() registers exactly the 15 routes and every one is fenced', async ()
   apply(ctx, {})
 
   assert.equal(registered.length, Object.keys(ROUTES).length)
-  assert.equal(registered.length, 15, 'all routes, including the legacy ones, go through the fence')
+  assert.equal(registered.length, 18, 'all routes, including the legacy ones, go through the fence')
   for (const route of registered) {
     assert.equal(route.kind, 'exact')
     const res = makeRes()
